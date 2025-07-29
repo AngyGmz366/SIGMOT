@@ -1,33 +1,74 @@
-.bus-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr); /* 4 columnas como un bus */
-  gap: 1rem;
-  padding: 1rem 0;
+/* Contenedor general del bus */
+.bus-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
 }
 
-.asiento {
-  background-color: #e0f7fa;
-  border-radius: 8px;
-  padding: 0.75rem;
-  text-align: center;
+/* Área del conductor */
+.conductor-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.emoji-bus {
+  font-size: 2.5rem;
+  background: #ffeb3b;
+  border-radius: 12px;
+  padding: 0.4rem;
+}
+
+.texto-conductor {
+  font-size: 0.9rem;
+  margin-top: 0.3rem;
   font-weight: bold;
-  cursor: default;
-  transition: transform 0.2s;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
-.asiento:hover {
-  transform: scale(1.05);
+/* Grid de asientos con pasillo */
+.asientos-container {
+  display: grid;
+  grid-template-columns: repeat(5, auto);
+  grid-gap: 1rem;
+  align-items: center;
+}
+
+/* Estilos de los asientos */
+.asiento {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  cursor: pointer;
 }
 
 .asiento.disponible {
-  background-color: #d9fdd3;
-  border: 2px solid #4caf50;
-  color: #2e7d32;
+  background-color: #4CAF50;
+  color: white;
 }
 
 .asiento.ocupado {
-  background-color: #ffebee;
-  border: 2px solid #f44336;
-  color: #c62828;
+  background-color: #F44336;
+  color: white;
+}
+
+/* Pasillo central más ancho */
+.pasillo {
+  width: 28px;
+  height: 48px;
+  background-color: #ddd;
+  border-radius: 6px;
+}
+
+/* Leyenda */
+.leyenda {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
 }
