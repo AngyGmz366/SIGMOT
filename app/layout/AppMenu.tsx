@@ -12,9 +12,42 @@ const AppMenu = () => {
 
     const model: AppMenuItem[] = [
         {
-            label: 'Home',
+            label: 'Homea',
             items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/' }]
         },
+
+
+
+
+
+////////////////////////////PERSONAS //////////////////////////////////////////////////////////////////////
+{
+    label: 'Personas',
+    items: [
+        { label: 'Personas', icon: 'pi pi-fw pi-users', to: '/pages/personas' },
+
+    ]
+},
+
+ /////////////////////////////////////////////////////////////////////////////////////////////////////////////.
+
+ ////////////////////////////CLIENTES //////////////////////////////////////////////////////////////////////
+{
+    label: 'Clientes',
+    items: [
+        { label: 'Clientes', icon: 'pi pi-fw pi-users', to: '/pages/clientes' },
+
+    ]
+},
+
+ /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+        
+
+
+
+ 
         {
             label: 'UI Components',
             items: [
