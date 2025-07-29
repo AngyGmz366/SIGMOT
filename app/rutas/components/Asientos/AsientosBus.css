@@ -1,0 +1,33 @@
+.bus-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* 4 columnas como un bus */
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.asiento {
+  background-color: #e0f7fa;
+  border-radius: 8px;
+  padding: 0.75rem;
+  text-align: center;
+  font-weight: bold;
+  cursor: default;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.asiento:hover {
+  transform: scale(1.05);
+}
+
+.asiento.disponible {
+  background-color: #d9fdd3;
+  border: 2px solid #4caf50;
+  color: #2e7d32;
+}
+
+.asiento.ocupado {
+  background-color: #ffebee;
+  border: 2px solid #f44336;
+  color: #c62828;
+}

@@ -27,7 +27,8 @@
       "@/*": [
         "./*"
       ]
-    }
+    },
+    "types": ["leaflet", "react-leaflet"]
   },
   "include": [
     "next-env.d.ts",
