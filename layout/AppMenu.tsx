@@ -15,6 +15,7 @@ const AppMenu = () => {
             label: 'Home',
             items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/' }]
         },
+
         {
             label: 'UI Components',
             items: [
@@ -85,6 +86,11 @@ const AppMenu = () => {
                     label: 'Crud',
                     icon: 'pi pi-fw pi-pencil',
                     to: '/pages/crud'
+                },
+                {
+                    label: 'Empleados',
+                    icon: 'pi pi-fw pi-pencil',
+                    to: '/pages/Empleados'
                 },
                 {
                     label: 'Timeline',
