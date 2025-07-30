@@ -92,7 +92,7 @@ const AppMenu = () => {
                 {
                     label: 'Rutas',
                     icon: 'pi pi-fw pi-map',
-                    to: '/rutas-admin'
+                    to: '/admin/rutas-admin'
                 }
             ]
         },
