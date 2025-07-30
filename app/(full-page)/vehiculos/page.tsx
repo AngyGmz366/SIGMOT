@@ -4,9 +4,6 @@ import React from 'react'
 import { DataTable } from 'primereact/datatable'
 import { Column } from 'primereact/column'
 import { Button } from 'primereact/button'
-import { redirect } from 'next/navigation';
-
-
 
 const VehiculosPage = () => {
   const vehiculos = [
@@ -36,6 +33,4 @@ const VehiculosPage = () => {
   )
 }
 
-export default function Home() {
-  redirect('/(full-page)/vehiculos');
-}
+export default VehiculosPage
