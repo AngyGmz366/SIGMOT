@@ -15,6 +15,7 @@ const AppMenu = () => {
             label: 'Home',
             items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/' }]
         },
+
         {
             label: 'UI Components',
             items: [
@@ -47,7 +48,8 @@ const AppMenu = () => {
             label: 'Utilities',
             items: [
                 { label: 'PrimeIcons', icon: 'pi pi-fw pi-prime', to: '/utilities/icons' },
-                { label: 'PrimeFlex', icon: 'pi pi-fw pi-desktop', url: 'https://primeflex.org/', target: '_blank' }
+                { label: 'PrimeFlex', icon: 'pi pi-fw pi-desktop', url: 'https://primeflex.org/', target: '_blank' },
+                { label: 'Reportes', icon: 'pi pi-chart-line', to: '/pages/Reportes' },
             ]
         },
         {
@@ -87,6 +89,11 @@ const AppMenu = () => {
                     to: '/pages/crud'
                 },
                 {
+                    label: 'Empleados',
+                    icon: 'pi pi-fw pi-pencil',
+                    to: '/pages/Empleados'
+                },
+                {
                     label: 'Timeline',
                     icon: 'pi pi-fw pi-calendar',
                     to: '/pages/timeline'
@@ -96,6 +103,16 @@ const AppMenu = () => {
                     icon: 'pi pi-fw pi-exclamation-circle',
                     to: '/pages/notfound'
                 },
+                {
+                    label: 'Reportes',
+                    icon: 'pi pi-chart-bar',
+                    to: '/reportes'
+                  },
+                  {
+                    label: 'Vehículos',
+                    icon: 'pi pi-car',
+                    to: '/vehiculos'
+                  },
                 {
                     label: 'Empty',
                     icon: 'pi pi-fw pi-circle-off',
