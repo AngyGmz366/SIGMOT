@@ -1,11 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { obtenerRutasMock } from '@/app/rutas/acciones/rutas.acciones';
-import { Ruta } from '@/app/rutas/Types/rutas.types';
+
+// Importaciones corregidas para la estructura real
+import { obtenerRutasMock } from '@/app/(main)/cliente/rutas/acciones/rutas.acciones';
+import { Ruta } from '@/app/(main)/cliente/rutas/Types/rutas.types';
+
 import RutasAdminTable from './components/RutasAdminTable';
 import FormularioRuta from './components/FormularioRuta';
-import MapaInteractivo from '@/app/rutas/components/MapaInteractivo';
+import MapaInteractivo from '@/app/(main)/cliente/rutas/components/MapaInteractivo';
 
 const PageAdminRutas: React.FC = () => {
   const rutasDisponibles = obtenerRutasMock();
