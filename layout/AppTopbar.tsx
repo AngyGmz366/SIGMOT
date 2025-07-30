@@ -20,10 +20,19 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
 
     return (
         <div className="layout-topbar">
-            <Link href="/" className="layout-topbar-logo">
-                <img src={`/layout/images/logo-${layoutConfig.colorScheme !== 'light' ? 'white' : 'dark'}.svg`} width="47.22px" height={'35px'} alt="logo" />
-                <span>SAKAI</span>
+           <Link href="/" className="layout-topbar-logo" style={{ display: 'flex', alignItems: 'center' }}>
+                <img
+                    src="/demo/images/login/LOGO-SIGMOT.png"
+                    alt="Logo SIGMOT"
+                    style={{
+                        width: '100px',       // 3 veces más grande
+                        height: 'auto',
+                        maxWidth: 'none'      // <-- evita que el CSS global lo limite
+                    }}
+                />
+                
             </Link>
+
 
             <button ref={menubuttonRef} type="button" className="p-link layout-menu-button layout-topbar-button" onClick={onMenuToggle}>
                 <i className="pi pi-bars" />
