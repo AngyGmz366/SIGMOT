@@ -5,20 +5,12 @@ import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Tag } from 'primereact/tag';
 import { Button } from 'primereact/button';
-
-interface Incidencia {
-  id: number;
-  titulo: string;
-  categoria: string;
-  descripcion: string;
-  fecha: string;
-  estado: string;
-}
+import { Incidencia } from '../types';
 
 interface Props {
   incidencias: Incidencia[];
   onVerDetalle: (incidencia: Incidencia) => void;
-  onCambiarEstado: (id: number, nuevoEstado: string) => void;
+  onCambiarEstado: (id: number, nuevoEstado: Incidencia['estado']) => void;
 }
 
 const IncidenciasAdminTable: React.FC<Props> = ({ incidencias, onVerDetalle, onCambiarEstado }) => {

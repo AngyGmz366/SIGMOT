@@ -40,6 +40,7 @@ const RegistroUsuario = () => {
     return (
         <div className="flex justify-content-center align-items-center min-h-screen bg-gray-100 p-4">
             <div className="surface-card p-5 shadow-2 border-round w-full md:w-10 bg-white" style={{ maxWidth: '1200px' }}>
+                
                <div className="flex justify-content-center mb-4">
                     <img
                         src="/demo/images/login/LOGO-SIGMOT.png"

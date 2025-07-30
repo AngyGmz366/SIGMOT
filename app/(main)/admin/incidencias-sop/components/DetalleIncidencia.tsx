@@ -3,15 +3,7 @@
 import React from 'react';
 import { Dialog } from 'primereact/dialog';
 import { Button } from 'primereact/button';
-
-interface Incidencia {
-  id: number;
-  titulo: string;
-  categoria: string;
-  descripcion: string;
-  fecha: string;
-  estado: string;
-}
+import { Incidencia } from '../types';
 
 interface Props {
   incidencia: Incidencia | null;

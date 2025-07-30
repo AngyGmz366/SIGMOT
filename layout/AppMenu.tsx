@@ -15,8 +15,7 @@ const AppMenu = () => {
             label: 'Home',
             items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/' }]
         },
-
-        {
+        /*{
             label: 'UI Components',
             items: [
                 { label: 'Form Layout', icon: 'pi pi-fw pi-id-card', to: '/uikit/formlayout' },
@@ -51,76 +50,70 @@ const AppMenu = () => {
                 { label: 'PrimeFlex', icon: 'pi pi-fw pi-desktop', url: 'https://primeflex.org/', target: '_blank' },
                 { label: 'Reportes', icon: 'pi pi-chart-line', to: '/pages/Reportes' },
             ]
-        },
+        },*/
         {
             label: 'Pages',
             icon: 'pi pi-fw pi-briefcase',
             to: '/pages',
             items: [
-                {
-                    label: 'Landing',
-                    icon: 'pi pi-fw pi-globe',
-                    to: '/landing'
-                },
+               // { label: 'Landing', icon: 'pi pi-fw pi-globe', to: '/landing' },
                 {
                     label: 'Auth',
                     icon: 'pi pi-fw pi-user',
                     items: [
-                        {
-                            label: 'Login',
-                            icon: 'pi pi-fw pi-sign-in',
-                            to: '/auth/login'
-                        },
-                        {
-                            label: 'Error',
-                            icon: 'pi pi-fw pi-times-circle',
-                            to: '/auth/error'
-                        },
-                        {
-                            label: 'Access Denied',
-                            icon: 'pi pi-fw pi-lock',
-                            to: '/auth/access'
-                        }
+                        { label: 'Login', icon: 'pi pi-fw pi-sign-in', to: '/auth/login' },
+                       // { label: 'Error', icon: 'pi pi-fw pi-times-circle', to: '/auth/error' },
+                       // { label: 'Access Denied', icon: 'pi pi-fw pi-lock', to: '/auth/access' }
                     ]
                 },
+               // { label: 'Crud', icon: 'pi pi-fw pi-pencil', to: '/pages/crud' },
+                { label: 'Empleados', icon: 'pi pi-fw pi-pencil', to: '/pages/Empleados' },
+               // { label: 'Timeline', icon: 'pi pi-fw pi-calendar', to: '/pages/timeline' },
+               // { label: 'Not Found', icon: 'pi pi-fw pi-exclamation-circle', to: '/pages/notfound' },
+                { label: 'Reportes', icon: 'pi pi-chart-bar', to: '/reportes' },
+                { label: 'Vehículos', icon: 'pi pi-car', to: '/vehiculos' },
+               // { label: 'Empty', icon: 'pi pi-fw pi-circle-off', to: '/pages/empty' }
+            ]
+        },
+        {
+            label: 'Admin',
+            icon: 'pi pi-fw pi-cog',
+            items: [
                 {
-                    label: 'Crud',
-                    icon: 'pi pi-fw pi-pencil',
-                    to: '/pages/crud'
+                    label: 'Incidencias  y Soporte',
+                    icon: 'pi pi-fw pi-exclamation-triangle',
+                    to: '/admin/incidencias-sop'
                 },
                 {
-                    label: 'Empleados',
-                    icon: 'pi pi-fw pi-pencil',
-                    to: '/pages/Empleados'
-                },
-                {
-                    label: 'Timeline',
+                    label: 'Reservaciones',
                     icon: 'pi pi-fw pi-calendar',
-                    to: '/pages/timeline'
+                    to: '/admin/reservaciones'
                 },
                 {
-                    label: 'Not Found',
-                    icon: 'pi pi-fw pi-exclamation-circle',
-                    to: '/pages/notfound'
-                },
-                {
-                    label: 'Reportes',
-                    icon: 'pi pi-chart-bar',
-                    to: '/reportes'
-                  },
-                  {
-                    label: 'Vehículos',
-                    icon: 'pi pi-car',
-                    to: '/vehiculos'
-                  },
-                {
-                    label: 'Empty',
-                    icon: 'pi pi-fw pi-circle-off',
-                    to: '/pages/empty'
+                    label: 'Rutas',
+                    icon: 'pi pi-fw pi-map',
+                    to: '/admin/rutas'
                 }
             ]
         },
         {
+            label: 'Cliente',
+            icon: 'pi pi-fw pi-users',
+            items: [
+                {
+                    label: 'Incidencias y Soporte',
+                    icon: 'pi pi-fw pi-exclamation-triangle',
+                    to: '/cliente/incidencias-soporte'
+                },
+                {
+                    label: 'Rutas',
+                    icon: 'pi pi-fw pi-map',
+                    to: '/cliente/rutas'
+                }
+            ]
+        }
+
+       /* {
             label: 'Hierarchy',
             items: [
                 {
@@ -163,8 +156,8 @@ const AppMenu = () => {
                     ]
                 }
             ]
-        },
-        {
+        },*/
+        /*{
             label: 'Get Started',
             items: [
                 {
@@ -185,7 +178,7 @@ const AppMenu = () => {
                     target: '_blank'
                 }
             ]
-        }
+        }*/
     ];
 
     return (
@@ -195,9 +188,7 @@ const AppMenu = () => {
                     return !item?.seperator ? <AppMenuitem item={item} root={true} index={i} key={item.label} /> : <li className="menu-separator"></li>;
                 })}
 
-                <Link href="https://blocks.primereact.org" target="_blank" style={{ cursor: 'pointer' }}>
-                    <img alt="Prime Blocks" className="w-full mt-3" src={`/layout/images/banner-primeblocks${layoutConfig.colorScheme === 'light' ? '' : '-dark'}.png`} />
-                </Link>
+               
             </ul>
         </MenuProvider>
     );
