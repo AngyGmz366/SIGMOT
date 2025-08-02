@@ -93,6 +93,11 @@ const AppMenu = () => {
                     to: '/pages/Empleados'
                 },
                 {
+                    label: 'MantenimientoTransporte',
+                    icon: 'pi pi-fw pi-pencil',
+                    to: '/pages/MantenimientoTransporte'
+                },
+                {
                     label: 'Timeline',
                     icon: 'pi pi-fw pi-calendar',
                     to: '/pages/timeline'
