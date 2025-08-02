@@ -26,7 +26,10 @@
     "paths": {
       "@/*": [
         "./*"
-      ]
+      ], 
+      "@/app/*": [
+        "./app/*"
+      ],
     },
     "types": ["leaflet", "react-leaflet"]
   },

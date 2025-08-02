@@ -3,15 +3,14 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet'
 import { Ruta } from '../Types/rutas.types';
 import L from 'leaflet';
 import { Card } from 'primereact/card';
-
 import 'leaflet/dist/leaflet.css';
 
-// Fix para íconos de Leaflet
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
-  iconUrl: require('leaflet/dist/images/marker-icon.png'),
-  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+// Icono personalizado de bus
+const busIcon = new L.Icon({
+  iconUrl: 'https://cdn-icons-png.flaticon.com/512/8390/8390779.png', // Debes colocar tu imagen en public/icons/bus-marker.png
+  iconSize: [38, 38],
+  iconAnchor: [19, 38],
+  popupAnchor: [0, -38],
 });
 
 interface MapaInteractivoProps {
@@ -23,14 +22,14 @@ const MapaInteractivo: React.FC<MapaInteractivoProps> = ({ ruta }) => {
 
   return (
     <Card title="Mapa de Ruta" className="shadow-2 mb-4">
-      {/* Mostrar tiempo estimado si existe */}
       {ruta?.tiempoEstimado && (
         <div className="px-3 pt-2 pb-0 text-sm text-primary font-medium">
           ⏱ Tiempo estimado: <span className="text-color">{ruta.tiempoEstimado}</span>
         </div>
       )}
 
-      <div style={{ height: '500px', width: '100%' }}>
+      {/* Ajuste responsive */}
+      <div style={{ height: '50vh', minHeight: '300px', width: '100%' }}>
         <MapContainer
           center={posicionInicial}
           zoom={7}
@@ -39,8 +38,8 @@ const MapaInteractivo: React.FC<MapaInteractivoProps> = ({ ruta }) => {
           scrollWheelZoom
           style={{ height: '100%', width: '100%' }}
           maxBounds={[
-            [12.9800, -89.3500], // suroeste (frontera con El Salvador)
-            [16.0200, -83.1300], // noreste (cerca de La Mosquitia)
+            [12.9800, -89.3500], // suroeste
+            [16.0200, -83.1300], // noreste
           ]}
           maxBoundsViscosity={1.0}
         >
@@ -49,7 +48,7 @@ const MapaInteractivo: React.FC<MapaInteractivoProps> = ({ ruta }) => {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          {/* Dibuja la línea de la ruta */}
+          {/* Línea de ruta */}
           {ruta?.coordenadas && (
             <Polyline
               positions={ruta.coordenadas}
@@ -59,9 +58,9 @@ const MapaInteractivo: React.FC<MapaInteractivoProps> = ({ ruta }) => {
             />
           )}
 
-          {/* Coloca marcadores en cada parada */}
+          {/* Marcadores en paradas */}
           {ruta?.paradas?.map((parada, index) => (
-            <Marker key={index} position={parada.posicion}>
+            <Marker key={index} position={parada.posicion} icon={busIcon}>
               <Popup>
                 <strong>{parada.nombre}</strong><br />
                 Horarios: {parada.horario.join(', ')}<br />

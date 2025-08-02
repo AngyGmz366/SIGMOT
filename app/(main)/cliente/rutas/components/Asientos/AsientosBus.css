@@ -1,74 +1,85 @@
-/* Contenedor general del bus */
 .bus-layout {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 1rem;
 }
 
-/* Área del conductor */
 .conductor-area {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 1.5rem;
+  text-align: center;
+  margin-bottom: 1rem;
 }
 
 .emoji-bus {
-  font-size: 2.5rem;
-  background: #ffeb3b;
-  border-radius: 12px;
-  padding: 0.4rem;
+  font-size: 2rem;
+  display: block;
 }
 
 .texto-conductor {
+  font-weight: 600;
   font-size: 0.9rem;
-  margin-top: 0.3rem;
-  font-weight: bold;
 }
 
-/* Grid de asientos con pasillo */
 .asientos-container {
   display: grid;
-  grid-template-columns: repeat(5, auto);
-  grid-gap: 1rem;
-  align-items: center;
+  grid-template-columns: repeat(5, 48px);
+  gap: 10px;
+  justify-content: center;
 }
 
-/* Estilos de los asientos */
 .asiento {
   width: 48px;
   height: 48px;
-  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 6px;
   font-weight: bold;
-  cursor: pointer;
+  cursor: default;
+  transition: transform 0.2s ease-in-out;
 }
 
 .asiento.disponible {
-  background-color: #4CAF50;
+  background-color: #42c18a; /* Morado */
   color: white;
 }
 
 .asiento.ocupado {
-  background-color: #F44336;
+  background-color: #dc3545; /* Rojo */
   color: white;
 }
 
-/* Pasillo central más ancho */
-.pasillo {
-  width: 28px;
-  height: 48px;
-  background-color: #ddd;
-  border-radius: 6px;
+.asiento:hover {
+  transform: scale(1.05);
 }
 
-/* Leyenda */
+.pasillo {
+  width: 48px;
+  height: 48px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+}
+
 .leyenda {
   display: flex;
   justify-content: center;
-  gap: 1rem;
   margin-top: 1rem;
+}
+
+/* Responsivo */
+@media (max-width: 500px) {
+  .asientos-container {
+    grid-template-columns: repeat(5, 38px);
+    gap: 6px;
+  }
+
+  .asiento {
+    width: 38px;
+    height: 38px;
+    font-size: 0.8rem;
+  }
+
+  .pasillo {
+    width: 38px;
+    height: 38px;
+  }
 }
