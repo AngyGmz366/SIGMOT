@@ -68,6 +68,11 @@ const AppMenu = () => {
                 },
                // { label: 'Crud', icon: 'pi pi-fw pi-pencil', to: '/pages/crud' },
                 { label: 'Empleados', icon: 'pi pi-fw pi-pencil', to: '/pages/Empleados' },
+                { label: 'Personas', icon: 'pi pi-fw pi-id-card', to: '/pages/Personas' },
+                { label: 'Clientes', icon: 'pi pi-fw pi-users', to: '/pages/Clientes' },
+                
+
+
                // { label: 'Timeline', icon: 'pi pi-fw pi-calendar', to: '/pages/timeline' },
                // { label: 'Not Found', icon: 'pi pi-fw pi-exclamation-circle', to: '/pages/notfound' },
                 { label: 'Reportes', icon: 'pi pi-chart-bar', to: '/reportes' },
