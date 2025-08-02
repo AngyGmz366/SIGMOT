@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Ruta } from '@/app/(main)/cliente/rutas/Types/rutas.types';
 import { InputText } from 'primereact/inputtext';
-import { Dropdown } from 'primereact/dropdown';
+import { Dropdown, DropdownChangeEvent } from 'primereact/dropdown';
 import { Button } from 'primereact/button';
 import { Card } from 'primereact/card';
 
@@ -36,7 +36,7 @@ const FormularioRuta: React.FC<FormularioRutaProps> = ({ ruta, onGuardar, onCerr
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleEstadoChange = (e: any) => {
+  const handleEstadoChange = (e: DropdownChangeEvent) => {
     setFormData(prev => ({ ...prev, estado: e.value }));
   };
 
@@ -46,8 +46,12 @@ const FormularioRuta: React.FC<FormularioRutaProps> = ({ ruta, onGuardar, onCerr
   };
 
   return (
-    <Card title={ruta ? 'Editar Ruta' : 'Nueva Ruta'} className="shadow-2 border-round-xl">
+    <Card
+      title={ruta ? 'Editar Ruta' : 'Nueva Ruta'}
+      className="shadow-2 border-round-xl"
+    >
       <form onSubmit={handleSubmit} className="p-fluid grid formgrid">
+        
         <div className="field col-12 md:col-6">
           <label htmlFor="id" className="font-medium">ID</label>
           <InputText
@@ -103,6 +107,7 @@ const FormularioRuta: React.FC<FormularioRutaProps> = ({ ruta, onGuardar, onCerr
               { label: 'Inactivo', value: 'inactivo' }
             ]}
             onChange={handleEstadoChange}
+            className="w-full"
           />
         </div>
 
@@ -119,8 +124,19 @@ const FormularioRuta: React.FC<FormularioRutaProps> = ({ ruta, onGuardar, onCerr
         </div>
 
         <div className="col-12 flex justify-end gap-2 mt-3">
-          <Button type="submit" label="Guardar" icon="pi pi-check" className="p-button-sm p-button-primary" />
-          <Button type="button" label="Cancelar" icon="pi pi-times" className="p-button-sm p-button-secondary" onClick={onCerrar} />
+          <Button
+            type="submit"
+            label="Guardar"
+            icon="pi pi-check"
+            className="p-button-sm p-button-primary"
+          />
+          <Button
+            type="button"
+            label="Cancelar"
+            icon="pi pi-times"
+            className="p-button-sm p-button-secondary"
+            onClick={onCerrar}
+          />
         </div>
       </form>
     </Card>

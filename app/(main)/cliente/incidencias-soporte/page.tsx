@@ -1,4 +1,5 @@
 'use client';
+
 import React, { useState } from 'react';
 import { Card } from 'primereact/card';
 import { Dropdown } from 'primereact/dropdown';
@@ -32,6 +33,7 @@ export default function PageIncidenciasSop() {
 
   return (
     <div className="p-4 space-y-6">
+      {/* Encabezado */}
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-3xl font-bold text-gray-800">Incidencias y Soporte</h2>
         <Button
@@ -43,10 +45,11 @@ export default function PageIncidenciasSop() {
         />
       </div>
 
+      {/* Formulario */}
       <Card className="shadow-2 border-round-xl p-4">
         <div className="grid formgrid p-fluid">
           <div className="field col-12 md:col-4">
-            <label htmlFor="tipo">Tipo de incidencia</label>
+            <label htmlFor="tipo" className="font-medium">Tipo de incidencia</label>
             <Dropdown
               id="tipo"
               value={tipo}
@@ -57,7 +60,7 @@ export default function PageIncidenciasSop() {
           </div>
 
           <div className="field col-12 md:col-8">
-            <label htmlFor="descripcion">Descripción</label>
+            <label htmlFor="descripcion" className="font-medium">Descripción</label>
             <InputTextarea
               id="descripcion"
               rows={2}
@@ -69,6 +72,7 @@ export default function PageIncidenciasSop() {
         </div>
       </Card>
 
+      {/* Tabla */}
       <Card title="Mis incidencias" className="shadow-2 border-round-xl">
         <DataTable value={incidencias} paginator rows={5} responsiveLayout="scroll">
           <Column field="id" header="ID" style={{ width: '60px' }} />
