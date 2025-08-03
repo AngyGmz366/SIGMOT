@@ -14,6 +14,7 @@ interface Props {
 }
 
 const IncidenciasAdminTable: React.FC<Props> = ({ incidencias, onVerDetalle, onCambiarEstado }) => {
+  
   const estadoTemplate = (rowData: Incidencia) => {
     const severity =
       rowData.estado === 'Resuelto'
@@ -21,17 +22,33 @@ const IncidenciasAdminTable: React.FC<Props> = ({ incidencias, onVerDetalle, onC
         : rowData.estado === 'En Progreso'
         ? 'info'
         : 'warning';
-    return <Tag value={rowData.estado} severity={severity} />;
+    return (
+      <Tag
+        value={rowData.estado}
+        severity={severity}
+        style={{
+          fontWeight: 'bold',
+          padding: '4px 8px',
+          borderRadius: '8px',
+          fontSize: '0.85rem'
+        }}
+      />
+    );
   };
 
   const accionesTemplate = (rowData: Incidencia) => (
-    <div className="flex gap-2">
-      <Button icon="pi pi-eye" rounded outlined onClick={() => onVerDetalle(rowData)} tooltip="Ver Detalle" />
+    <div className="flex gap-2 justify-center">
+      <Button
+        icon="pi pi-eye"
+        className="p-button-rounded p-button-text"
+        style={{ color: '#6a1b9a' }}
+        onClick={() => onVerDetalle(rowData)}
+        tooltip="Ver Detalle"
+      />
       <Button
         icon="pi pi-check"
-        rounded
-        outlined
-        severity="success"
+        className="p-button-rounded p-button-text"
+        style={{ color: 'green' }}
         onClick={() => onCambiarEstado(rowData.id, 'Resuelto')}
         tooltip="Marcar como Resuelto"
       />
@@ -39,13 +56,22 @@ const IncidenciasAdminTable: React.FC<Props> = ({ incidencias, onVerDetalle, onC
   );
 
   return (
-    <DataTable value={incidencias} paginator rows={5} responsiveLayout="scroll">
-      <Column field="titulo" header="Título" sortable />
-      <Column field="categoria" header="Categoría" sortable />
-      <Column field="fecha" header="Fecha" sortable />
-      <Column header="Estado" body={estadoTemplate} sortable />
-      <Column header="Acciones" body={accionesTemplate} />
-    </DataTable>
+    <div className="card shadow-2 border-round-xl p-3">
+      <DataTable
+        value={incidencias}
+        paginator
+        rows={5}
+        responsiveLayout="scroll"
+        stripedRows
+        emptyMessage="No hay incidencias registradas"
+      >
+        <Column field="titulo" header="Título" sortable style={{ minWidth: '200px' }} />
+        <Column field="categoria" header="Categoría" sortable style={{ minWidth: '150px' }} />
+        <Column field="fecha" header="Fecha" sortable style={{ minWidth: '120px' }} />
+        <Column header="Estado" body={estadoTemplate} sortable style={{ textAlign: 'center', minWidth: '120px' }} />
+        <Column header="Acciones" body={accionesTemplate} style={{ textAlign: 'center', minWidth: '150px' }} />
+      </DataTable>
+    </div>
   );
 };
 

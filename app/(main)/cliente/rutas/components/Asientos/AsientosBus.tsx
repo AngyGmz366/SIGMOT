@@ -14,14 +14,14 @@ interface AsientosBusProps {
 }
 
 const AsientosBus: React.FC<AsientosBusProps> = ({ asientos }) => {
-  // Reorganizamos los asientos en filas con pasillo
+  // Distribución de asientos con pasillo
   const filas = [
-    [1, 2, null, 3, 4],   // null es el pasillo
+    [1, 2, null, 3, 4],
     [5, 6, null, 7, 8],
     [9, 10, null, 11, 12],
     [13, 14, null, 15, 16],
     [17, 18, null, 19, 20],
-    [21, null, null, null, null] // última fila con un asiento
+    [21, null, null, null, null]
   ];
 
   return (
@@ -61,13 +61,20 @@ const AsientosBus: React.FC<AsientosBusProps> = ({ asientos }) => {
         </div>
       </div>
 
-      {/* Tooltip PrimeReact */}
+      {/* Tooltip */}
       <Tooltip target=".asiento" />
 
       {/* Leyenda */}
       <div className="leyenda">
-        <Badge severity="success" value="Disponible" className="mr-2" />
-        <Badge severity="danger" value="Ocupado" />
+        <Badge
+          value="Disponible"
+          style={{
+            backgroundColor: "#c14242ff",
+            color: "#fff",
+            marginRight: "8px"
+          }}
+        />
+        <Badge value="Ocupado" severity="danger" />
       </div>
     </Card>
   );
