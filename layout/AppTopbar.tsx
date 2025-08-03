@@ -20,19 +20,17 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
 
     return (
         <div className="layout-topbar">
-           <Link href="/" className="layout-topbar-logo" style={{ display: 'flex', alignItems: 'center' }}>
+            <Link href="/" className="layout-topbar-logo" style={{ display: 'flex', alignItems: 'center' }}>
                 <img
                     src="/demo/images/login/LOGO-SIGMOT.png"
                     alt="Logo SIGMOT"
                     style={{
-                        width: '100px',       // 3 veces más grande
+                        width: '100px',
                         height: 'auto',
-                        maxWidth: 'none'      // <-- evita que el CSS global lo limite
+                        maxWidth: 'none'
                     }}
                 />
-                
             </Link>
-
 
             <button ref={menubuttonRef} type="button" className="p-link layout-menu-button layout-topbar-button" onClick={onMenuToggle}>
                 <i className="pi pi-bars" />
@@ -43,6 +41,12 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
             </button>
 
             <div ref={topbarmenuRef} className={classNames('layout-topbar-menu', { 'layout-topbar-menu-mobile-active': layoutState.profileSidebarVisible })}>
+                <Link href="/reportes">
+                    <button type="button" className="p-link layout-topbar-button">
+                        <i className="pi pi-chart-bar"></i>
+                        <span>Reportes</span>
+                    </button>
+                </Link>
                 <button type="button" className="p-link layout-topbar-button">
                     <i className="pi pi-calendar"></i>
                     <span>Calendar</span>

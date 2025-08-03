@@ -40,7 +40,7 @@ const AppMenu = () => {
 
                // { label: 'Timeline', icon: 'pi pi-fw pi-calendar', to: '/pages/timeline' },
                // { label: 'Not Found', icon: 'pi pi-fw pi-exclamation-circle', to: '/pages/notfound' },
-                { label: 'Reportes', icon: 'pi pi-chart-bar', to: '/reportes' },
+                //{ label: 'Reportes', icon: 'pi pi-chart-bar', to: '/reportes' },//
                 { label: 'Vehículos', icon: 'pi pi-car', to: '/vehiculos' },
                // { label: 'Empty', icon: 'pi pi-fw pi-circle-off', to: '/pages/empty' }
             ]

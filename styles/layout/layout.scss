@@ -9,3 +9,59 @@
 @import "./_responsive";
 @import "./_utils";
 @import "./_typography";
+
+/* Botón Cancelar (fondo blanco con texto morado) */
+.btn-cancelar {
+    background-color: white;
+    color: #6366F1;  /* Morado */
+    border: 1px solid #ffffff;
+  }
+  
+  .btn-cancelar:hover {
+    background-color: #f5f5f5;  /* Gris claro */
+    color: #5e36a3;  /* Morado más oscuro */
+  }
+  
+  /* Botón Guardar (fondo blanco con texto morado) */
+  .btn-guardar {
+    background-color: white;
+    color: #6366F1;  /* Morado */
+    border: 1px solid #ffffff;
+  }
+  
+  .btn-guardar:hover {
+    background-color: #f5f5f5;  /* Gris claro */
+    color: #5d19d3;  /* Morado más oscuro */
+  }
+  
+/* Estilo para el botón de editar (ícono de lápiz) */
+.btn-editar {
+    color: #6366F1;  /* Morado */
+  }
+  
+  .btn-editar:hover {
+    color: #5e36a3;  /* Morado más oscuro */
+  }
+  
+  /* Estilo para el botón de eliminar (ícono de papelera) */
+  .btn-eliminar {
+    color: #f44336;  /* Rojo */
+  }
+  
+  .btn-eliminar:hover {
+    color: #d32f2f;  /* Rojo más oscuro */
+  }
+  
+
+
+@import './_variables';
+@import "./_mixins";
+@import "./_main";
+@import "./_topbar";
+@import "./_menu";
+@import "./_config";
+@import "./_content";
+@import "./_footer";
+@import "./_responsive";
+@import "./_utils";
+@import "./_typography";
