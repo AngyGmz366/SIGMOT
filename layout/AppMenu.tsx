@@ -51,6 +51,7 @@ const AppMenu = () => {
                 { label: 'PrimeFlex', icon: 'pi pi-fw pi-desktop', url: 'https://primeflex.org/', target: '_blank' }
             ]
         },
+         
         {
             label: 'Pages',
             icon: 'pi pi-fw pi-briefcase',
@@ -83,6 +84,11 @@ const AppMenu = () => {
                     ]
                 },
                 {
+                    label: 'Inicio',
+                    icon: 'pi pi-fw pi-home',
+                    to: '/pages/Inicio'
+                },
+                {
                     label: 'Crud',
                     icon: 'pi pi-fw pi-pencil',
                     to: '/pages/crud'
@@ -93,7 +99,7 @@ const AppMenu = () => {
                     to: '/pages/Empleados'
                 },
                 {
-                    label: 'MantenimientoTransporte',
+                    label: 'Mantenimiento Transporte',
                     icon: 'pi pi-fw pi-pencil',
                     to: '/pages/MantenimientoTransporte'
                 },

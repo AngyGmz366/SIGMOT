@@ -234,6 +234,13 @@ const MantenimientoTransporte = () => {
     });
 
 
+    const [filtroPlaca, setFiltroPlaca] = useState('');
+
+    // Servicio filtrado según filtroPlaca
+    const serviciosFiltrados = servicios.filter(s =>
+        s.placa.toLowerCase().includes(filtroPlaca.toLowerCase())
+    );
+
     return (
         <div className="grid">
             <Toast ref={toast} />
@@ -301,9 +308,26 @@ const MantenimientoTransporte = () => {
 
 
                 {/* TABLA DE SERVICIOS */}
+                {/* Filtro por placa */}
+                
                 <div className="card mt-4">
                     <h5>Historial de Servicios</h5>
-                    <DataTable value={servicios} paginator rows={5} showGridlines responsiveLayout="scroll" emptyMessage="No hay servicios registrados.">
+                    <div className="card mb-3">
+                    <InputText
+                        placeholder="Buscar por placa..."
+                        value={filtroPlaca}
+                        onChange={(e) => setFiltroPlaca(e.target.value)}
+                        className="w-full"
+                    />
+                </div>
+                    <DataTable
+                        value={serviciosFiltrados}
+                        paginator
+                        rows={5}
+                        showGridlines
+                        responsiveLayout="scroll"
+                        emptyMessage="No hay servicios registrados."
+                    >
                         <Column field="vehiculo" header="Vehículo" />
                         <Column field="placa" header="Placa" />
                         <Column field="tipoServicio" header="Tipo de Servicio" />
