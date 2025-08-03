@@ -59,14 +59,23 @@ const PageAdminIncidencias: React.FC = () => {
 
   return (
     <div className="p-4 space-y-4">
-      <h2 className="text-3xl font-bold mb-4">Gestión de Incidencias y Soporte</h2>
+      {/* Encabezado */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h2 className="text-2xl font-bold text-gray-800">
+        Soporte
+        </h2>
+      </div>
 
-      <IncidenciasAdminTable
-        incidencias={incidencias}
-        onVerDetalle={verDetalle}
-        onCambiarEstado={cambiarEstado}
-      />
+      {/* Tabla de incidencias */}
+      <div className="shadow-md rounded-lg overflow-hidden bg-white p-2">
+        <IncidenciasAdminTable
+          incidencias={incidencias}
+          onVerDetalle={verDetalle}
+          onCambiarEstado={cambiarEstado}
+        />
+      </div>
 
+      {/* Modal de detalle */}
       <DetalleIncidencia
         incidencia={incidenciaSeleccionada}
         visible={detalleVisible}

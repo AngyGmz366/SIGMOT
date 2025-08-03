@@ -135,6 +135,13 @@ const EmpleadosCrud = () => {
         </>
     );
 
+    const accionesTemplate = (rowData: Empleado) => (
+        <div className="flex gap-2">
+            <Button icon="pi pi-pencil" rounded text severity="warning" aria-label="Editar" onClick={() => editEmpleado(rowData)} />
+            <Button icon="pi pi-trash" rounded text severity="danger" aria-label="Eliminar" onClick={() => confirmDeleteEmpleado(rowData)} />
+        </div>
+    );
+
     return (
         <div className="card">
             <Toast ref={toast} />
@@ -170,27 +177,23 @@ const EmpleadosCrud = () => {
                 globalFilter={globalFilter}
             >
                 <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
-                <Column field="codigo" header="Código" />
+                <Column field="codigo" header="Código" sortable />
                 <Column field="nombreCompleto" header="Nombre" />
                 <Column field="genero" header="Género" />
-                <Column field="fechaNacimiento" header="Fecha de nacimiento" sortable body={(rowData) => rowData.fechaNacimiento?.toLocaleDateString() || ''} />
+                <Column field="fechaNacimiento" header="Fecha de nacimiento" body={(rowData) => rowData.fechaNacimiento?.toLocaleDateString() || ''} />
                 <Column field="dni" header="DNI" />
                 <Column field="telefono" header="Teléfono" />
                 <Column field="direccion" header="Dirección" />
                 <Column field="tipoEmpleado" header="Tipo de empleado" />
-                <Column field="fechaContratacion" header="Fecha de contratación" sortable body={(rowData) => rowData.fechaContratacion?.toLocaleDateString() || ''} />
+                <Column field="fechaContratacion" header="Fecha de contratación" body={(rowData) => rowData.fechaContratacion?.toLocaleDateString() || ''} />
                 <Column field="tipoContrato" header="Tipo de contrato" />
-                <Column field="horaEntrada" header="Hora de entrada" sortable body={(rowData) => rowData.horaEntrada?.toLocaleTimeString() || ''} />
-                <Column field="horaSalida" header="Hora de salida" sortable body={(rowData) => rowData.horaSalida?.toLocaleTimeString() || ''} />
+                <Column field="horaEntrada" header="Hora de entrada" body={(rowData) => rowData.horaEntrada?.toLocaleTimeString() || ''} />
+                <Column field="horaSalida" header="Hora de salida" body={(rowData) => rowData.horaSalida?.toLocaleTimeString() || ''} />
                 <Column field="jornada" header="Jornada" />
                 <Column field="estado" header="Estado" />
-                <Column body={(rowData) => (
-                    <>
-                        <Button icon="pi pi-pencil" className="mr-2" onClick={() => editEmpleado(rowData)} />
-                        <Button icon="pi pi-trash" severity="danger" onClick={() => confirmDeleteEmpleado(rowData)} />
-                    </>
-                )} />
+                <Column body={accionesTemplate} header="Acciones" />
             </DataTable>
+
 
             <Dialog visible={empleadoDialog} style={{ width: '500px' }} header="Datos del Empleado" modal className="p-fluid" footer={empleadoDialogFooter} onHide={hideDialog}>
                 <div className="field">

@@ -5,6 +5,7 @@ import { Calendar } from 'primereact/calendar';
 import { ReservacionBase } from './types';
 import { ReservacionViaje, ReservacionEncomienda } from './types';
 import { useState } from 'react';
+import './FormReservacion.css';
 
 type ReservacionFormData = Partial<ReservacionViaje | ReservacionEncomienda>;
 
@@ -119,20 +120,23 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
         </div>
       )}
 
-      <div className="col-12 flex justify-content-end gap-2">
 
-        <Button 
-          label="Cancelar" 
-          severity="secondary" 
-          onClick={onCancel} 
-          type="button"
-        />
-        <Button 
-          label="Guardar" 
-          type="submit" 
-          className="p-button-success"
-        />
-      </div>
+<div className="col-12 flex justify-content-end gap-2">
+  <Button 
+    label="Cancelar" 
+    icon="pi pi-times" 
+    onClick={onCancel} 
+    type="button"
+    className="custom-button"
+  />
+  <Button 
+    label="Guardar" 
+    icon="pi pi-check" 
+    type="submit"
+    className="custom-button"
+  />
+</div>
+
     </form>
 
         
