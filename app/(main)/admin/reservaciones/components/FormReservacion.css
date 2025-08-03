@@ -1,0 +1,10 @@
+.custom-button {
+  color: #6366F1 !important;              /* Texto violeta */
+  background-color: white !important;     /* Fondo blanco */
+  border: 1px solid white !important;   /* Borde violeta */
+  transition: background-color 0.2s ease;
+}
+
+.custom-button:hover {
+  background-color: #f3f4f6 !important;   /* Gris tenue al pasar el cursor */
+}

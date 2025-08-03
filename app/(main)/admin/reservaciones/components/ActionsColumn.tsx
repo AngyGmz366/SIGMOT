@@ -2,10 +2,11 @@ import { Button } from 'primereact/button';
 import { confirmDialog } from 'primereact/confirmdialog';
 import { ReservacionBase } from './types';
 
-export default function ActionsColumn({ row, onEdit, onDelete }: {
+export default function ActionsColumn({ row, onEdit, onDelete, disabled }: {
   row: ReservacionBase;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
+  disabled?: boolean;
 }) {
   const confirmDelete = () => {
     confirmDialog({

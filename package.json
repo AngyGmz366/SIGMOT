@@ -19,7 +19,7 @@
     "chart.js": "4.2.1",
     "framer-motion": "^12.23.12",
     "leaflet": "^1.9.4",
-    "next": "^13.5.11",
+    "next": "^15.4.5",
     "primeflex": "^4.0.0",
     "primeicons": "^7.0.0",
     "primereact": "^10.9.6",
