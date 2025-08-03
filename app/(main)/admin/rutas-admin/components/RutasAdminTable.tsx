@@ -1,0 +1,63 @@
+'use client';
+
+import React from 'react';
+import { Ruta } from '@/app/rutas/Types/rutas.types';
+import { Button } from 'primereact/button';
+
+interface RutasAdminTableProps {
+  rutas: Ruta[];
+  onEditarRuta: (ruta: Ruta) => void;
+  onEliminarRuta: (rutaId: string) => void;
+}
+
+const RutasAdminTable: React.FC<RutasAdminTableProps> = ({
+  rutas,
+  onEditarRuta,
+  onEliminarRuta,
+}) => {
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full bg-white rounded-md shadow text-sm">
+        <thead>
+          <tr className="bg-gray-100 text-left">
+            <th className="py-3 px-4 font-medium">Nombre</th>
+            <th className="py-3 px-4 font-medium">Origen</th>
+            <th className="py-3 px-4 font-medium">Destino</th>
+            <th className="py-3 px-4 font-medium">Estado</th>
+            <th className="py-3 px-4 font-medium">Tiempo Estimado</th>
+            <th className="py-3 px-4 font-medium text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rutas.map((ruta) => (
+            <tr key={ruta.id} className="border-t hover:bg-gray-50">
+              <td className="py-2 px-4">{ruta.nombre}</td>
+              <td className="py-2 px-4">{ruta.origen}</td>
+              <td className="py-2 px-4">{ruta.destino}</td>
+              <td className="py-2 px-4 capitalize">{ruta.estado}</td>
+              <td className="py-2 px-4">{ruta.tiempoEstimado}</td>
+              <td className="py-2 px-4 text-center space-x-2">
+                <Button
+                  icon="pi pi-pencil"
+                  className="p-button-sm p-button-warning"
+                  onClick={() => onEditarRuta(ruta)}
+                />
+                <Button
+                  icon="pi pi-trash"
+                  className="p-button-sm p-button-danger"
+                  onClick={() => onEliminarRuta(ruta.id)}
+                />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {rutas.length === 0 && (
+        <div className="text-center text-gray-500 py-4">No hay rutas registradas.</div>
+      )}
+    </div>
+  );
+};
+
+export default RutasAdminTable;
