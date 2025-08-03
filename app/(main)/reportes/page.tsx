@@ -1,6 +1,5 @@
 'use client'
 
-<<<<<<< HEAD
 import React, { useEffect, useState, useRef } from 'react';
 import { Calendar } from 'primereact/calendar';
 import { Card } from 'primereact/card';
@@ -14,7 +13,7 @@ import { Chart } from 'primereact/chart';
 import { Toolbar } from 'primereact/toolbar';
 import { Toast } from 'primereact/toast';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
-import 'react-chartjs-2';
+import { Pie } from 'react-chartjs-2';
 
 // INTERFAZ DE DATOS
 interface Reporte {
@@ -81,20 +80,10 @@ const pieData = {
 
 
 // COMPONENTE PRINCIPAL
-=======
-import React, { useState } from 'react'
-import { Calendar } from 'primereact/calendar'
-import { Card } from 'primereact/card'
-import { DataTable } from 'primereact/datatable'
-import { Column } from 'primereact/column'
-import { Chart } from 'primereact/chart'
-
->>>>>>> a78679de84bec844f81ff1b150714004dcff1787
 const ReportesPage = () => {
   const [fechaInicio, setFechaInicio] = useState<Date | null>(null)
   const [fechaFin, setFechaFin] = useState<Date | null>(null)
 
-<<<<<<< HEAD
   const [reportes, setReportes] = useState<Reporte[]>([])
   const [dialogVisible, setDialogVisible] = useState(false)
   const [reporteActual, setReporteActual] = useState<Reporte | null>(null)
@@ -146,8 +135,6 @@ const ReportesPage = () => {
     <Button label="Nuevo Reporte" icon="pi pi-plus" className="btn-morado" onClick={abrirNuevo} />
   )
 
-=======
->>>>>>> a78679de84bec844f81ff1b150714004dcff1787
   const estadisticas = [
     { titulo: 'Ventas del día', valor: 'L. 12,500' },
     { titulo: 'Boletos vendidos', valor: '342' },
@@ -160,17 +147,11 @@ const ReportesPage = () => {
       {
         label: 'Ventas mensuales (L)',
         data: [12000, 15000, 11000, 17000, 14500],
-<<<<<<< HEAD
         backgroundColor: '#6366f1', // azul morado
-=======
-        fill: false,
-        borderColor: '#4bc0c0'
->>>>>>> a78679de84bec844f81ff1b150714004dcff1787
       }
     ]
   }
 
-<<<<<<< HEAD
   const opcionesGrafico = {
     responsive: true,
     plugins: {
@@ -183,18 +164,13 @@ const ReportesPage = () => {
     }
   }
 
-=======
-  const reportes = [
-    { id: 1, cliente: 'Juan Pérez', ruta: 'Tegucigalpa - SPS', fecha: '2025-07-10', total: 'L. 350' },
-    { id: 2, cliente: 'Ana Mejía', ruta: 'Tegucigalpa - La Ceiba', fecha: '2025-07-11', total: 'L. 420' }
-  ]
->>>>>>> a78679de84bec844f81ff1b150714004dcff1787
+
+
 
   return (
     <div className="p-6 space-y-6">
       <h2 className="text-2xl font-bold mb-4">Reportes Generales</h2>
 
-<<<<<<< HEAD
       <Toast ref={toast} />
 
       {/* Filtros de fecha */}
@@ -251,7 +227,7 @@ const ReportesPage = () => {
         </div>
 
         <div className="ml-0" style={{ width: "390px", height: "390px" }}>
-         <Chart type="pie" data={pieData} options={pieOptions} />
+         <Pie data={pieData} options={pieOptions} />
           </div>      
       </div>
 
@@ -315,47 +291,6 @@ const ReportesPage = () => {
           </div>
         </form>
       </Dialog>
-=======
-      {/* Filtros de fecha */}
-      <div className="flex gap-4 items-center">
-        <span>Desde:</span>
-        <Calendar
-  value={fechaInicio}
-  onChange={(e) => setFechaInicio(e.value as Date)}
-  showIcon
-/>
-<Calendar
-  value={fechaFin}
-  onChange={(e) => setFechaFin(e.value as Date)}
-  showIcon
-/>
-      </div>
-
-      {/* Tarjetas estadísticas */}
-      <div className="grid md:grid-cols-3 gap-4">
-        {estadisticas.map((e, i) => (
-          <Card key={i} title={e.titulo}>
-            <p className="text-xl font-semibold">{e.valor}</p>
-          </Card>
-        ))}
-      </div>
-
-      {/* Gráfico de ventas */}
-      <div>
-        <Chart type="line" data={datosGrafico} />
-      </div>
-
-      {/* Tabla de reportes */}
-      <div>
-        <h3 className="text-xl font-semibold mb-2">Reportes de Boletos</h3>
-        <DataTable value={reportes} stripedRows responsiveLayout="scroll">
-          <Column field="cliente" header="Cliente" sortable />
-          <Column field="ruta" header="Ruta" sortable />
-          <Column field="fecha" header="Fecha" sortable />
-          <Column field="total" header="Total" sortable />
-        </DataTable>
-      </div>
->>>>>>> a78679de84bec844f81ff1b150714004dcff1787
     </div>
   )
 }
