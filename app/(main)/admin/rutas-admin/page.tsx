@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-
 import { Ruta } from '@/app/(main)/cliente/rutas/Types/rutas.types';
 
 import RutasAdminTable from './components/RutasAdminTable';
@@ -10,7 +9,6 @@ import MapaInteractivo from '@/app/(main)/cliente/rutas/components/MapaInteracti
 import { Button } from 'primereact/button';
 import { Card } from 'primereact/card';
 import { obtenerRutasMock } from '@/app/(main)/cliente/rutas/acciones/rutas.acciones';
-
 
 const PageAdminRutas: React.FC = () => {
   const [rutas, setRutas] = useState<Ruta[]>(obtenerRutasMock());
@@ -34,6 +32,15 @@ const PageAdminRutas: React.FC = () => {
     if (confirm('¿Seguro que deseas eliminar esta ruta?')) {
       setRutas(prev => prev.filter(r => r.id !== id));
     }
+  };
+
+  // Cambiar estado (activo/inactivo)
+  const cambiarEstadoRuta = (rutaId: string, nuevoEstado: 'activo' | 'inactivo') => {
+    setRutas(prev =>
+      prev.map(r =>
+        r.id === rutaId ? { ...r, estado: nuevoEstado } : r
+      )
+    );
   };
 
   // Cerrar formulario
@@ -65,10 +72,10 @@ const PageAdminRutas: React.FC = () => {
           onEditarRuta={(ruta) => {
             setRutaSeleccionada(ruta);
             setMostrarFormulario(true);
-          } }
-          onEliminarRuta={eliminarRuta} onCambiarEstado={function (rutaId: string, nuevoEstado: 'activo' | 'inactivo'): void {
-            throw new Error('Function not implemented.');
-          } }        />
+          }}
+          onEliminarRuta={eliminarRuta}
+          onCambiarEstado={cambiarEstadoRuta}
+        />
       </Card>
 
       {/* Formulario y vista previa */}
@@ -83,7 +90,7 @@ const PageAdminRutas: React.FC = () => {
           {rutaSeleccionada && (
             <div className="mt-4">
               <h3 className="text-lg font-semibold mb-2">Vista previa en el mapa</h3>
-              <MapaInteractivo ruta={rutaSeleccionada} />
+             <MapaInteractivo key={`map-${rutaSeleccionada.id}`} ruta={rutaSeleccionada} />
             </div>
           )}
         </>

@@ -324,8 +324,8 @@ const hideDialog = () => setClienteDialog(false);
         return (
             <div className="flex flex-wrap gap-2">
                 <Button label="Nuevo Cliente" icon="pi pi-plus" severity="success" onClick={openNewCliente} />
-                <Button 
-                    label="Eliminar" 
+              <Button 
+                    label="Eliminar seleccionados" 
                     icon="pi pi-trash" 
                     severity="danger" 
                     onClick={confirmDeleteSelected} 

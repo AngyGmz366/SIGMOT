@@ -35,14 +35,8 @@ export default function PageIncidenciasSop() {
     <div className="p-4 space-y-6">
       {/* Encabezado */}
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-3xl font-bold text-gray-800">Incidencias y Soporte</h2>
-        <Button
-          label="Enviar incidencia"
-          icon="pi pi-send"
-          className="p-button-rounded"
-          style={{ backgroundColor: '#6a1b9a', border: 'none', color: 'white' }}
-          onClick={manejarEnvio}
-        />
+        <h2 className="text-3xl font-bold text-gray-800 pl-2">Incidencias y Soporte</h2>
+        
       </div>
 
       {/* Formulario */}
@@ -69,6 +63,16 @@ export default function PageIncidenciasSop() {
               placeholder="Describe la incidencia..."
             />
           </div>
+          
+        </div>
+        <div className="ml-8">
+          <Button
+        label="Enviar incidencia"
+        icon="pi pi-send"
+        className="p-button-rounded"
+        style={{ backgroundColor: '#6a1b9a', border: 'none', color: 'white' }}
+        onClick={manejarEnvio}
+          />
         </div>
       </Card>
 

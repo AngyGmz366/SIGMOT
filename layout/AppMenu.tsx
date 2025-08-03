@@ -13,16 +13,16 @@ const AppMenu = () => {
     const model: AppMenuItem[] = [
         {
             label: 'Home',
-            items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/' }]
+            items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/dashboard' }]
         },
      
-        {
-            label: 'Pages',
+        /*{
+            label: 'Secciones',
             icon: 'pi pi-fw pi-briefcase',
             to: '/pages',
             items: [
                // { label: 'Landing', icon: 'pi pi-fw pi-globe', to: '/landing' },
-                {
+                /*{
                     label: 'Auth',
                     icon: 'pi pi-fw pi-user',
                     items: [
@@ -30,36 +30,38 @@ const AppMenu = () => {
                        // { label: 'Error', icon: 'pi pi-fw pi-times-circle', to: '/auth/error' },
                        // { label: 'Access Denied', icon: 'pi pi-fw pi-lock', to: '/auth/access' }
                     ]
-                },
+                },/*
                // { label: 'Crud', icon: 'pi pi-fw pi-pencil', to: '/pages/crud' },
-                { label: 'Empleados', icon: 'pi pi-fw pi-pencil', to: '/pages/Empleados' },
-                { label: 'Personas', icon: 'pi pi-fw pi-id-card', to: '/pages/Personas' },
-                { label: 'Clientes', icon: 'pi pi-fw pi-users', to: '/pages/Clientes' },
+               // { label: 'Empleados', icon: 'pi pi-fw pi-pencil', to: '/pages/Empleados' },
+                //{ label: 'Personas', icon: 'pi pi-fw pi-id-card', to: '/pages/Personas' },
+                //{ label: 'Clientes', icon: 'pi pi-fw pi-users', to: '/pages/Clientes' },
                 
 
 
                // { label: 'Timeline', icon: 'pi pi-fw pi-calendar', to: '/pages/timeline' },
                // { label: 'Not Found', icon: 'pi pi-fw pi-exclamation-circle', to: '/pages/notfound' },
                 //{ label: 'Reportes', icon: 'pi pi-chart-bar', to: '/reportes' },//
-                { label: 'Vehículos', icon: 'pi pi-car', to: '/vehiculos' },
+               // { label: 'Vehículos', icon: 'pi pi-car', to: '/vehiculos' },
                // { label: 'Empty', icon: 'pi pi-fw pi-circle-off', to: '/pages/empty' }
             ]
-        },
+        },*/
         {
             label: 'Admin',
             icon: 'pi pi-fw pi-cog',
             items: [
-                {
-
-                    label: 'Inicio',
-                    icon: 'pi pi-fw pi-home',
-                    to: '/pages/Inicio'
-                },
-                {
+               
+                 { label: 'Personas', icon: 'pi pi-fw pi-id-card', to: '/pages/Personas' },
+                { label: 'Clientes', icon: 'pi pi-fw pi-users', to: '/pages/Clientes' },
+            
+               // { label: 'Timeline', icon: 'pi pi-fw pi-calendar', to: '/pages/timeline' },
+               // { label: 'Not Found', icon: 'pi pi-fw pi-exclamation-circle', to: '/pages/notfound' },
+                //{ label: 'Reportes', icon: 'pi pi-chart-bar', to: '/reportes' },//
+                { label: 'Vehículos', icon: 'pi pi-car', to: '/vehiculos' },
+               /* {
                     label: 'Crud',
                     icon: 'pi pi-fw pi-pencil',
                     to: '/pages/crud'
-                },
+                },*/
                 {
                     label: 'Empleados',
                     icon: 'pi pi-fw pi-pencil',
@@ -71,8 +73,7 @@ const AppMenu = () => {
                     to: '/pages/MantenimientoTransporte'
                 },
                 {
-                    label: 'Timeline',
-
+                    
                     label: 'Incidencias  y Soporte',
                     icon: 'pi pi-fw pi-exclamation-triangle',
                     to: '/admin/incidencias-sop'

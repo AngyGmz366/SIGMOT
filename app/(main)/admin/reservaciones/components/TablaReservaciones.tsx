@@ -30,7 +30,7 @@ export default function TablaReservaciones({
           <span className="p-input-icon-left">
             <i className="pi pi-search" />
             <InputText 
-              value={globalFilter}
+              value={globalFilter ?? ''}
               onChange={(e) => setGlobalFilter(e.target.value)}
               placeholder="Buscar por nombre"
             />

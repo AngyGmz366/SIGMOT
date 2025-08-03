@@ -13,7 +13,7 @@ const TwoFactorPage = () => {
 
     if (normalized === '123456') {
       alert('✅ Código correcto');
-      router.push('/');
+      router.push('/dashboard');
     } else {
       alert('❌ Código incorrecto');
     }

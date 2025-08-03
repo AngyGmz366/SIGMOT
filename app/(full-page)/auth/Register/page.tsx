@@ -34,68 +34,122 @@ const RegistroUsuario = () => {
 
     const handleSubmit = () => {
         console.log('Datos del formulario:', form);
-        router.push('/login');
+        router.push('/auth/login');
     };
 
     return (
-        <div className="flex justify-content-center align-items-center min-h-screen bg-gray-100 p-4">
-            <div className="surface-card p-5 shadow-2 border-round w-full md:w-10 bg-white" style={{ maxWidth: '1200px' }}>
-                
-               <div className="flex justify-content-center mb-4">
-                    <img
-                        src="/demo/images/login/LOGO-SIGMOT.png"
-                        alt="Logo SIGMOT"
-                        style={{ width: '130px', height: 'auto' }}
-                     />
-                </div>
+        <div className="surface-ground flex align-items-center justify-content-center min-h-screen min-w-screen overflow-hidden">
+            <div className="flex flex-column align-items-center justify-content-center">
+                <div
+                    style={{
+                        borderRadius: '40px',
+                        padding: '0.2rem',
+                        background: 'linear-gradient(to bottom, #6366f1 5%, transparent 10%)'
+                    }}
+                >
+                    <div
+                        className="py-6 px-4 sm:px-6"
+                        style={{
+                            borderRadius: '40px',
+                            backgroundColor: '#ffffff',
+                            maxWidth: '500px',
+                            width: '100%'
+                        }}
+                    >
+                        <div className="text-center mb-4">
+                             
+                           {/*<img
+                            src="/demo/images/login/LOGO-SIGMOT.png"
+                            alt="Logo SAENZ"
+                            className="mb-2 w-2 h-auto"
+                            />*/}
+                            
+                            <div className="text-900 text-2xl font-semibold mb-2">Crear cuenta</div>
+                            
+                        </div>
 
-                <h2 className="text-center text-3xl font-bold mb-5 w-full">Registro SIGMOT</h2>
+                        <div className="mb-3">
+                            <label className="block mb-1 text-sm font-medium text-gray-700">Nombre completo</label>
+                            <InputText value={form.nombres} onChange={(e) => handleChange(e, 'nombres')} className="w-full" />
+                        </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label className="block mb-2 font-medium">Nombres y Apellidos</label>
-                        <InputText value={form.nombres} onChange={(e) => handleChange(e, 'nombres')} className="w-full" />
+                        <div className="mb-3">
+                            <label className="block mb-1 text-sm font-medium text-gray-700">Teléfono</label>
+                            <InputText value={form.telefono} onChange={(e) => handleChange(e, 'telefono')} className="w-full" />
+                        </div>
+
+                        <div className="mb-3">
+                            <label className="block mb-1 text-sm font-medium text-gray-700">Género</label>
+                            <Dropdown
+                                value={form.genero}
+                                options={generos}
+                                onChange={(e) => handleChange(e, 'genero')}
+                                placeholder="Seleccione género"
+                                className="w-full"
+                            />
+                        </div>
+
+                        <div className="mb-3">
+                            <label className="block mb-1 text-sm font-medium text-gray-700">Fecha de Nacimiento</label>
+                            <Calendar
+                                value={form.fechaNacimiento}
+                                onChange={(e) => handleChange(e, 'fechaNacimiento')}
+                                dateFormat="dd/mm/yy"
+                                showIcon
+                                className="w-full"
+                            />
+                        </div>
+
+                        <div className="mb-3">
+                            <label className="block mb-1 text-sm font-medium text-gray-700">Correo Electrónico</label>
+                            <InputText type="email" value={form.correo} onChange={(e) => handleChange(e, 'correo')} className="w-full" />
+                        </div>
+
+                        <div className="mb-3">
+                            <label className="block mb-1 text-sm font-medium text-gray-700">Contraseña</label>
+                            <Password value={form.contrasena} onChange={(e) => handleChange(e, 'contrasena')} toggleMask className="w-full" />
+                        </div>
+
+                        <div className="mb-4">
+                            <label className="block mb-1 text-sm font-medium text-gray-700">Repetir Contraseña</label>
+                            <Password value={form.repetirContrasena} onChange={(e) => handleChange(e, 'repetirContrasena')} toggleMask feedback={false} className="w-full" />
+                        </div>
+
+                        <Button
+                            label="Registrarse"
+                            icon="pi pi-user-plus"
+                            className="w-full p-2 text-base mb-3"
+                            style={{
+                                backgroundColor: '#6c5ce7',
+                                border: 'none',
+                                color: '#fff',
+                                fontWeight: 'bold'
+                            }}
+                            onClick={handleSubmit}
+                        />
+
+                        <Button
+                            label="¿Ya tienes cuenta? Inicia sesión"
+                            className="w-full p-2 text-base p-button-outlined"
+                            onClick={() => router.push('/auth/login')}
+                            style={{
+                                border: '1px solid #6c5ce7',
+                                color: '#6c5ce7',
+                                fontWeight: 'bold',
+                                backgroundColor: 'white'
+                            }}
+                        />
+
+                        {/* Botón volver atrás, opcional */}
+                        {/* 
+                        <Button
+                            label="Volver"
+                            icon="pi pi-arrow-left"
+                            className="w-full mt-3 p-button-text text-sm"
+                            onClick={() => router.back()}
+                        />
+                        */}
                     </div>
-
-                    <div>
-                        <label className="block mb-2 font-medium">DNI</label>
-                        <InputText value={form.dni} onChange={(e) => handleChange(e, 'dni')} className="w-full" />
-                    </div>
-
-                    <div>
-                        <label className="block mb-2 font-medium">Correo Electrónico</label>
-                        <InputText type="email" value={form.correo} onChange={(e) => handleChange(e, 'correo')} className="w-full" />
-                    </div>
-
-                    <div>
-                        <label className="block mb-2 font-medium">Teléfono</label>
-                        <InputText value={form.telefono} onChange={(e) => handleChange(e, 'telefono')} className="w-full" />
-                    </div>
-
-                    <div>
-                        <label className="block mb-2 font-medium">Género</label>
-                        <Dropdown value={form.genero} options={generos} onChange={(e) => handleChange(e, 'genero')} placeholder="Seleccione género" className="w-full" />
-                    </div>
-
-                    <div>
-                        <label className="block mb-2 font-medium">Fecha de Nacimiento</label>
-                        <Calendar value={form.fechaNacimiento} onChange={(e) => handleChange(e, 'fechaNacimiento')} dateFormat="dd/mm/yy" showIcon className="w-full" />
-                    </div>
-
-                    <div>
-                        <label className="block mb-2 font-medium">Contraseña</label>
-                        <Password value={form.contrasena} onChange={(e) => handleChange(e, 'contrasena')} toggleMask className="w-full" />
-                    </div>
-
-                    <div>
-                        <label className="block mb-2 font-medium">Repetir Contraseña</label>
-                        <Password value={form.repetirContrasena} onChange={(e) => handleChange(e, 'repetirContrasena')} toggleMask feedback={false} className="w-full" />
-                    </div>
-                </div>
-
-                <div className="mt-5 flex flex-column md:flex-row justify-content-between gap-3">
-                    <Button label="Registrarse" icon="pi pi-user-plus" className="w-full md:w-auto" onClick={() => router.push('/auth/login')} />
-                    <Button label="¿Ya tienes cuenta? Inicia sesión" link className="w-full md:w-auto" onClick={() => router.push('/auth/login')} />
                 </div>
             </div>
         </div>

@@ -44,14 +44,14 @@ const LoginPage = () => {
                         }}
                     >
                         <div className="text-center mb-4">
-                            <img
-                                src="/demo/images/login/LOGO-SIGMOT.png"
-                                alt="Logo SAENZ"
-                                className="mb-2"
-                                style={{ width: '100px', height: 'auto' }}
+                           <img
+                            src="/demo/images/login/LOGO-SIGMOT.png"
+                            alt="Logo SAENZ"
+                            className="mb-2 w-2 h-auto"
                             />
-                            <div className="text-900 text-2xl font-medium mb-2">Bienvenido a SAENZ</div>
-                            <span className="text-600 font-medium text-sm">Inicia sesión para continuar</span>
+
+                            <div className="text-900 text-2xl font-medium mb-2">Inicio de Sesión</div>
+                            {/*<span className="text-600 font-medium text-sm">Inicia sesión para continuar</span>*/}
                         </div>
 
                         <div>

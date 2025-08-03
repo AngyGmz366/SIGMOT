@@ -41,26 +41,23 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
             </button>
 
             <div ref={topbarmenuRef} className={classNames('layout-topbar-menu', { 'layout-topbar-menu-mobile-active': layoutState.profileSidebarVisible })}>
-                <Link href="/reportes">
+                <Link href="/auth/login">
                     <button type="button" className="p-link layout-topbar-button">
-                        <i className="pi pi-chart-bar"></i>
-                        <span>Reportes</span>
+                        <i className="pi pi-sign-in"></i>
+                        <span>Login</span>
+                    </button>
+               </Link>
+                <Link href="/perfil">
+                    <button className="layout-topbar-button">
+                        <i className="pi pi-user" />
                     </button>
                 </Link>
-                <button type="button" className="p-link layout-topbar-button">
-                    <i className="pi pi-calendar"></i>
-                    <span>Calendar</span>
-                </button>
-                <button type="button" className="p-link layout-topbar-button">
-                    <i className="pi pi-user"></i>
-                    <span>Profile</span>
-                </button>
-                <Link href="/documentation">
+               {/*<Link href="/documentation">
                     <button type="button" className="p-link layout-topbar-button">
                         <i className="pi pi-cog"></i>
                         <span>Settings</span>
                     </button>
-                </Link>
+                </Link>*/}
             </div>
         </div>
     );

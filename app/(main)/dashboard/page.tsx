@@ -6,7 +6,9 @@ import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
 import { Menu } from 'primereact/menu';
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { LayoutContext } from '../../layout/context/layoutcontext';
+// Make sure the path and filename are correct and match the actual file location and casing
+import { LayoutContext } from '../../../layout/context/layoutcontext';
+
 import Link from 'next/link';
 import { ChartData, ChartOptions } from 'chart.js';
 
@@ -143,6 +145,15 @@ const Dashboard = () => {
                 <div className="card">
                     <h5>Accesos rápidos</h5>
                     <div className="flex flex-column gap-3">
+                        <Link href="/reportes">
+                            <Button
+                                label="Ver reportes"
+                                icon="pi pi-chart-bar"
+                                className="p-button-primary"
+                                style={{ backgroundColor: '#ab47bc', border: 'none', width: '60%' }}
+                            />
+                        </Link>
+
                         <Link href="/admin/incidencias-sop">
                             <Button label="Ver incidencias recientes" icon="pi pi-exclamation-circle" className="p-button-info" />
                         </Link>
@@ -152,6 +163,8 @@ const Dashboard = () => {
                         <Link href="/admin/reservaciones">
                             <Button label="Programar viaje" icon="pi pi-calendar-plus" className="p-button-warning" />
                         </Link>
+                       
+
                     </div>
                 </div>
             </div>
