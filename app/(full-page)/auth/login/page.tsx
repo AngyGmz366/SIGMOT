@@ -95,6 +95,7 @@ const LoginPage = () => {
                                 <a
                                     className="font-medium no-underline text-sm cursor-pointer"
                                     style={{ color: 'var(--primary-color)' }}
+                                    onClick={() => router.push('/auth/recuperarcontra')}
                                 >
                                     ¿Olvidaste tu contraseña?
                                 </a>
