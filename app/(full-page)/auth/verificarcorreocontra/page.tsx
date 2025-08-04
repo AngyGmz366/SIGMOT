@@ -1,16 +1,19 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useContext, useState } from 'react';
 import { InputText } from 'primereact/inputtext';
 import { Button } from 'primereact/button';
-import { useContext, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { LayoutContext } from '../../../../layout/context/layoutcontext';
 import { classNames } from 'primereact/utils';
+import Swal from 'sweetalert2';
 
-const RecuperarContrasena = () => {
+const VerificarOtp = () => {
     const { layoutConfig } = useContext(LayoutContext);
-    const [correo, setCorreo] = useState('');
+    const [codigo, setCodigo] = useState('');
+    const searchParams = useSearchParams();
+    const correo = searchParams.get('correo') ?? '';
     const router = useRouter();
 
     const containerClassName = classNames(
@@ -18,10 +21,23 @@ const RecuperarContrasena = () => {
         { 'p-input-filled': layoutConfig.inputStyle === 'filled' }
     );
 
-    const enviarCorreo = () => {
-        // Aquí iría tu lógica para llamar al backend
-        console.log('Enviando correo a:', correo);
-        // router.push('/auth/ActualizarContrasena'); // si deseas redirigir luego
+    const verificarCodigo = () => {
+        if (codigo === '123456') {
+            Swal.fire({
+                icon: 'success',
+                title: 'Código correcto',
+                text: 'Ahora puedes actualizar tu contraseña',
+                confirmButtonColor: '#6366f1'
+            }).then(() => {
+                router.push('/auth/actualizarcontra?token=abc123'); // token simulado
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Código incorrecto',
+                text: 'Verifica el código ingresado',
+            });
+        }
     };
 
     return (
@@ -50,39 +66,39 @@ const RecuperarContrasena = () => {
                                 alt="Logo SAENZ"
                                 className="mb-2 w-2 h-auto"
                             />
-                            <div className="text-900 text-2xl font-medium mb-2">¿Olvidaste tu contraseña?</div>
+                            <div className="text-900 text-2xl font-medium mb-2">Verificar Código</div>
+                           <p className="text-sm text-gray-600">
+                                Se ha enviado un código al correo <strong>xxxxx@gmail.com</strong>
+                            </p>
+
                         </div>
 
                         <div>
-                            <label htmlFor="correo" className="block text-900 text-base font-medium mb-2">
-                                Ingresa tu Correo Electrónico
+                            <label htmlFor="codigo" className="block text-900 text-base font-medium mb-2">
+                                Código de verificación
                             </label>
                             <InputText
-                                id="correo"
-                                type="email"
-                                value={correo}
-                                onChange={(e) => setCorreo(e.target.value)}
-                                placeholder="ejemplo@correo.com"
+                                id="codigo"
+                                type="text"
+                                value={codigo}
+                                onChange={(e) => setCodigo(e.target.value)}
+                                
                                 className="w-full mb-4"
                                 style={{ padding: '0.75rem', backgroundColor: '#f1f5f9' }}
                             />
 
                             <Button
-                                label="Enviar correo"
+                                label="Verificar código"
                                 className="w-full p-2 text-base"
-                               onClick={() => router.push('/auth/verificarcorreocontra?token=simulado123')}
+                                onClick={verificarCodigo}
                             />
 
-                            <div className="flex justify-between mt-4 gap-3">
-                                <Button
-                                    label="Volver al login"
-                                    icon="pi pi-arrow-left"
-                                    className="p-button-text text-blue-600 hover:text-blue-800 transition-colors"
-                                    onClick={() => router.push('/auth/login')}
-                                />
-                               
-                            </div>
-
+                            <Button
+                                label="Reenviar código"
+                                className="w-full p-button-text text-blue-600 mt-3"
+                                icon="pi pi-refresh"
+                                onClick={() => Swal.fire('Código reenviado', '', 'info')}
+                            />
                         </div>
                     </div>
                 </div>
@@ -92,4 +108,4 @@ const RecuperarContrasena = () => {
     );
 };
 
-export default RecuperarContrasena;
+export default VerificarOtp;
