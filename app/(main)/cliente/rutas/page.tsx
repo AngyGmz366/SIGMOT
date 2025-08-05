@@ -22,7 +22,8 @@ const PageRutas: React.FC = () => {
   // Manejar selección de ruta → redirigir a reservaciones
   const manejarSeleccionRuta = (ruta: Ruta) => {
     setRutaSeleccionada(ruta);
-    router.push(`/reservaciones?ruta=${ruta.id}`);
+    router.push(`/cliente/reservacion
+`);
   };
 
   return (
