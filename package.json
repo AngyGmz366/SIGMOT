@@ -14,6 +14,7 @@
     "@types/react": "^18.2.12",
     "@types/react-dom": "18.2.5",
     "chart.js": "4.2.1",
+    "jspdf": "^3.0.1",
     "leaflet": "^1.9.4",
     "next": "^13.5.11",
     "primeflex": "^4.0.0",

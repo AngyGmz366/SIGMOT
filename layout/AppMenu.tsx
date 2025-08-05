@@ -70,6 +70,8 @@ const AppMenu = () => {
                 { label: 'Empleados', icon: 'pi pi-fw pi-pencil', to: '/pages/Empleados' },
                 { label: 'Personas', icon: 'pi pi-fw pi-id-card', to: '/pages/Personas' },
                 { label: 'Clientes', icon: 'pi pi-fw pi-users', to: '/pages/Clientes' },
+                { label: 'Ventas', icon: 'pi pi-fw pi-shopping-cart', to: '/pages/Ventas' },
+
                 
 
 

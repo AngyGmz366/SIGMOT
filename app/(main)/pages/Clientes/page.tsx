@@ -1,3 +1,4 @@
+
 /////////////////////////////////////// page cliente 
 
 'use client';
@@ -39,6 +40,7 @@ export default function ClientesPage() {
     const dt = useRef<DataTable<any>>(null);
 
 
+
     
 
     // Filtros
@@ -66,25 +68,27 @@ const [globalFilterValue, setGlobalFilterValue] = useState('');
 
    // Cargar datos de localStorage solo una vez al montar el componente
 
-const [personas, setPersonas] = useState(() => {
+const [personas, setPersonas] = useState<Persona[]>(() => {
   const stored = localStorage.getItem('personas');
   return stored ? JSON.parse(stored) : [];
 });
 
-const [clientes, setClientes] = useState(() => {
+const [clientes, setClientes] = useState<Cliente[]>(() => {
   const stored = localStorage.getItem('clientes');
   return stored ? JSON.parse(stored) : [];
 });
 
-const [viajes, setViajes] = useState(() => {
+const [viajes, setViajes] = useState<Viaje[]>(() => {
   const stored = localStorage.getItem('viajes');
   return stored ? JSON.parse(stored) : [];
 });
 
-const [pagos, setPagos] = useState(() => {
+
+const [pagos, setPagos] = useState<Pago[]>(() => {
   const stored = localStorage.getItem('pagos');
   return stored ? JSON.parse(stored) : [];
 });
+
 
 // Guardar cambios en localStorage cuando cambian los estados
 useEffect(() => {
@@ -163,18 +167,19 @@ const hideDialog = () => setClienteDialog(false);
         setDeleteClienteDialog(true);
     };
 
-    const deleteCliente = () => {
-        const _clientes = clientes.filter(c => c.id !== cliente.id);
-        setClientes(_clientes);
-        setDeleteClienteDialog(false);
-        setCliente(crearClienteVacio());
-        toast.current?.show({
-            severity: 'success',
-            summary: 'Éxito',
-            detail: 'Cliente eliminado',
-            life: 3000
-        });
-    };
+const deleteCliente = () => {
+  const _clientes = clientes.filter(c => c.id !== cliente.id);
+  setClientes(_clientes);
+  setDeleteClienteDialog(false);
+  setCliente(crearClienteVacio());
+  toast.current?.show({
+    severity: 'success',
+    summary: 'Éxito',
+    detail: 'Cliente eliminado',
+    life: 3000
+  });
+};
+
 
     const confirmDeleteSelected = () => {
         setDeleteClientesDialog(true);
@@ -458,6 +463,7 @@ const clientesConNombre = clientes.map(cliente => {
     filterDelay={200}
 >
     <Column selectionMode="multiple" headerStyle={{ width: '3rem' }} />
+    
     <Column 
         header="Nombre" 
         body={personaNombreTemplate} 
