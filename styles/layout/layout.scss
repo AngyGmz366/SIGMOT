@@ -65,3 +65,35 @@
 @import "./_responsive";
 @import "./_utils";
 @import "./_typography";
+
+
+// --- Botones específicos ---
+.btn-ver {
+  color: #6366F1;
+  background-color: transparent;
+  border: none;
+  &:hover {
+    background-color: rgba(44, 132, 216, 0.1);
+  }
+}
+
+.detalle-vehiculo {
+  font-size: 1rem;
+  line-height: 1.6;
+  p {
+    margin: 0.5rem 0;
+  }
+}
+
+.p-dialog {
+  max-width: 650px !important;
+  width: 130vw !important;
+}
+
+.p-dialog .pi-exclamation-triangle {
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+
+
