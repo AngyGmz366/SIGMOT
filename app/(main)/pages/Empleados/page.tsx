@@ -10,8 +10,7 @@ import { InputText } from 'primereact/inputtext';
 import { Calendar } from 'primereact/calendar';
 import { RadioButton } from 'primereact/radiobutton';
 import { Dropdown } from 'primereact/dropdown';
-
-
+import { Tag } from 'primereact/tag';
 
 interface Empleado {
     id: string;
@@ -48,6 +47,8 @@ const EmpleadosCrud = () => {
     const [empleado, setEmpleado] = useState<Empleado>(emptyEmpleado);
     const [empleadoDialog, setEmpleadoDialog] = useState(false);
     const [deleteEmpleadoDialog, setDeleteEmpleadoDialog] = useState(false);
+    const [detalleDialog, setDetalleDialog] = useState(false);
+    const [empleadoDetalle, setEmpleadoDetalle] = useState<Empleado>(emptyEmpleado);
     const [selectedEmpleados, setSelectedEmpleados] = useState<Empleado[]>([]);
     const [submitted, setSubmitted] = useState(false);
 
@@ -90,6 +91,11 @@ const EmpleadosCrud = () => {
         setEmpleadoDialog(true);
     };
 
+    const verDetalle = (emp: Empleado) => {
+        setEmpleadoDetalle({ ...emp });
+        setDetalleDialog(true);
+    };
+
     const confirmDeleteEmpleado = (emp: Empleado) => {
         setEmpleado(emp);
         setDeleteEmpleadoDialog(true);
@@ -121,6 +127,26 @@ const EmpleadosCrud = () => {
         setEmpleado(prev => ({ ...prev, [name]: e.value }));
     };
 
+    // Template para mostrar el estado con badges
+    const estadoTemplate = (rowData: Empleado) => {
+        if (!rowData.estado) return '';
+
+        return (
+            <Tag
+                value={rowData.estado}
+                severity={rowData.estado === 'Activo' ? 'success' : 'danger'}
+                style={{
+                    backgroundColor: rowData.estado === 'Activo' ? '#4CAF50' : '#f44336',
+                    color: 'white',
+                    padding: '4px 12px',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: '500'
+                }}
+            />
+        );
+    };
+
     const empleadoDialogFooter = (
         <>
             <Button label="Cancelar" icon="pi pi-times" text onClick={hideDialog} />
@@ -135,20 +161,28 @@ const EmpleadosCrud = () => {
         </>
     );
 
+    const detalleDialogFooter = (
+        <>
+            <Button label="Cerrar" icon="pi pi-times" text onClick={() => setDetalleDialog(false)} />
+        </>
+    );
+
     const accionesTemplate = (rowData: Empleado) => (
         <div className="flex gap-2">
+            <Button icon="pi pi-eye" rounded text severity="info" aria-label="Ver" onClick={() => verDetalle(rowData)} />
             <Button icon="pi pi-pencil" rounded text severity="warning" aria-label="Editar" onClick={() => editEmpleado(rowData)} />
             <Button icon="pi pi-trash" rounded text severity="danger" aria-label="Eliminar" onClick={() => confirmDeleteEmpleado(rowData)} />
         </div>
     );
+
 
     return (
         <div className="card">
             <Toast ref={toast} />
             <Toolbar className="mb-4" left={() => (
                 <>
-                    <Button label="Nuevo" icon="pi pi-plus" onClick={openNew} className="mr-2" />
-                    <Button label="Eliminar seleccionados" icon="pi pi-trash" className="p-button-danger" onClick={deleteSelectedEmpleados} disabled={!selectedEmpleados.length} />
+                    <Button label="Nuevo" icon="pi pi-plus" severity="success" onClick={openNew} className="mr-2" />
+                    <Button label="Eliminar seleccionados" icon="pi pi-trash" severity="danger" onClick={deleteSelectedEmpleados} disabled={!selectedEmpleados.length} />
                 </>
             )} />
             <div className="mb-3">
@@ -190,7 +224,7 @@ const EmpleadosCrud = () => {
                 <Column field="horaEntrada" header="Hora de entrada" body={(rowData) => rowData.horaEntrada?.toLocaleTimeString() || ''} />
                 <Column field="horaSalida" header="Hora de salida" body={(rowData) => rowData.horaSalida?.toLocaleTimeString() || ''} />
                 <Column field="jornada" header="Jornada" />
-                <Column field="estado" header="Estado" />
+                <Column field="estado" header="Estado" body={estadoTemplate} />
                 <Column body={accionesTemplate} header="Acciones" />
             </DataTable>
 
@@ -261,6 +295,122 @@ const EmpleadosCrud = () => {
                     <div className="field-radiobutton col-6">
                         <RadioButton inputId="inactivo" name="estado" value="Inactivo" onChange={e => onInputChange(e, 'estado')} checked={empleado.estado === 'Inactivo'} />
                         <label htmlFor="inactivo">Inactivo</label>
+                    </div>
+                </div>
+            </Dialog>
+
+            {/* Diálogo de Detalles del Empleado */}
+            <Dialog
+                visible={detalleDialog}
+                style={{ width: '600px' }}
+                header={`Detalles del Empleado: ${empleadoDetalle.nombreCompleto}`}
+                modal
+                footer={detalleDialogFooter}
+                onHide={() => setDetalleDialog(false)}
+            >
+                <div className="p-4">
+                    <div className="grid">
+                        <div className="col-12 md:col-6">
+                            <div className="field">
+                                <label className="font-bold text-900">Código:</label>
+                                <p className="text-700 mt-1">{empleadoDetalle.codigo || 'No especificado'}</p>
+                            </div>
+                        </div>
+                        <div className="col-12 md:col-6">
+                            <div className="field">
+                                <label className="font-bold text-900">Nombre Completo:</label>
+                                <p className="text-700 mt-1">{empleadoDetalle.nombreCompleto || 'No especificado'}</p>
+                            </div>
+                        </div>
+                        <div className="col-12 md:col-6">
+                            <div className="field">
+                                <label className="font-bold text-900">Género:</label>
+                                <p className="text-700 mt-1">{empleadoDetalle.genero || 'No especificado'}</p>
+                            </div>
+                        </div>
+                        <div className="col-12 md:col-6">
+                            <div className="field">
+                                <label className="font-bold text-900">DNI:</label>
+                                <p className="text-700 mt-1">{empleadoDetalle.dni || 'No especificado'}</p>
+                            </div>
+                        </div>
+                        <div className="col-12 md:col-6">
+                            <div className="field">
+                                <label className="font-bold text-900">Fecha de Nacimiento:</label>
+                                <p className="text-700 mt-1">{empleadoDetalle.fechaNacimiento?.toLocaleDateString() || 'No especificado'}</p>
+                            </div>
+                        </div>
+                        <div className="col-12 md:col-6">
+                            <div className="field">
+                                <label className="font-bold text-900">Teléfono:</label>
+                                <p className="text-700 mt-1">{empleadoDetalle.telefono || 'No especificado'}</p>
+                            </div>
+                        </div>
+                        <div className="col-12">
+                            <div className="field">
+                                <label className="font-bold text-900">Dirección:</label>
+                                <p className="text-700 mt-1">{empleadoDetalle.direccion || 'No especificado'}</p>
+                            </div>
+                        </div>
+                        <div className="col-12 md:col-6">
+                            <div className="field">
+                                <label className="font-bold text-900">Tipo de Empleado:</label>
+                                <p className="text-700 mt-1">{empleadoDetalle.tipoEmpleado || 'No especificado'}</p>
+                            </div>
+                        </div>
+                        <div className="col-12 md:col-6">
+                            <div className="field">
+                                <label className="font-bold text-900">Fecha de Contratación:</label>
+                                <p className="text-700 mt-1">{empleadoDetalle.fechaContratacion?.toLocaleDateString() || 'No especificado'}</p>
+                            </div>
+                        </div>
+                        <div className="col-12 md:col-6">
+                            <div className="field">
+                                <label className="font-bold text-900">Tipo de Contrato:</label>
+                                <p className="text-700 mt-1">{empleadoDetalle.tipoContrato || 'No especificado'}</p>
+                            </div>
+                        </div>
+                        <div className="col-12 md:col-6">
+                            <div className="field">
+                                <label className="font-bold text-900">Jornada:</label>
+                                <p className="text-700 mt-1">{empleadoDetalle.jornada || 'No especificado'}</p>
+                            </div>
+                        </div>
+                        <div className="col-12 md:col-6">
+                            <div className="field">
+                                <label className="font-bold text-900">Hora de Entrada:</label>
+                                <p className="text-700 mt-1">{empleadoDetalle.horaEntrada?.toLocaleTimeString() || 'No especificado'}</p>
+                            </div>
+                        </div>
+                        <div className="col-12 md:col-6">
+                            <div className="field">
+                                <label className="font-bold text-900">Hora de Salida:</label>
+                                <p className="text-700 mt-1">{empleadoDetalle.horaSalida?.toLocaleTimeString() || 'No especificado'}</p>
+                            </div>
+                        </div>
+                        <div className="col-12 md:col-6">
+                            <div className="field">
+                                <label className="font-bold text-900">Estado:</label>
+                                <div className="mt-1">
+                                    {empleadoDetalle.estado ? (
+                                        <Tag
+                                            value={empleadoDetalle.estado}
+                                            severity={empleadoDetalle.estado === 'Activo' ? 'success' : 'danger'}
+                                            style={{
+                                                backgroundColor: empleadoDetalle.estado === 'Activo' ? '#4CAF50' : '#f44336',
+                                                color: 'white',
+                                                padding: '4px 12px',
+                                                borderRadius: '12px',
+                                                fontSize: '12px',
+                                                fontWeight: '500'
+                                            }}
+                                        />
+                                    ) : (
+                                        <span className="text-700">No especificado</span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </Dialog>
