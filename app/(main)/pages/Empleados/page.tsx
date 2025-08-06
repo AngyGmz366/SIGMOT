@@ -30,7 +30,15 @@ interface Empleado {
     estado: string;
 }
 
-let contadorCodigo = 1;
+const getNextCodigo = () => {
+    const stored = localStorage.getItem('contadorCodigo');
+    let contador = stored ? parseInt(stored) : 1;
+
+    const codigo = `EMP${String(contador).padStart(4, '0')}`;
+
+    localStorage.setItem('contadorCodigo', String(contador + 1));
+    return codigo;
+};
 
 const EmpleadosCrud = () => {
     const toast = useRef<Toast>(null);
@@ -43,7 +51,7 @@ const EmpleadosCrud = () => {
     };
 
     const [globalFilter, setGlobalFilter] = useState('');
-    const [empleados, setEmpleados] = useState<Empleado[]>([]);
+    //const [empleados, setEmpleados] = useState<Empleado[]>([]);
     const [empleado, setEmpleado] = useState<Empleado>(emptyEmpleado);
     const [empleadoDialog, setEmpleadoDialog] = useState(false);
     const [deleteEmpleadoDialog, setDeleteEmpleadoDialog] = useState(false);
@@ -51,6 +59,25 @@ const EmpleadosCrud = () => {
     const [empleadoDetalle, setEmpleadoDetalle] = useState<Empleado>(emptyEmpleado);
     const [selectedEmpleados, setSelectedEmpleados] = useState<Empleado[]>([]);
     const [submitted, setSubmitted] = useState(false);
+
+
+    const [empleados, setEmpleados] = useState<Empleado[]>(() => {
+        const stored = localStorage.getItem('empleados');
+        return stored ? JSON.parse(stored, dateReviver) : [];
+    });
+
+    // Para convertir los strings de fechas en objetos Date al leer de localStorage
+    function dateReviver(key: string, value: any) {
+        if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+            return new Date(value);
+        }
+        return value;
+    }
+
+    // Guardar la lista de empleados en localStorage cada vez que se actualiza
+    const guardarEnLocalStorage = (lista: Empleado[]) => {
+        localStorage.setItem('empleados', JSON.stringify(lista));
+    };
 
     const openNew = () => {
         setEmpleado(emptyEmpleado);
@@ -75,12 +102,13 @@ const EmpleadosCrud = () => {
                 toast.current?.show({ severity: 'success', summary: 'Actualizado', detail: 'Empleado actualizado', life: 3000 });
             } else {
                 _empleado.id = createId();
-                _empleado.codigo = `EMP${String(contadorCodigo++).padStart(4, '0')}`;
+                _empleado.codigo = getNextCodigo();
                 _empleados.push(_empleado);
                 toast.current?.show({ severity: 'success', summary: 'Creado', detail: 'Empleado registrado', life: 3000 });
             }
 
             setEmpleados(_empleados);
+            guardarEnLocalStorage(_empleados); // <- Añade esta línea
             setEmpleadoDialog(false);
             setEmpleado(emptyEmpleado);
         }
@@ -106,6 +134,7 @@ const EmpleadosCrud = () => {
         setEmpleados(_empleados);
         setDeleteEmpleadoDialog(false);
         setEmpleado(emptyEmpleado);
+        guardarEnLocalStorage(_empleados); // <- Añade esta línea
         toast.current?.show({ severity: 'success', summary: 'Eliminado', detail: 'Empleado eliminado', life: 3000 });
     };
 
@@ -113,6 +142,7 @@ const EmpleadosCrud = () => {
         const _empleados = empleados.filter(val => !selectedEmpleados.includes(val));
         setEmpleados(_empleados);
         setSelectedEmpleados([]);
+        guardarEnLocalStorage(_empleados); // <- Añade esta línea
         toast.current?.show({ severity: 'success', summary: 'Eliminados', detail: 'Empleados eliminados', life: 3000 });
     };
 
@@ -137,6 +167,40 @@ const EmpleadosCrud = () => {
                 severity={rowData.estado === 'Activo' ? 'success' : 'danger'}
                 style={{
                     backgroundColor: rowData.estado === 'Activo' ? '#4CAF50' : '#f44336',
+                    color: 'white',
+                    padding: '4px 12px',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: '500'
+                }}
+            />
+        );
+    };
+
+    // Template para mostrar el tipo de empleado con colores
+    const tipoEmpleadoTemplate = (rowData: Empleado) => {
+        if (!rowData.tipoEmpleado) return '';
+
+        const getColorForTipo = (tipo: string) => {
+            switch (tipo) {
+                case 'Conductor':
+                    return '#3B82F6'; // Azul
+                case 'Cajero':
+                    return '#10B981'; // Verde
+                case 'Administrador':
+                    return '#8B5CF6'; // Morado
+                case 'Servicio de Limpieza':
+                    return '#F59E0B'; // Amarillo/Dorado
+                default:
+                    return '#6B7280'; // Gris por defecto
+            }
+        };
+
+        return (
+            <Tag
+                value={rowData.tipoEmpleado}
+                style={{
+                    backgroundColor: getColorForTipo(rowData.tipoEmpleado),
                     color: 'white',
                     padding: '4px 12px',
                     borderRadius: '12px',
@@ -174,7 +238,6 @@ const EmpleadosCrud = () => {
             <Button icon="pi pi-trash" rounded text severity="danger" aria-label="Eliminar" onClick={() => confirmDeleteEmpleado(rowData)} />
         </div>
     );
-
 
     return (
         <div className="card">
@@ -218,7 +281,7 @@ const EmpleadosCrud = () => {
                 <Column field="dni" header="DNI" />
                 <Column field="telefono" header="Teléfono" />
                 <Column field="direccion" header="Dirección" />
-                <Column field="tipoEmpleado" header="Tipo de empleado" />
+                <Column field="tipoEmpleado" header="Tipo de empleado" body={tipoEmpleadoTemplate} />
                 <Column field="fechaContratacion" header="Fecha de contratación" body={(rowData) => rowData.fechaContratacion?.toLocaleDateString() || ''} />
                 <Column field="tipoContrato" header="Tipo de contrato" />
                 <Column field="horaEntrada" header="Hora de entrada" body={(rowData) => rowData.horaEntrada?.toLocaleTimeString() || ''} />
@@ -227,7 +290,6 @@ const EmpleadosCrud = () => {
                 <Column field="estado" header="Estado" body={estadoTemplate} />
                 <Column body={accionesTemplate} header="Acciones" />
             </DataTable>
-
 
             <Dialog visible={empleadoDialog} style={{ width: '500px' }} header="Datos del Empleado" modal className="p-fluid" footer={empleadoDialogFooter} onHide={hideDialog}>
                 <div className="field">
@@ -355,7 +417,26 @@ const EmpleadosCrud = () => {
                         <div className="col-12 md:col-6">
                             <div className="field">
                                 <label className="font-bold text-900">Tipo de Empleado:</label>
-                                <p className="text-700 mt-1">{empleadoDetalle.tipoEmpleado || 'No especificado'}</p>
+                                <div className="mt-1">
+                                    {empleadoDetalle.tipoEmpleado ? (
+                                        <Tag
+                                            value={empleadoDetalle.tipoEmpleado}
+                                            style={{
+                                                backgroundColor: empleadoDetalle.tipoEmpleado === 'Conductor' ? '#3B82F6' :
+                                                    empleadoDetalle.tipoEmpleado === 'Cajero' ? '#10B981' :
+                                                        empleadoDetalle.tipoEmpleado === 'Administrador' ? '#8B5CF6' :
+                                                            empleadoDetalle.tipoEmpleado === 'Servicio de Limpieza' ? '#F59E0B' : '#6B7280',
+                                                color: 'white',
+                                                padding: '4px 12px',
+                                                borderRadius: '12px',
+                                                fontSize: '12px',
+                                                fontWeight: '500'
+                                            }}
+                                        />
+                                    ) : (
+                                        <span className="text-700">No especificado</span>
+                                    )}
+                                </div>
                             </div>
                         </div>
                         <div className="col-12 md:col-6">
