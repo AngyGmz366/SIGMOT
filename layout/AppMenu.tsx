@@ -100,11 +100,23 @@ const AppMenu = () => {
                     icon: 'pi pi-fw pi-exclamation-triangle',
                     to: '/cliente/incidencias-soporte'
                 },
+               
                 {
                     label: 'Rutas',
                     icon: 'pi pi-fw pi-map',
                     to: '/cliente/rutas'
-                }
+                },
+                 {
+                    label: 'Nueva Reservación',
+                    icon: 'pi pi-fw pi-user',
+                    to: '/cliente/reservacion/nueva'
+                },
+                {
+                    label: 'Mis Reservaciones',
+                    icon: 'pi pi-fw pi-user',
+                    to: '/cliente/reservacion/mis-reservaciones'
+                }
+                
             ]
         }
 
