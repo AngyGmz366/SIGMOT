@@ -59,10 +59,20 @@ const VehiculosPage = () => {
     setDialogVisible(true)
   }
 
-  const eliminarVehiculo = (vehiculo: Vehiculo) => {
-    const updatedVehiculos = vehiculoService.eliminar(vehiculos, vehiculo.id)
-    setVehiculos(updatedVehiculos)
+  const confirmarEliminacion = (vehiculo: Vehiculo) => {
+    setVehiculoAEliminar(vehiculo)
+    setConfirmVisible(true)
   }
+  
+  const eliminarConfirmado = () => {
+    if (!vehiculoAEliminar) return
+    const updatedVehiculos = vehiculoService.eliminar(vehiculos, vehiculoAEliminar.id)
+    setVehiculos(updatedVehiculos)
+    setConfirmVisible(false)
+    setVehiculoAEliminar(null)
+  }
+
+
 
   const guardarVehiculo = () => {
     if (!vehiculoActual) return
@@ -97,11 +107,23 @@ const VehiculosPage = () => {
     setSearchText(e.target.value)
   }
 
+  const [detalleVisible, setDetalleVisible] = useState(false)
+  const [vehiculoDetalle, setVehiculoDetalle] = useState<Vehiculo | null>(null)
+
+  const [confirmVisible, setConfirmVisible] = useState(false)
+  const [vehiculoAEliminar, setVehiculoAEliminar] = useState<Vehiculo | null>(null)
+
+  const verDetalle = (vehiculo: Vehiculo) => {
+    setVehiculoDetalle(vehiculo)
+    setDetalleVisible(true)
+  }
+
   const accionesTemplate = (rowData: Vehiculo) => (
     <div className="flex gap-2">
-      <Button icon="pi pi-pencil" className="btn-editar" rounded text severity="warning" onClick={() => editarVehiculo(rowData)} />
-      <Button icon="pi pi-trash" className="btn-eliminar" rounded text severity="danger" onClick={() => eliminarVehiculo(rowData)} />
-    </div>
+    <Button icon="pi pi-eye" className="btn-ver" rounded text severity="info" onClick={() => verDetalle(rowData)} />
+    <Button icon="pi pi-pencil" className="btn-editar" rounded text severity="warning" onClick={() => editarVehiculo(rowData)} />
+    <Button icon="pi pi-trash" className="btn-eliminar" rounded text severity="danger" onClick={() => confirmarEliminacion(rowData)} />
+  </div>
   )
 
   const leftToolbarTemplate = () => (
@@ -188,8 +210,55 @@ const VehiculosPage = () => {
             <Button label="Cancelar" icon="pi pi-times" className="btn-cancelar" onClick={() => setDialogVisible(false)} />
             <Button label="Guardar" icon="pi pi-check" className="btn-guardar" type="submit" />
           </div>
+
         </form>
       </Dialog>
+
+      <Dialog
+            header="Detalle del Vehículo"
+            visible={detalleVisible}
+            style={{ width: '90vw', maxWidth: '400px' }}
+            onHide={() => setDetalleVisible(false)}
+            className="shadow-2 border-round-xl">
+
+            <div className="detalle-vehiculo space-y-2">
+              <p><strong>Placa:</strong> {vehiculoDetalle?.placa}</p>
+              <p><strong>Marca:</strong> {vehiculoDetalle?.marca}</p>
+              <p><strong>Modelo:</strong> {vehiculoDetalle?.modelo}</p>
+              <p><strong>Año:</strong> {vehiculoDetalle?.año}</p>
+            </div>
+          </Dialog>
+
+            <Dialog
+            header="Confirmar"
+            visible={confirmVisible}
+            style={{ width: '100vw', maxWidth: '700px' }}
+            onHide={() => setConfirmVisible(false)}
+            className="shadow-2 border-round-xl">
+            <div>
+            <div className="flex items-center gap-3">
+  <i className="pi pi-exclamation-triangle text-xl text-yellow-500"></i>
+  <p className="text-base">
+    ¿Está seguro de eliminar el vehículo <strong>{vehiculoAEliminar?.placa}</strong>?
+  </p>
+</div>
+
+              <div className="flex justify-center gap-4 mt-4">
+              <Button
+                  label="No"
+                  icon="pi pi-times"
+                  className="btn-cancelar"
+                  onClick={() => setConfirmVisible(false)}/>
+                <Button
+                  label="Sí"
+                  icon="pi pi-check"
+                  className="btn-guardar"
+                  onClick={eliminarConfirmado}
+                />
+              </div>
+            </div>
+          </Dialog>
+
 
       <Toast ref={toast} />
     </div>
