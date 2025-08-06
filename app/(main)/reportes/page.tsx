@@ -136,12 +136,19 @@ const ReportesPage = () => {
     toast.current?.show({ severity: 'success', summary: 'Eliminado', detail: 'Reporte eliminado correctamente' })
   }
 
+  const verDetalle = (reporte: Reporte) => {
+    setReporteDetalle(reporte)
+    setDetalleVisible(true)
+  }
+
 
   const accionesTemplate = (rowData: Reporte) => (
     <div className="flex gap-2">
+      <Button icon="pi pi-eye" className="btn-ver" rounded text severity="info" onClick={() => verDetalle(rowData)} />
       <Button icon="pi pi-pencil" className="btn-editar" rounded text severity="warning" onClick={() => editarReporte(rowData)} />
-      <Button icon="pi pi-trash" className="btn-eliminar" rounded text severity="danger" onClick={() => confirmarEliminacion(rowData)} />    </div>
-  );
+      <Button icon="pi pi-trash" className="btn-eliminar" rounded text severity="danger" onClick={() => confirmarEliminacion(rowData)} />
+    </div>
+  )
 
   const leftToolbarTemplate = () => (
     <Button label="Nuevo Reporte" icon="pi pi-plus" className="btn-morado" onClick={abrirNuevo} />
