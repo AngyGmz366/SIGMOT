@@ -89,6 +89,13 @@ const ReportesPage = () => {
   const [reporteActual, setReporteActual] = useState<Reporte | null>(null)
   const toast = useRef<Toast>(null)
 
+  const [detalleVisible, setDetalleVisible] = useState(false)
+  const [reporteDetalle, setReporteDetalle] = useState<Reporte | null>(null)
+
+  const [confirmVisible, setConfirmVisible] = useState(false)
+  const [reporteAEliminar, setReporteAEliminar] = useState<Reporte | null>(null)
+
+
   useEffect(() => {
     setReportes([
       { id: 1, tipo: 'Boletos', fecha: '2025-07-10', total: 350 },
@@ -120,16 +127,32 @@ const ReportesPage = () => {
     setDialogVisible(true)
   }
 
-  const eliminarReporte = (id: number) => {
-    setReportes(reportes.filter(r => r.id !== id))
+  const verDetalle = (reporte: Reporte) => {
+    setReporteDetalle(reporte)
+    setDetalleVisible(true)
+  }
+  
+  const confirmarEliminacion = (reporte: Reporte) => {
+    setReporteAEliminar(reporte)
+    setConfirmVisible(true)
+  }
+  
+  const eliminarConfirmado = () => {
+    if (!reporteAEliminar) return
+    setReportes(reportes.filter(r => r.id !== reporteAEliminar.id))
+    setConfirmVisible(false)
+    toast.current?.show({ severity: 'success', summary: 'Eliminado', detail: 'Reporte eliminado correctamente' })
   }
 
+
   const accionesTemplate = (rowData: Reporte) => (
-    <div className="flex gap-2">
-      <Button icon="pi pi-pencil" className="btn-editar" rounded text severity="warning" onClick={() => editarReporte(rowData)} />
-      <Button icon="pi pi-trash" className="btn-eliminar" rounded text severity="danger" onClick={() => eliminarReporte(rowData.id)} />
-    </div>
-  )
+  <div className="flex gap-2">
+    <Button icon="pi pi-eye" className="btn-ver" rounded text severity="info" onClick={() => verDetalle(rowData)} />
+    <Button icon="pi pi-pencil" className="btn-editar" rounded text severity="warning" onClick={() => editarReporte(rowData)} />
+    <Button icon="pi pi-trash" className="btn-eliminar" rounded text severity="danger" onClick={() => confirmarEliminacion(rowData)} />
+  </div>
+)
+
 
   const leftToolbarTemplate = () => (
     <Button label="Nuevo Reporte" icon="pi pi-plus" className="btn-morado" onClick={abrirNuevo} />
@@ -163,8 +186,6 @@ const ReportesPage = () => {
       x: { grid: { display: false } }
     }
   }
-
-
 
 
   return (
@@ -291,6 +312,38 @@ const ReportesPage = () => {
           </div>
         </form>
       </Dialog>
+          {/* Modal de Detalle */}
+          <Dialog
+            header="Detalle del Reporte"
+            visible={detalleVisible}
+            style={{ width: '90vw', maxWidth: '600px' }}
+            onHide={() => setDetalleVisible(false)}
+            className="shadow-2 border-round-xl">
+            <div className="detalle-vehiculo space-y-2">
+              <p><strong>Tipo:</strong> {reporteDetalle?.tipo}</p>
+              <p><strong>Fecha:</strong> {reporteDetalle?.fecha}</p>
+              <p><strong>Total:</strong> L. {reporteDetalle?.total}</p>
+            </div>
+          </Dialog>
+
+          {/* Modal de Confirmación */}
+          <Dialog
+            header="Confirmar"
+            visible={confirmVisible}
+            style={{ width: '90vw', maxWidth: '600px' }}
+            onHide={() => setConfirmVisible(false)}
+            className="shadow-2 border-round-xl">
+            <div className="flex items-center gap-3">
+              <i className="pi pi-exclamation-triangle text-xl text-yellow-500"></i>
+              <p className="text-base">
+                ¿Está seguro de eliminar el reporte de tipo <strong>{reporteAEliminar?.tipo}</strong>?
+              </p>
+            </div>
+            <div className="flex justify-center gap-4 mt-4">
+              <Button label="No" icon="pi pi-times" className="btn-cancelar" onClick={() => setConfirmVisible(false)} />
+              <Button label="Sí" icon="pi pi-check" className="btn-guardar" onClick={eliminarConfirmado} />
+            </div>
+          </Dialog>
     </div>
   )
 }
