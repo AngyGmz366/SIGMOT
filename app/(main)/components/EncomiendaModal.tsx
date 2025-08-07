@@ -10,9 +10,35 @@ import { Calendar } from 'primereact/calendar';
 import { Dropdown } from 'primereact/dropdown';
 import { InputNumber } from 'primereact/inputnumber';
 import { classNames } from 'primereact/utils';
-import { Encomienda, EncomiendaDialogProps } from '@/types/ventas';
 
+interface Encomienda {
+    id: number | null;
+    remitente: string;
+    destinatario: string;
+    origen: string;
+    destino: string;
+    fecha: string;
+    descripcion: string;
+    peso: number;
+    precio: number | string;
+    tipoVenta: 'encomienda';
+    telefono?: string;
+    cedulaRemitente?: string;
+    cedulaDestinatario?: string;
+    estado?: 'enviado' | 'en_transito' | 'entregado' | 'cancelado';
+    metodoPago?: 'efectivo' | 'tarjeta' | 'transferencia';
+    descuento?: number;
+    total?: number;
+}
 
+interface EncomiendaDialogProps {
+    visible: boolean;
+    onHide: () => void;
+    encomienda: Encomienda;
+    setEncomienda: (encomienda: Encomienda) => void;
+    onSave: () => void;
+    submitted?: boolean;
+}
 
 const EncomiendaDialog: React.FC<EncomiendaDialogProps> = ({ 
     visible, 

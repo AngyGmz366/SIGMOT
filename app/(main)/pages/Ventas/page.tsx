@@ -7,27 +7,143 @@ import { Toolbar } from 'primereact/toolbar';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Tag } from 'primereact/tag';
-import { InputText } from 'primereact/inputtext';
-// Verifica que estos archivos existan en estas ubicaciones
+import { FilterMatchMode } from 'primereact/api';
+
 import BoletoDialog from '../../components/BoletoModal';
 import EncomiendaDialog from '../../components/EncomiendaModal';
-import ImprimirModal from '../../components/ImprimirModal';
-import { VentaItem, Boleto, Encomienda } from '@/types/ventas';
 
+import { Dialog } from 'primereact/dialog';
+import { InputText } from 'primereact/inputtext';
+import { Dropdown } from 'primereact/dropdown';
+import { InputNumber } from 'primereact/inputnumber';
 
+export interface Boleto {
+    id: number | null;
+    cliente: string;
+    destino: string;
+    fecha: string;
+    precio: number | string;
+    tipoVenta?: 'boleto' | 'encomienda';
+    asiento?: string;
+    autobus?: string;
+    horaSalida?: string;
+    horaLlegada?: string;
+    telefono?: string;
+    cedula?: string;
+    estado?: 'vendido' | 'reservado' | 'cancelado';
+    metodoPago?: 'efectivo' | 'tarjeta' | 'transferencia';
+    descuento?: number;
+    total?: number;
+}
+
+export interface Encomienda {
+    id: number | null;
+    remitente: string;
+    destinatario: string;
+    origen: string;
+    destino: string;
+    fecha: string;
+    descripcion: string;
+    peso: number;
+    precio: number | string;
+    tipoVenta: 'encomienda';
+    telefono?: string;
+    cedulaRemitente?: string;
+    cedulaDestinatario?: string;
+    estado?: 'enviado' | 'en_transito' | 'entregado' | 'cancelado';
+    metodoPago?: 'efectivo' | 'tarjeta' | 'transferencia';
+    descuento?: number;
+    total?: number;
+}
+
+export type VentaItem = Boleto | Encomienda;
+
+interface ImprimirDialogProps {
+    visible: boolean;
+    onHide: () => void;
+    item: VentaItem | null;
+    onConfirm: () => void;
+}
+
+const ImprimirDialog: React.FC<ImprimirDialogProps> = ({ visible, onHide, item, onConfirm }) => {
+    if (!item) return null;
+
+    const esBoleto = item.tipoVenta !== 'encomienda';
+
+    // Funciones para mostrar etiquetas con estilo readonly
+    const renderInputText = (label: string, value: string | undefined) => (
+        <div className="field mb-3">
+            <label className="font-bold">{label}</label>
+            <InputText value={value || ''} disabled className="w-full" />
+        </div>
+    );
+
+    const renderInputNumber = (label: string, value: number | undefined) => (
+        <div className="field mb-3">
+            <label className="font-bold">{label}</label>
+            <InputNumber value={value ?? 0} disabled mode="currency" currency="HNL" locale="es-HN" className="w-full" />
+        </div>
+    );
+
+    return (
+        <Dialog
+            visible={visible}
+            onHide={onHide}
+            header={`Imprimir ${esBoleto ? 'Boleto' : 'Encomienda'}`}
+            modal
+            style={{ width: '40rem' }}
+            footer={
+                <div className="flex justify-content-end gap-2">
+                    <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={onHide} />
+                    <Button label="Confirmar impresión" icon="pi pi-print" severity="success" onClick={onConfirm} />
+                </div>
+            }
+        >
+            {esBoleto ? (
+                <>
+                    {renderInputText('Cliente', item.cliente)}
+                    {renderInputText('Cédula', (item as Boleto).cedula)}
+                    {renderInputText('Teléfono', (item as Boleto).telefono)}
+                    {renderInputText('Destino', item.destino)}
+                    {renderInputText('Fecha', item.fecha)}
+                    {renderInputText('Hora Salida', (item as Boleto).horaSalida)}
+                    {renderInputText('Autobús', (item as Boleto).autobus)}
+                    {renderInputText('Asiento', (item as Boleto).asiento)}
+                    {renderInputNumber('Precio', Number(item.precio))}
+                    {renderInputNumber('Descuento', (item.descuento || 0))}
+                    {renderInputNumber('Total', (item.total || 0))}
+                    {renderInputText('Método de Pago', (item.metodoPago || ''))}
+                    {renderInputText('Estado', (item.estado || ''))}
+                </>
+            ) : (
+                <>
+                    {renderInputText('Remitente', (item as Encomienda).remitente)}
+                    {renderInputText('Destinatario', (item as Encomienda).destinatario)}
+                    {renderInputText('Origen', (item as Encomienda).origen)}
+                    {renderInputText('Destino', item.destino)}
+                    {renderInputText('Fecha', item.fecha)}
+                    {renderInputText('Descripción', (item as Encomienda).descripcion)}
+                    {renderInputNumber('Peso', (item as Encomienda).peso)}
+                    {renderInputNumber('Precio', Number(item.precio))}
+                    {renderInputNumber('Descuento', (item.descuento || 0))}
+                    {renderInputNumber('Total', (item.total || 0))}
+                    {renderInputText('Método de Pago', (item.metodoPago || ''))}
+                    {renderInputText('Estado', (item.estado || ''))}
+                </>
+            )}
+        </Dialog>
+    );
+};
 
 export default function VentasPage() {
     const toast = useRef<Toast>(null);
+
     const [ventaItems, setVentaItems] = useState<VentaItem[]>([]);
     const [boletoDialogVisible, setBoletoDialogVisible] = useState(false);
     const [encomiendaDialogVisible, setEncomiendaDialogVisible] = useState(false);
+    const [tipoVentaVisible, setTipoVentaVisible] = useState(true);
     const [currentMode, setCurrentMode] = useState<'boleto' | 'encomienda'>('boleto');
-    const [selectedItems, setSelectedItems] = useState<VentaItem[] | null>(null);
-    const [submitted, setSubmitted] = useState(false);
-    const [globalFilter, setGlobalFilter] = useState('');
-    const [imprimirDialogVisible, setImprimirDialogVisible] = useState(false);
-    const [itemParaImprimir, setItemParaImprimir] = useState<VentaItem | null>(null);
-
+    
     const [boleto, setBoleto] = useState<Boleto>({ 
         id: null, 
         cliente: '', 
@@ -67,14 +183,28 @@ export default function VentasPage() {
         total: 0
     });
 
+    const [selectedItems, setSelectedItems] = useState<VentaItem[] | null>(null);
+    const [submitted, setSubmitted] = useState(false);
+    const [globalFilter, setGlobalFilter] = useState('');
+    const [filters, setFilters] = useState({
+        global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+        cliente: { value: null, matchMode: FilterMatchMode.STARTS_WITH },
+        remitente: { value: null, matchMode: FilterMatchMode.STARTS_WITH },
+        destino: { value: null, matchMode: FilterMatchMode.STARTS_WITH },
+        tipoVenta: { value: null, matchMode: FilterMatchMode.EQUALS },
+        estado: { value: null, matchMode: FilterMatchMode.EQUALS }
+    });
+
+    // Nuevo estado para imprimir
+    const [imprimirDialogVisible, setImprimirDialogVisible] = useState(false);
+    const [itemParaImprimir, setItemParaImprimir] = useState<VentaItem | null>(null);
+
     useEffect(() => {
         const stored = localStorage.getItem('ventaItems');
         if (stored) setVentaItems(JSON.parse(stored));
     }, []);
 
-    const guardarEnStorage = (data: VentaItem[]) => {
-        localStorage.setItem('ventaItems', JSON.stringify(data));
-    };
+    const guardarEnStorage = (data: VentaItem[]) => localStorage.setItem('ventaItems', JSON.stringify(data));
 
     const filteredItems = ventaItems.filter(item => 
         currentMode === 'boleto' 
@@ -128,12 +258,9 @@ export default function VentasPage() {
         setSubmitted(false);
     };
 
-
-    
-
     const saveBoleto = () => {
         setSubmitted(true);
-        if (boleto.cliente.trim() && boleto.destino.trim()) {
+        if (boleto.cliente.trim()) {
             let _items = [...ventaItems];
             let _boleto = { ...boleto };
 
@@ -208,195 +335,21 @@ export default function VentasPage() {
         setGlobalFilter('');
     };
 
+    // Función para abrir modal imprimir
     const abrirModalImprimir = (item: VentaItem) => {
         setItemParaImprimir(item);
         setImprimirDialogVisible(true);
     };
 
+    // Confirmar impresión
     const confirmarImpresion = () => {
-        const iframe = document.createElement('iframe');
-        iframe.style.position = 'absolute';
-        iframe.style.left = '-9999px';
-        document.body.appendChild(iframe);
-
-        const esBoleto = itemParaImprimir?.tipoVenta !== 'encomienda';
-        const formatFechaHora = (fecha: string, hora?: string) => {
-            if (!fecha) return '';
-            const [year, month, day] = fecha.split('-');
-            const formattedDate = `${day}/${month}/${year}`;
-            return hora ? `${formattedDate} ${hora}` : formattedDate;
-        };
-
-        const content = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Impresión de ${esBoleto ? 'Boleto' : 'Encomienda'}</title>
-                <style>
-                    body { font-family: Arial, sans-serif; margin: 0; padding: 10px; font-size: 12px; }
-                    .ticket { width: 80mm; margin: 0 auto; }
-                    .text-center { text-align: center; }
-                    .font-bold { font-weight: bold; }
-                    table { width: 100%; border-collapse: collapse; margin: 5px 0; font-size: 11px; }
-                    th, td { padding: 3px; border: 1px solid #000; }
-                    .border-top { border-top: 1px dashed #000; margin-top: 5px; padding-top: 5px; }
-                    .no-border { border: none !important; }
-                </style>
-            </head>
-            <body>
-                <div class="ticket">
-                    ${esBoleto ? `
-                        <div class="text-center font-bold" style="font-size: 14px; margin-bottom: 5px;">NO VÁLIDO PARA REALIZAR VIAJE</div>
-                        <div class="text-center" style="margin-bottom: 5px;">SEÑOR PASAJERO:</div>
-                        <div class="text-center" style="margin-bottom: 10px; font-size: 10px;">
-                            PARA SOLICITAR SU BOLETO, DEBE PRESENTAR ESTE COMPROBANTE EN CUALQUIERA DE NUESTRAS 
-                            VENTANILLAS O TÓTEMES HABILITADOS HASTA 10 MINUTOS ANTES DE INICIAR EL SERVICIO.
-                        </div>
-                        
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Servicio</th>
-                                    <th>Tipo</th>
-                                    <th>Fecha/Hora</th>
-                                    <th>Origen</th>
-                                    <th>Destino</th>
-                                    <th>Asiento</th>
-                                    <th>R</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>${(itemParaImprimir as Boleto)?.autobus || 'N/A'}</td>
-                                    <td>IDA</td>
-                                    <td>${formatFechaHora(itemParaImprimir?.fecha || '', (itemParaImprimir as Boleto)?.horaSalida)}</td>
-                                    <td>TERMINAL PRINCIPAL</td>
-                                    <td>${itemParaImprimir?.destino}</td>
-                                    <td>${(itemParaImprimir as Boleto)?.asiento || 'N/A'}</td>
-                                    <td>EJEC</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Tipo Cliente</th>
-                                    <th>Tarifa Normal</th>
-                                    <th>Descuento</th>
-                                    <th>Total a Pagar</th>
-                                    <th>Fecha</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>PULLMAN PASS</td>
-                                    <td>$${Number(itemParaImprimir?.precio).toLocaleString('es-HN')}</td>
-                                    <td>$${(itemParaImprimir?.descuento || 0).toLocaleString('es-HN')}</td>
-                                    <td>$${(itemParaImprimir?.total || 0).toLocaleString('es-HN')}</td>
-                                    <td>${formatFechaHora(itemParaImprimir?.fecha || '')}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        
-                        <div class="border-top">
-                            <div style="float: left; width: 50%;">
-                                <div class="font-bold">Texto Social:</div>
-                                <div>${(itemParaImprimir as Boleto)?.telefono || 'N/A'}</div>
-                            </div>
-                            <div style="float: right; width: 50%;">
-                                <div class="font-bold">Manuten Social:</div>
-                                <div>${itemParaImprimir?.tipoVenta === 'boleto' ? (itemParaImprimir as Boleto).cliente : (itemParaImprimir as Encomienda).remitente}</div>
-                            </div>
-                            <div style="clear: both;"></div>
-                        </div>
-                    ` : `
-                        <div class="text-center font-bold" style="font-size: 14px; margin-bottom: 5px;">COMPROBANTE DE ENCOMIENDA</div>
-                        <table class="no-border">
-                            <tr>
-                                <td class="no-border" style="width: 50%;">
-                                    <div class="font-bold">Remitente:</div>
-                                    <div>${(itemParaImprimir as Encomienda)?.remitente}</div>
-                                    <div class="font-bold">Cédula:</div>
-                                    <div>${(itemParaImprimir as Encomienda)?.cedulaRemitente || 'N/A'}</div>
-                                </td>
-                                <td class="no-border" style="width: 50%;">
-                                    <div class="font-bold">Destinatario:</div>
-                                    <div>${(itemParaImprimir as Encomienda)?.destinatario}</div>
-                                    <div class="font-bold">Cédula:</div>
-                                    <div>${(itemParaImprimir as Encomienda)?.cedulaDestinatario || 'N/A'}</div>
-                                </td>
-                            </tr>
-                        </table>
-                        <table class="no-border">
-                            <tr>
-                                <td class="no-border" style="width: 50%;">
-                                    <div class="font-bold">Origen:</div>
-                                    <div>${(itemParaImprimir as Encomienda)?.origen}</div>
-                                </td>
-                                <td class="no-border" style="width: 50%;">
-                                    <div class="font-bold">Destino:</div>
-                                    <div>${itemParaImprimir?.destino}</div>
-                                </td>
-                            </tr>
-                        </table>
-                        <table class="no-border">
-                            <tr>
-                                <td class="no-border" style="width: 50%;">
-                                    <div class="font-bold">Fecha:</div>
-                                    <div>${formatFechaHora(itemParaImprimir?.fecha || '')}</div>
-                                </td>
-                                <td class="no-border" style="width: 50%;">
-                                    <div class="font-bold">Peso:</div>
-                                    <div>${(itemParaImprimir as Encomienda)?.peso} kg</div>
-                                </td>
-                            </tr>
-                        </table>
-                        <div style="margin: 5px 0;">
-                            <div class="font-bold">Descripción:</div>
-                            <div>${(itemParaImprimir as Encomienda)?.descripcion || 'N/A'}</div>
-                        </div>
-                        <div class="border-top">
-                            <div style="display: flex;">
-                                <div style="flex: 1; text-align: center;">
-                                    <div class="font-bold">Precio:</div>
-                                    <div>$${Number(itemParaImprimir?.precio).toLocaleString('es-HN')}</div>
-                                </div>
-                                <div style="flex: 1; text-align: center;">
-                                    <div class="font-bold">Descuento:</div>
-                                    <div>$${(itemParaImprimir?.descuento || 0).toLocaleString('es-HN')}</div>
-                                </div>
-                                <div style="flex: 1; text-align: center;">
-                                    <div class="font-bold">Total:</div>
-                                    <div>$${(itemParaImprimir?.total || 0).toLocaleString('es-HN')}</div>
-                                </div>
-                            </div>
-                        </div>
-                    `}
-                </div>
-                <script>
-                    window.onload = function() {
-                        setTimeout(function() {
-                            window.print();
-                            setTimeout(function() {
-                                window.close();
-                            }, 100);
-                        }, 100);
-                    };
-                </script>
-            </body>
-            </html>
-        `;
-
-        iframe.contentDocument?.write(content);
-        iframe.contentDocument?.close();
-
-        setTimeout(() => {
-            document.body.removeChild(iframe);
-            setImprimirDialogVisible(false);
-            setItemParaImprimir(null);
-        }, 1000);
+        // Aquí podrías agregar lógica avanzada, por ejemplo generar PDF o enviar a impresora
+        window.print();
+        setImprimirDialogVisible(false);
+        setItemParaImprimir(null);
     };
+
+    // Plantillas columnas y acciones
 
     const tipoVentaBodyTemplate = (rowData: VentaItem) => {
         const tipo = rowData.tipoVenta || 'boleto';
@@ -543,11 +496,12 @@ export default function VentasPage() {
             </div>
             <span className="p-input-icon-left">
                 <i className="pi pi-search" />
-                <InputText
+                <input
                     type="search"
                     value={globalFilter}
                     onChange={(e) => setGlobalFilter(e.target.value)}
                     placeholder="Buscar..."
+                    className="p-inputtext p-component"
                 />
             </span>
         </div>
@@ -561,6 +515,7 @@ export default function VentasPage() {
                 severity="success" 
                 onClick={openNew} 
             />
+        
             <Button 
                 label="Exportar" 
                 icon="pi pi-upload" 
@@ -593,7 +548,7 @@ export default function VentasPage() {
                     <DataTable
                         value={filteredItems}
                         selection={selectedItems}
-                        onSelectionChange={(e) => setSelectedItems(e.value as VentaItem[])}
+                        onSelectionChange={(e: any) => setSelectedItems(e.value)}
                         dataKey="id"
                         paginator
                         rows={10}
@@ -603,6 +558,9 @@ export default function VentasPage() {
                         currentPageReportTemplate={`Mostrando {first} a {last} de {totalRecords} ${currentMode === 'boleto' ? 'boletos' : 'encomiendas'}`}
                         globalFilter={globalFilter}
                         header={header}
+                        filters={filters}
+                        filterDisplay="menu"
+                        responsiveLayout="scroll"
                         emptyMessage={`No se encontraron ${currentMode === 'boleto' ? 'boletos' : 'encomiendas'}.`}
                     >
                         <Column 
@@ -610,20 +568,27 @@ export default function VentasPage() {
                             headerStyle={{ width: '3rem' }}
                             exportable={false}
                         />
+                        
                         <Column 
                             field="tipoVenta" 
                             header="Tipo" 
                             body={tipoVentaBodyTemplate}
                             sortable
+                            filter
+                            filterPlaceholder="Filtrar por tipo"
                             style={{ minWidth: '8rem' }}
                         />
+                        
                         <Column 
                             field={currentMode === 'boleto' ? 'cliente' : 'remitente'}
                             header={currentMode === 'boleto' ? 'Cliente' : 'Remitente/Destinatario'}
                             body={clienteBodyTemplate}
                             sortable
+                            filter
+                            filterPlaceholder={`Buscar por ${currentMode === 'boleto' ? 'cliente' : 'remitente'}`}
                             style={{ minWidth: '12rem' }}
                         />
+                        
                         {currentMode === 'boleto' && (
                             <>
                                 <Column 
@@ -639,30 +604,39 @@ export default function VentasPage() {
                                 />
                             </>
                         )}
+                        
                         <Column 
                             field="destino" 
                             header="Destino" 
                             sortable
+                            filter
+                            filterPlaceholder="Buscar por destino"
                             style={{ minWidth: '10rem' }}
                         />
+                        
                         <Column 
                             field="fecha" 
                             header="Fecha" 
                             sortable
                             style={{ minWidth: '8rem' }}
                         />
+                        
                         <Column 
                             header="Detalles"
                             body={detallesBodyTemplate}
                             style={{ minWidth: '10rem' }}
                         />
+                        
                         <Column 
                             field="estado" 
                             header="Estado" 
                             body={estadoBodyTemplate}
                             sortable
+                            filter
+                            filterPlaceholder="Filtrar por estado"
                             style={{ minWidth: '8rem' }}
                         />
+                        
                         <Column 
                             field="metodoPago" 
                             header="Método Pago" 
@@ -670,6 +644,7 @@ export default function VentasPage() {
                             sortable
                             style={{ minWidth: '10rem' }}
                         />
+                        
                         <Column 
                             field="total" 
                             header="Total" 
@@ -677,6 +652,7 @@ export default function VentasPage() {
                             sortable
                             style={{ minWidth: '8rem' }}
                         />
+                        
                         <Column 
                             body={actionBodyTemplate}
                             exportable={false}
@@ -703,7 +679,7 @@ export default function VentasPage() {
                         submitted={submitted}
                     />
 
-                    <ImprimirModal
+                    <ImprimirDialog
                         visible={imprimirDialogVisible}
                         onHide={() => setImprimirDialogVisible(false)}
                         item={itemParaImprimir}
@@ -714,3 +690,4 @@ export default function VentasPage() {
         </div>
     );
 }
+

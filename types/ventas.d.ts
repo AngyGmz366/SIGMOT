@@ -1,61 +1,64 @@
-// types/ventas.ts
-export interface VentaItem {
-    id: number | null;
-    tipoVenta?: 'boleto' | 'encomienda';
-    estado?: string;
-    metodoPago?: string;
-    precio: number | string;
-    descuento?: number;
-    total?: number;
-    fecha?: string;
-    destino?: string;
-    [key: string]: any; // Para propiedades adicionales específicas de cada tipo
-}
+// @/types/ventas.ts
 
-export interface Boleto extends VentaItem {
+// Representa un boleto de viaje vendido
+// type/boleto.ts
+
+// Representa un boleto de viaje vendido
+interface Boleto {
+    id: number | null;
     cliente: string;
-    cedula?: string;
-    telefono?: string;
     destino: string;
-    autobus?: string;
+    fecha: string;
+    precio: number | string;
+    // Campos adicionales opcionales
+    tipoVenta?: 'boleto' | 'encomienda';
     asiento?: string;
+    autobus?: string;
     horaSalida?: string;
     horaLlegada?: string;
-    tipoVenta?: 'boleto';
+    telefono?: string;
+    cedula?: string;
+    estado?: 'vendido' | 'reservado' | 'cancelado';
+    metodoPago?: 'efectivo' | 'tarjeta' | 'transferencia';
+    descuento?: number;
+    total?: number;
 }
 
-export interface Encomienda extends VentaItem {
+// Props para el modal de crear/editar boleto
+interface BoletoDialogProps {
+  visible: boolean;
+  onHide: () => void;
+  boleto: BoletoType;           // Aquí debes usar el tipo correcto de tu modelo 'boleto'
+  setBoleto: React.Dispatch<React.SetStateAction<BoletoType>>;
+  onSave: () => void;
+  submitted: boolean;
+}
+
+
+export interface Encomienda {
+    id: number | null;
     remitente: string;
     destinatario: string;
     origen: string;
-    cedulaRemitente?: string;
-    cedulaDestinatario?: string;
+    destino: string;
+    fecha: string;
     descripcion: string;
     peso: number;
-    tipoVenta?: 'encomienda';
+    precio: string | number;
+    tipoVenta: 'encomienda';
+    estado: 'enviado' | 'en_transito' | 'entregado' | 'cancelado';
+    metodoPago: 'efectivo' | 'tarjeta' | 'transferencia';
+    total: number;
 }
 
-export interface BoletoDialogProps {
+export type VentaItem = Boleto | Encomienda;
+
+
+interface BoletoDialogProps {
     visible: boolean;
     onHide: () => void;
     boleto: Boleto;
-    setBoleto: React.Dispatch<React.SetStateAction<Boleto>>;
+    setBoleto: (boleto: Boleto) => void;
     onSave: () => void;
     submitted?: boolean;
-}
-
-export interface EncomiendaDialogProps {
-    visible: boolean;
-    onHide: () => void;
-    encomienda: Encomienda;
-    setEncomienda: React.Dispatch<React.SetStateAction<Encomienda>>;
-    onSave: () => void;
-    submitted?: boolean;
-}
-
-export interface ImprimirModalProps {
-    visible: boolean;
-    onHide: () => void;
-    item: VentaItem | null;
-    onConfirm: () => void;
 }
