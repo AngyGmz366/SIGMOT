@@ -1,40 +1,62 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Ruta } from '@/app/(main)/cliente/rutas/Types/rutas.types';
 
 import RutasAdminTable from './components/RutasAdminTable';
 import FormularioRuta from './components/FormularioRuta';
 import MapaInteractivo from '@/app/(main)/cliente/rutas/components/MapaInteractivo';
+
 import { Button } from 'primereact/button';
 import { Card } from 'primereact/card';
+import { Dialog } from 'primereact/dialog';
+import { Toast } from 'primereact/toast';
+import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
+
 import { obtenerRutasMock } from '@/app/(main)/cliente/rutas/acciones/rutas.acciones';
 
 const PageAdminRutas: React.FC = () => {
   const [rutas, setRutas] = useState<Ruta[]>(obtenerRutasMock());
   const [rutaSeleccionada, setRutaSeleccionada] = useState<Ruta | null>(null);
-  const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [mostrarModal, setMostrarModal] = useState(false);
+  const toast = useRef<Toast>(null);
 
-  // Guardar nueva o editada
+  const mostrarMensaje = (detalle: string) => {
+    toast.current?.show({
+      severity: 'success',
+      summary: 'Éxito',
+      detail: detalle,
+      life: 3000
+    });
+  };
+
   const guardarRuta = (nuevaRuta: Ruta) => {
     if (rutaSeleccionada) {
       setRutas(prev =>
         prev.map(r => (r.id === nuevaRuta.id ? nuevaRuta : r))
       );
+      mostrarMensaje('Ruta actualizada correctamente');
     } else {
       setRutas(prev => [...prev, nuevaRuta]);
+      mostrarMensaje('Ruta creada correctamente');
     }
     cerrarFormulario();
   };
 
-  // Eliminar
   const eliminarRuta = (id: string) => {
-    if (confirm('¿Seguro que deseas eliminar esta ruta?')) {
-      setRutas(prev => prev.filter(r => r.id !== id));
-    }
+    confirmDialog({
+      message: '¿Seguro que deseas eliminar esta ruta?',
+      header: 'Confirmación',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Sí',
+      rejectLabel: 'No',
+      accept: () => {
+        setRutas(prev => prev.filter(r => r.id !== id));
+        mostrarMensaje('Ruta eliminada correctamente');
+      }
+    });
   };
 
-  // Cambiar estado (activo/inactivo)
   const cambiarEstadoRuta = (rutaId: string, nuevoEstado: 'activo' | 'inactivo') => {
     setRutas(prev =>
       prev.map(r =>
@@ -43,14 +65,16 @@ const PageAdminRutas: React.FC = () => {
     );
   };
 
-  // Cerrar formulario
   const cerrarFormulario = () => {
-    setMostrarFormulario(false);
+    setMostrarModal(false);
     setRutaSeleccionada(null);
   };
 
   return (
     <div className="p-4 space-y-6">
+      <Toast ref={toast} />
+      <ConfirmDialog />
+
       {/* Título y botón */}
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
         <h2 className="text-3xl font-bold text-gray-800">Gestión de Rutas</h2>
@@ -60,7 +84,7 @@ const PageAdminRutas: React.FC = () => {
           className="btn-verde"
           onClick={() => {
             setRutaSeleccionada(null);
-            setMostrarFormulario(true);
+            setMostrarModal(true);
           }}
         />
       </div>
@@ -71,30 +95,36 @@ const PageAdminRutas: React.FC = () => {
           rutas={rutas}
           onEditarRuta={(ruta) => {
             setRutaSeleccionada(ruta);
-            setMostrarFormulario(true);
+            setMostrarModal(true);
           }}
           onEliminarRuta={eliminarRuta}
           onCambiarEstado={cambiarEstadoRuta}
         />
       </Card>
 
-      {/* Formulario y vista previa */}
-      {mostrarFormulario && (
-        <>
-          <FormularioRuta
-            ruta={rutaSeleccionada}
-            onCerrar={cerrarFormulario}
-            onGuardar={guardarRuta}
-          />
+      {/* Modal con Formulario */}
+      <Dialog
+        header={rutaSeleccionada ? 'Editar Ruta' : 'Nueva Ruta'}
+        visible={mostrarModal}
+        onHide={cerrarFormulario}
+        style={{ width: '50vw' }}
+        breakpoints={{ '960px': '75vw', '640px': '100vw' }}
+        modal
+      >
+        <FormularioRuta
+          ruta={rutaSeleccionada}
+          onCerrar={cerrarFormulario}
+          onGuardar={guardarRuta}
+        />
 
-          {rutaSeleccionada && (
-            <div className="mt-4">
-              <h3 className="text-lg font-semibold mb-2">Vista previa en el mapa</h3>
-             <MapaInteractivo key={`map-${rutaSeleccionada.id}`} ruta={rutaSeleccionada} />
-            </div>
-          )}
-        </>
-      )}
+        {/* Mapa solo si se edita */}
+        {rutaSeleccionada && (
+          <div className="mt-4">
+            <h3 className="text-lg font-semibold mb-2">Vista previa en el mapa</h3>
+            <MapaInteractivo key={`map-${rutaSeleccionada.id}`} ruta={rutaSeleccionada} />
+          </div>
+        )}
+      </Dialog>
     </div>
   );
 };
