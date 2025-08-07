@@ -32,9 +32,13 @@ const AppMenu = () => {
                     ]
                 },/*
                // { label: 'Crud', icon: 'pi pi-fw pi-pencil', to: '/pages/crud' },
-               // { label: 'Empleados', icon: 'pi pi-fw pi-pencil', to: '/pages/Empleados' },
-                //{ label: 'Personas', icon: 'pi pi-fw pi-id-card', to: '/pages/Personas' },
-                //{ label: 'Clientes', icon: 'pi pi-fw pi-users', to: '/pages/Clientes' },
+                { label: 'Empleados', icon: 'pi pi-fw pi-pencil', to: '/pages/Empleados' },
+                { label: 'Personas', icon: 'pi pi-fw pi-id-card', to: '/pages/Personas' },
+                { label: 'Clientes', icon: 'pi pi-fw pi-users', to: '/pages/Clientes' },
+
+
+                
+
                 
 
 
@@ -52,7 +56,9 @@ const AppMenu = () => {
                
                  { label: 'Personas', icon: 'pi pi-fw pi-id-card', to: '/pages/Personas' },
                 { label: 'Clientes', icon: 'pi pi-fw pi-users', to: '/pages/Clientes' },
-            
+                { label: 'Ventas', icon: 'pi pi-fw pi-shopping-cart', to: '/pages/Ventas' },
+                { label: 'Productos', icon: 'pi pi-fw pi-tags', to: '/pages/Productos' },
+                { label: 'Venta de Productos', icon: 'pi pi-fw pi-shopping-cart', to: '/pages/VentasProductos' },
                // { label: 'Timeline', icon: 'pi pi-fw pi-calendar', to: '/pages/timeline' },
                // { label: 'Not Found', icon: 'pi pi-fw pi-exclamation-circle', to: '/pages/notfound' },
                 //{ label: 'Reportes', icon: 'pi pi-chart-bar', to: '/reportes' },//

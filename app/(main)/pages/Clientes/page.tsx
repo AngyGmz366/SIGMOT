@@ -179,19 +179,20 @@ const hideDialog = () => setClienteDialog(false);
     const confirmDeleteSelected = () => {
         setDeleteClientesDialog(true);
     };
+const deleteSelectedClientes = () => {
+    const selectedIds = selectedClientes.map(c => c.id);
+    const _clientes = clientes.filter(c => !selectedIds.includes(c.id));
+    setClientes(_clientes);
+    setDeleteClientesDialog(false);
+    setSelectedClientes([]);
+    toast.current?.show({
+        severity: 'success',
+        summary: 'Éxito',
+        detail: 'Clientes eliminados',
+        life: 3000
+    });
+};
 
-    const deleteSelectedClientes = () => {
-        const _clientes = clientes.filter(c => !selectedClientes.includes(c));
-        setClientes(_clientes);
-        setDeleteClientesDialog(false);
-        setSelectedClientes([]);
-        toast.current?.show({
-            severity: 'success',
-            summary: 'Éxito',
-            detail: 'Clientes eliminados',
-            life: 3000
-        });
-    };
 
     // CRUD Viajes
     const openNewViaje = () => {
@@ -299,7 +300,7 @@ const hideDialog = () => setClienteDialog(false);
         <div className="flex gap-2">
             <Button icon="pi pi-pencil" rounded text onClick={() => editCliente(rowData)} />
             <Button icon="pi pi-trash" rounded text severity="danger" onClick={() => confirmDeleteCliente(rowData)} />
-            <Button icon="pi pi-search" rounded text onClick={() => setClienteSeleccionado(rowData)} title="Ver Historial" />
+            <Button icon="pi pi-eye" rounded text onClick={() => setClienteSeleccionado(rowData)} title="Ver Historial" />
         </div>
     );
 
@@ -603,7 +604,7 @@ const clientesConNombre = clientes.map(cliente => {
   pago={pago}
   setPago={setPago}
   submitted={pagoSubmitted}
-  clientes={clientes} // ✅ ← Esto resuelve el error
+  clientes={clientes} 
 />
 
                                 </div>
