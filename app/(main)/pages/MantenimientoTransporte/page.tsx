@@ -21,6 +21,8 @@ import { addLocale } from 'primereact/api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer } from 'recharts';
 import esLocale from '@fullcalendar/core/locales/es';
 import { Tooltip } from 'primereact/tooltip';
+import { Accordion, AccordionTab } from 'primereact/accordion';
+import { Badge } from 'primereact/badge';
 
 const MantenimientoTransporte = () => {
     const emptyServicio = {
@@ -34,14 +36,19 @@ const MantenimientoTransporte = () => {
         descripcion: '',
         repuestos: '',
         costo: 0,
-        documentos: null
+        documentos: null,
+        estado: 'Pendiente' // Nuevo campo con valor por defecto
     };
 
     const [servicios, setServicios] = useState<any[]>([]);
     const [servicio, setServicio] = useState<any>(emptyServicio);
     const [servicioDialog, setServicioDialog] = useState(false);
+    const [detalleDialog, setDetalleDialog] = useState(false);
+    const [detalleServicioDialog, setDetalleServicioDialog] = useState(false);
+    const [servicioSeleccionado, setServicioSeleccionado] = useState<any>(null);
     const [submitted, setSubmitted] = useState(false);
     const [alertas, setAlertas] = useState<any[]>([]);
+    const [vehiculosDetalle, setVehiculosDetalle] = useState<any[]>([]);
     const toast = useRef<Toast>(null);
 
     const [resumen, setResumen] = useState({ verde: 0, amarillo: 0, rojo: 0 });
@@ -61,30 +68,29 @@ const MantenimientoTransporte = () => {
 
     useEffect(() => {
         const hoy = new Date();
+        const hoySinHora = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
         const nuevasAlertas: any[] = [];
         const nuevoResumen = { verde: 0, amarillo: 0, rojo: 0 };
 
         servicios.forEach((s) => {
             const fechaServicio = new Date(s.fecha);
-            const diferenciaDias = Math.floor((fechaServicio.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
+            const fechaServicioSinHora = new Date(fechaServicio.getFullYear(), fechaServicio.getMonth(), fechaServicio.getDate());
+            const diferenciaDias = Math.floor((fechaServicioSinHora.getTime() - hoySinHora.getTime()) / (1000 * 60 * 60 * 24));
 
-            // Actualizar resumen sin limitar por mes actual
             if (diferenciaDias > 7) {
                 nuevoResumen.verde++;
-                // Agregar alerta verde (menos urgente) para mantenimientos futuros lejanos
-                nuevasAlertas.push({ ...s, prioridad: 'lejos', tipo: 'fecha' });
+                nuevasAlertas.push({ ...s, prioridad: 'lejos', tipo: 'fecha', diasRestantes: diferenciaDias });
             } else if (diferenciaDias >= 3 && diferenciaDias <= 7) {
                 nuevoResumen.amarillo++;
-                nuevasAlertas.push({ ...s, prioridad: 'proxima', tipo: 'fecha' });
+                nuevasAlertas.push({ ...s, prioridad: 'proxima', tipo: 'fecha', diasRestantes: diferenciaDias });
             } else if (diferenciaDias >= 0 && diferenciaDias < 3) {
                 nuevoResumen.rojo++;
-                nuevasAlertas.push({ ...s, prioridad: 'urgente', tipo: 'fecha' });
+                nuevasAlertas.push({ ...s, prioridad: 'urgente', tipo: 'fecha', diasRestantes: diferenciaDias });
             } else if (diferenciaDias < 0) {
-                // Fecha pasada, mantenimiento vencido
-                nuevasAlertas.push({ ...s, prioridad: 'vencido', tipo: 'fecha' });
+                nuevoResumen.rojo++;
+                nuevasAlertas.push({ ...s, prioridad: 'vencido', tipo: 'fecha', diasRestantes: diferenciaDias });
             }
 
-            // Kilometraje para alerta (suponiendo que <= 200 km restantes)
             if (s.kilometraje <= 200) {
                 nuevasAlertas.push({ ...s, prioridad: 'proxima', tipo: 'kilometraje', kilometrosRestantes: 200 });
             }
@@ -93,7 +99,6 @@ const MantenimientoTransporte = () => {
         setAlertas(nuevasAlertas);
         setResumen(nuevoResumen);
     }, [servicios]);
-
 
     const openNew = () => {
         setServicio(emptyServicio);
@@ -104,6 +109,51 @@ const MantenimientoTransporte = () => {
     const hideDialog = () => {
         setSubmitted(false);
         setServicioDialog(false);
+    };
+
+    const hideDetalleDialog = () => {
+        setDetalleDialog(false);
+    };
+
+    const hideDetalleServicioDialog = () => {
+        setDetalleServicioDialog(false);
+        setServicioSeleccionado(null);
+    };
+
+    const verDetalle = () => {
+        // Agrupar servicios por vehículo y placa
+        const vehiculosAgrupados = servicios.reduce((acc, servicio) => {
+            const key = `${servicio.vehiculo}-${servicio.placa}`;
+            if (!acc[key]) {
+                acc[key] = {
+                    vehiculo: servicio.vehiculo,
+                    placa: servicio.placa,
+                    servicios: [],
+                    totalServicios: 0,
+                    costoTotal: 0,
+                    ultimoServicio: null
+                };
+            }
+            acc[key].servicios.push(servicio);
+            acc[key].totalServicios++;
+            acc[key].costoTotal += servicio.costo || 0;
+            
+            // Encontrar el último servicio (más reciente)
+            if (!acc[key].ultimoServicio || new Date(servicio.fecha) > new Date(acc[key].ultimoServicio.fecha)) {
+                acc[key].ultimoServicio = servicio;
+            }
+            
+            return acc;
+        }, {});
+
+        // Convertir a array y ordenar servicios por fecha
+        const vehiculosArray = Object.values(vehiculosAgrupados).map((vehiculo: any) => ({
+            ...vehiculo,
+            servicios: vehiculo.servicios.sort((a: any, b: any) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+        }));
+
+        setVehiculosDetalle(vehiculosArray);
+        setDetalleDialog(true);
     };
 
     const onInputChange = (e: any, name: string) => {
@@ -123,6 +173,12 @@ const MantenimientoTransporte = () => {
     const onCategoryChange = (e: any) => {
         let _servicio = { ...servicio };
         _servicio['tipoServicio'] = e.value;
+        setServicio(_servicio);
+    };
+
+    const onEstadoChange = (e: any) => {
+        let _servicio = { ...servicio };
+        _servicio['estado'] = e.value;
         setServicio(_servicio);
     };
 
@@ -147,8 +203,14 @@ const MantenimientoTransporte = () => {
         });
     };
 
+    const verDetalleServicio = (rowData: any) => {
+        setServicioSeleccionado(rowData);
+        setDetalleServicioDialog(true);
+    };
+
     const accionesTemplate = (rowData: any) => (
         <div className="flex gap-2">
+            <Button icon="pi pi-eye" rounded text severity="info" aria-label="Ver Detalle" onClick={() => verDetalleServicio(rowData)} />
             <Button icon="pi pi-pencil" rounded text severity="warning" aria-label="Editar" onClick={() => editServicio(rowData)} />
             <Button icon="pi pi-trash" rounded text severity="danger" aria-label="Eliminar" onClick={() => deleteServicio(rowData)} />
         </div>
@@ -218,7 +280,6 @@ const MantenimientoTransporte = () => {
         }).replace(',', ' a las');
     };
 
-
     const estadisticas = meses.map((mes, index) => {
         const serviciosDelMes = servicios.filter((s) => {
             const fecha = new Date(s.fecha);
@@ -233,40 +294,98 @@ const MantenimientoTransporte = () => {
         };
     });
 
-
     const [filtroPlaca, setFiltroPlaca] = useState('');
 
-    // Servicio filtrado según filtroPlaca
     const serviciosFiltrados = servicios.filter(s =>
         s.placa.toLowerCase().includes(filtroPlaca.toLowerCase())
     );
+
+    const getAlertColor = (diasRestantes: number) => {
+        if (diasRestantes < 0) {
+            return { bg: 'surface-100', text: 'text-red-800', border: 'border-red-500' };
+        } else if (diasRestantes >= 0 && diasRestantes < 3) {
+            return { bg: 'surface-100', text: 'text-red-800', border: 'border-red-500' };
+        } else if (diasRestantes >= 3 && diasRestantes <= 7) {
+            return { bg: 'surface-100', text: 'text-yellow-800', border: 'border-yellow-500' };
+        } else {
+            return { bg: 'surface-100', text: 'text-green-800', border: 'border-green-500' };
+        }
+    };
+
+    const getTipoServicioBadge = (tipo: string) => {
+        switch (tipo) {
+            case 'Preventivo':
+                return <Badge value="Preventivo" severity="success" />;
+            case 'Correctivo':
+                return <Badge value="Correctivo" severity="danger" />;
+            case 'Inspección técnica':
+                return <Badge value="Inspección" severity="info" />;
+            default:
+                return <Badge value={tipo} />;
+        }
+    };
+
+    const getEstadoBadge = (estado: string) => {
+        return estado === 'Completado' 
+            ? <Badge value="Completado" severity="success" />
+            : <Badge value="Pendiente" severity="danger" />;
+    };
 
     return (
         <div className="grid">
             <Toast ref={toast} />
 
             <div className="col-12">
-                <Toolbar className="mb-4" left={<Button label="Nuevo Servicio" icon="pi pi-plus" onClick={openNew} />} />
+                <Toolbar 
+                    className="mb-4" 
+                    left={
+                        <div className="flex gap-2">
+                            <Button label="Nuevo Servicio" icon="pi pi-plus" severity="success" onClick={openNew} />
+                            <Button label="Ver Detalle por Vehículo" icon="pi pi-eye" severity="info" onClick={verDetalle} />
+                        </div>
+                    } 
+                />
 
                 <div className="card">
                     <h5>Resumen de Mantenimientos</h5>
                     <div className="grid">
-                        <div className="col md:col-4">
-                            <div className="p-3 rounded-lg bg-green-100 shadow-md">
-                                <h5 className="text-green-700">Mantenimientos mayores a 7 días</h5>
-                                <p className="text-3xl">{resumen.verde}</p>
+                        <div className="col-12 md:col-4">
+                            <div className="p-4 border-round shadow-2" style={{
+                                backgroundColor: '#dcfce7',
+                                border: '2px solid #22c55e'
+                            }}>
+                                <h6 className="m-0 mb-2" style={{ color: '#166534' }}>
+                                    Mantenimientos mayores a 7 días
+                                </h6>
+                                <p className="text-4xl m-0 font-bold" style={{ color: '#166534' }}>
+                                    {resumen.verde}
+                                </p>
                             </div>
                         </div>
-                        <div className="col md:col-4">
-                            <div className="p-3 rounded-lg bg-yellow-100 shadow-md">
-                                <h5 className="text-yellow-700">Mantenimientos en 3-7 días</h5>
-                                <p className="text-3xl">{resumen.amarillo}</p>
+                        <div className="col-12 md:col-4">
+                            <div className="p-4 border-round shadow-2" style={{
+                                backgroundColor: '#fef3c7',
+                                border: '2px solid #f59e0b'
+                            }}>
+                                <h6 className="m-0 mb-2" style={{ color: '#92400e' }}>
+                                    Mantenimientos en 3-7 días
+                                </h6>
+                                <p className="text-4xl m-0 font-bold" style={{ color: '#92400e' }}>
+                                    {resumen.amarillo}
+                                </p>
                             </div>
                         </div>
-                        <div className="col md:col-4">
-                            <div className="p-3 rounded-lg bg-red-100 shadow-md">
-                                <h5 className="text-red-700">Mantenimientos menores a 3 días</h5>
-                                <p className="text-3xl">{resumen.rojo}</p>
+                        <div className="col-12 md:col-4">
+                            <div className="p-4 border-round shadow-2" style={{
+                                backgroundColor: '#fee2e2',
+                                border: '2px solid #ef4444'
+                            }}>
+                                <h6 className="m-0 mb-2" style={{ color: '#991b1b' }}>
+                                    Mantenimientos menores a 3 días
+                                </h6>
+                                <p className="text-4xl m-0 font-bold" style={{ color: '#991b1b' }}>
+                                    {resumen.rojo}
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -275,51 +394,79 @@ const MantenimientoTransporte = () => {
                 {/* ALERTAS */}
                 <div className="card">
                     <h5>Alertas</h5>
-                    {alertas
-                        .filter((alerta) => alerta.tipo === 'fecha')
-                        .map((alerta, index) => {
-                            // Normalizar fechas (sin horas)
-                            const fechaServicio = new Date(alerta.fecha);
-                            const hoy = new Date();
-                            const fechaServicioSinHora = new Date(fechaServicio.getFullYear(), fechaServicio.getMonth(), fechaServicio.getDate());
-                            const hoySinHora = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+                    {alertas.length === 0 ? (
+                        <div className="p-3 border-round" style={{ backgroundColor: '#f0f9ff', border: '2px solid #0ea5e9' }}>
+                            <p className="m-0" style={{ color: '#0369a1' }}>
+                                ℹ️ No hay alertas pendientes.
+                            </p>
+                        </div>
+                    ) : (
+                        alertas
+                            .filter((alerta) => alerta.tipo === 'fecha')
+                            .map((alerta, index) => {
+                                let mensaje = '';
+                                const estadoTexto = alerta.estado === 'Completado' ? ' (Completado)' : ' (Pendiente)';
+                                
+                                if (alerta.diasRestantes < 0) {
+                                    mensaje = `⚠️ ¡VENCIDO! El ${alerta.vehiculo} (${alerta.placa}) tiene un ${alerta.tipoServicio} vencido desde hace ${Math.abs(alerta.diasRestantes)} días${estadoTexto}. Fecha: ${formatearFechaAlerta(alerta.fecha)}.`;
+                                } else if (alerta.diasRestantes === 0) {
+                                    mensaje = `🚨 ¡HOY! El ${alerta.vehiculo} (${alerta.placa}) tiene un ${alerta.tipoServicio} programado para hoy${estadoTexto} a las ${formatearFechaAlerta(alerta.fecha)}.`;
+                                } else if (alerta.diasRestantes === 1) {
+                                    mensaje = `⚡ ¡MAÑANA! El ${alerta.vehiculo} (${alerta.placa}) tiene un ${alerta.tipoServicio} programado para mañana${estadoTexto}: ${formatearFechaAlerta(alerta.fecha)}.`;
+                                } else if (alerta.diasRestantes < 3) {
+                                    mensaje = `🔴 El ${alerta.vehiculo} (${alerta.placa}) tiene un ${alerta.tipoServicio} en ${alerta.diasRestantes} días${estadoTexto}: ${formatearFechaAlerta(alerta.fecha)}.`;
+                                } else if (alerta.diasRestantes <= 7) {
+                                    mensaje = `🟡 El ${alerta.vehiculo} (${alerta.placa}) tiene un ${alerta.tipoServicio} en ${alerta.diasRestantes} días${estadoTexto}: ${formatearFechaAlerta(alerta.fecha)}.`;
+                                } else {
+                                    mensaje = `🟢 El ${alerta.vehiculo} (${alerta.placa}) tiene un ${alerta.tipoServicio} programado en ${alerta.diasRestantes} días${estadoTexto}: ${formatearFechaAlerta(alerta.fecha)}.`;
+                                }
 
-                            const diasRestantes = Math.floor((fechaServicioSinHora.getTime() - hoySinHora.getTime()) / (1000 * 60 * 60 * 24));
+                                let bgColor = '';
+                                let borderColor = '';
+                                let textColor = '';
 
-                            let bgColor = '';
+                                if (alerta.diasRestantes < 3) {
+                                    bgColor = '#fee2e2';
+                                    borderColor = '#ef4444';
+                                    textColor = '#991b1b';
+                                } else if (alerta.diasRestantes >= 3 && alerta.diasRestantes <= 7) {
+                                    bgColor = '#fef3c7';
+                                    borderColor = '#f59e0b';
+                                    textColor = '#92400e';
+                                } else {
+                                    bgColor = '#dcfce7';
+                                    borderColor = '#22c55e';
+                                    textColor = '#166534';
+                                }
 
-                            if (diasRestantes < 3) {
-                                bgColor = 'bg-red-100 text-red-800';
-                            } else if (diasRestantes >= 3 && diasRestantes <= 7) {
-                                bgColor = 'bg-yellow-100 text-yellow-800';
-                            } else if (diasRestantes > 7) {
-                                bgColor = 'bg-green-100 text-green-800';
-                            }
-
-                            return (
-                                <div key={index} className={`p-3 mb-2 rounded-lg shadow-md ${bgColor}`}>
-                                    <p>
-                                        ⚠️ El <strong>{alerta.vehiculo}</strong> (<strong>{alerta.placa}</strong>) tiene un <strong>{alerta.tipoServicio}</strong> pendiente para la fecha <strong>{formatearFechaAlerta(alerta.fecha)}</strong>.
-                                    </p>
-                                </div>
-                            );
-                        })}
+                                return (
+                                    <div
+                                        key={index}
+                                        className="p-3 mb-2 border-round shadow-1"
+                                        style={{
+                                            backgroundColor: bgColor,
+                                            border: `2px solid ${borderColor}`,
+                                            color: textColor
+                                        }}
+                                    >
+                                        <p className="m-0 font-medium">{mensaje}</p>
+                                    </div>
+                                );
+                            })
+                    )}
                 </div>
 
-
                 {/* TABLA DE SERVICIOS */}
-                {/* Filtro por placa */}
-                
                 <div className="card mt-4">
                     <h5>Historial de Servicios</h5>
                     <div className="card mb-3">
-                    <InputText
-                        placeholder="Buscar por placa..."
-                        value={filtroPlaca}
-                        onChange={(e) => setFiltroPlaca(e.target.value)}
-                        className="w-full"
-                    />
-                </div>
+                        <InputText
+                            placeholder="Buscar por placa..."
+                            value={filtroPlaca}
+                            onChange={(e) => setFiltroPlaca(e.target.value)}
+                            className="w-full"
+                        />
+                    </div>
                     <DataTable
                         value={serviciosFiltrados}
                         paginator
@@ -331,6 +478,7 @@ const MantenimientoTransporte = () => {
                         <Column field="vehiculo" header="Vehículo" />
                         <Column field="placa" header="Placa" />
                         <Column field="tipoServicio" header="Tipo de Servicio" />
+                        <Column header="Estado" body={(rowData) => getEstadoBadge(rowData.estado)} />
                         <Column header="Fecha" body={(rowData) => formatearFechaHora(rowData.fecha)} />
                         <Column field="kilometraje" header="Kilometraje" />
                         <Column field="taller" header="Taller" />
@@ -341,14 +489,10 @@ const MantenimientoTransporte = () => {
                     </DataTable>
                 </div>
 
-
                 {/* CALENDARIO */}
                 <div className="card">
                     <h5>Calendario de Mantenimientos</h5>
-
-                    {/* Tooltip para los eventos */}
                     <Tooltip target=".fc-event" position="top" />
-
                     <FullCalendar
                         plugins={[dayGridPlugin, interactionPlugin]}
                         initialView="dayGridMonth"
@@ -356,7 +500,7 @@ const MantenimientoTransporte = () => {
                         locale={esLocale}
                         events={servicios.map((s) => ({
                             id: s.id,
-                            title: `${s.tipoServicio} (${s.vehiculo})`,
+                            title: `${s.tipoServicio} (${s.vehiculo}) - ${s.estado}`,
                             date: s.fecha,
                             color:
                                 s.tipoServicio === 'Preventivo'
@@ -368,21 +512,19 @@ const MantenimientoTransporte = () => {
                         }))}
                         eventDidMount={(info) => {
                             const s = info.event.extendedProps;
-
                             const tooltipContent = `
-                            Vehículo: ${s.vehiculo}
-                            Placa: ${s.placa}
-                            Servicio: ${s.tipoServicio}
-                            Fecha: ${new Date(s.fecha).toLocaleDateString('es-ES')}
-                            Kilometraje: ${s.kilometraje}
-                            Taller: ${s.taller}
-                            Costo: ${s.costo?.toLocaleString('es-HN', { style: 'currency', currency: 'HNL' })}`;
-
-                            info.el.setAttribute('data-pr-tooltip', tooltipContent);
+                                Vehículo: ${s.vehiculo}
+                                Placa: ${s.placa}
+                                Servicio: ${s.tipoServicio}
+                                Estado: ${s.estado}
+                                Fecha: ${new Date(s.fecha).toLocaleDateString('es-ES')}
+                                Kilometraje: ${s.kilometraje}
+                                Taller: ${s.taller}
+                                Costo: ${s.costo?.toLocaleString('es-HN', { style: 'currency', currency: 'HNL' })}`;
+                            info.el.setAttribute('title', tooltipContent);
                         }}
                     />
                 </div>
-
 
                 {/* GRÁFICO */}
                 <div className="card">
@@ -433,6 +575,20 @@ const MantenimientoTransporte = () => {
                     </div>
                 </div>
 
+                <div className="field">
+                    <label>Estado</label>
+                    <div className="formgrid grid">
+                        <div className="field-radiobutton col-6">
+                            <RadioButton inputId="completado" name="estado" value="Completado" onChange={onEstadoChange} checked={servicio.estado === 'Completado'} />
+                            <label htmlFor="completado">Completado</label>
+                        </div>
+                        <div className="field-radiobutton col-6">
+                            <RadioButton inputId="pendiente" name="estado" value="Pendiente" onChange={onEstadoChange} checked={servicio.estado === 'Pendiente'} />
+                            <label htmlFor="pendiente">Pendiente</label>
+                        </div>
+                    </div>
+                </div>
+
                 <div className="formgrid grid">
                     <div className="field col">
                         <label htmlFor="fecha">Fecha</label>
@@ -452,7 +608,6 @@ const MantenimientoTransporte = () => {
                             hourFormat="24"
                             showButtonBar
                         />
-
                     </div>
 
                     <div className="field col">
@@ -485,6 +640,257 @@ const MantenimientoTransporte = () => {
                     <label htmlFor="documentos">Documentos Adjuntos</label>
                     <FileUpload mode="basic" name="documentos" accept=".pdf,image/*" maxFileSize={1000000} />
                 </div>
+            </Dialog>
+
+            {/* DIALOGO DETALLE DE SERVICIO INDIVIDUAL */}
+            <Dialog 
+                visible={detalleServicioDialog} 
+                style={{ width: '600px' }} 
+                header={`Detalles del Servicio: ${servicioSeleccionado?.vehiculo || ''}`}
+                modal 
+                onHide={hideDetalleServicioDialog}
+                footer={<Button label="Cerrar" icon="pi pi-times" onClick={hideDetalleServicioDialog} />}
+            >
+                {servicioSeleccionado && (
+                    <div className="grid">
+                        <div className="col-12 md:col-6">
+                            <div className="field">
+                                <label className="font-semibold text-900">Código:</label>
+                                <p className="m-0 mt-1 text-700">{servicioSeleccionado.id}</p>
+                            </div>
+                        </div>
+                        <div className="col-12 md:col-6">
+                            <div className="field">
+                                <label className="font-semibold text-900">Vehículo:</label>
+                                <p className="m-0 mt-1 text-700">{servicioSeleccionado.vehiculo}</p>
+                            </div>
+                        </div>
+                        
+                        <div className="col-12 md:col-6">
+                            <div className="field">
+                                <label className="font-semibold text-900">Placa:</label>
+                                <p className="m-0 mt-1 text-700">{servicioSeleccionado.placa}</p>
+                            </div>
+                        </div>
+                        <div className="col-12 md:col-6">
+                            <div className="field">
+                                <label className="font-semibold text-900">Tipo de Servicio:</label>
+                                <p className="m-0 mt-1">{getTipoServicioBadge(servicioSeleccionado.tipoServicio)}</p>
+                            </div>
+                        </div>
+                        
+                        <div className="col-12 md:col-6">
+                            <div className="field">
+                                <label className="font-semibold text-900">Fecha del Servicio:</label>
+                                <p className="m-0 mt-1 text-700">{formatearFechaHora(servicioSeleccionado.fecha)}</p>
+                            </div>
+                        </div>
+                        <div className="col-12 md:col-6">
+                            <div className="field">
+                                <label className="font-semibold text-900">Kilometraje:</label>
+                                <p className="m-0 mt-1 text-700">{servicioSeleccionado.kilometraje?.toLocaleString() || 0} km</p>
+                            </div>
+                        </div>
+
+                        <div className="col-12">
+                            <div className="field">
+                                <label className="font-semibold text-900">Taller:</label>
+                                <p className="m-0 mt-1 text-700">{servicioSeleccionado.taller || 'No especificado'}</p>
+                            </div>
+                        </div>
+
+                        <div className="col-12 md:col-6">
+                            <div className="field">
+                                <label className="font-semibold text-900">Costo del Servicio:</label>
+                                <p className="m-0 mt-1 text-700 font-bold text-lg">
+                                    {servicioSeleccionado.costo?.toLocaleString('es-HN', { 
+                                        style: 'currency', 
+                                        currency: 'HNL' 
+                                    }) || 'L. 0.00'}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="col-12 md:col-6">
+                            <div className="field">
+                                <label className="font-semibold text-900">Estado:</label>
+                                <p className="m-0 mt-1">
+                                    {getEstadoBadge(servicioSeleccionado.estado || 'Pendiente')}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="col-12">
+                            <div className="field">
+                                <label className="font-semibold text-900">Descripción del Trabajo:</label>
+                                <p className="m-0 mt-1 text-700 line-height-3">
+                                    {servicioSeleccionado.descripcion || 'Sin descripción disponible'}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="col-12">
+                            <div className="field">
+                                <label className="font-semibold text-900">Repuestos Utilizados:</label>
+                                <p className="m-0 mt-1 text-700 line-height-3">
+                                    {servicioSeleccionado.repuestos || 'No se especificaron repuestos'}
+                                </p>
+                            </div>
+                        </div>
+
+                        {servicioSeleccionado.documentos && (
+                            <div className="col-12">
+                                <div className="field">
+                                    <label className="font-semibold text-900">Documentos:</label>
+                                    <p className="m-0 mt-1 text-700">
+                                        <i className="pi pi-file-pdf mr-2"></i>
+                                        Documentos adjuntos disponibles
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </Dialog>
+
+            {/* DIALOGO DETALLE POR VEHÍCULO */}
+            <Dialog 
+                visible={detalleDialog} 
+                style={{ width: '90vw', maxWidth: '1200px' }} 
+                header="Detalle de Mantenimientos por Vehículo" 
+                modal 
+                onHide={hideDetalleDialog}
+                footer={<Button label="Cerrar" icon="pi pi-times" onClick={hideDetalleDialog} />}
+            >
+                {vehiculosDetalle.length === 0 ? (
+                    <div className="text-center p-4">
+                        <p>No hay vehículos registrados con servicios.</p>
+                    </div>
+                ) : (
+                    <Accordion multiple>
+                        {vehiculosDetalle.map((vehiculoData, index) => (
+                            <AccordionTab
+                                key={index}
+                                header={
+                                    <div className="flex justify-content-between align-items-center w-full pr-2">
+                                        <div className="flex align-items-center gap-3">
+                                            <i className="pi pi-car text-2xl"></i>
+                                            <div>
+                                                <h6 className="m-0 text-lg font-bold">{vehiculoData.vehiculo}</h6>
+                                                <p className="m-0 text-sm text-500">Placa: {vehiculoData.placa}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex align-items-center gap-4">
+                                            <div className="text-center">
+                                                <Badge value={vehiculoData.totalServicios} severity="info" />
+                                                <p className="m-0 text-xs text-500 mt-1">Servicios</p>
+                                            </div>
+                                            <div className="text-center">
+                                                <span className="text-lg font-bold text-primary">
+                                                    {vehiculoData.costoTotal.toLocaleString('es-HN', { 
+                                                        style: 'currency', 
+                                                        currency: 'HNL' 
+                                                    })}
+                                                </span>
+                                                <p className="m-0 text-xs text-500 mt-1">Total</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            >
+                                <div className="grid">
+                                    {/* Información general del vehículo */}
+                                    <div className="col-12 mb-4">
+                                        <div className="grid">
+                                            <div className="col-12 md:col-6">
+                                                <div className="p-3 border-round shadow-1" style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                                                    <h6 className="m-0 mb-2 text-primary">Último Servicio</h6>
+                                                    <p className="m-0"><strong>Tipo:</strong> {getTipoServicioBadge(vehiculoData.ultimoServicio.tipoServicio)}</p>
+                                                    <p className="m-0"><strong>Estado:</strong> {getEstadoBadge(vehiculoData.ultimoServicio.estado || 'Pendiente')}</p>
+                                                    <p className="m-0"><strong>Fecha:</strong> {formatearFechaHora(vehiculoData.ultimoServicio.fecha)}</p>
+                                                    <p className="m-0"><strong>Taller:</strong> {vehiculoData.ultimoServicio.taller}</p>
+                                                </div>
+                                            </div>
+                                            <div className="col-12 md:col-6">
+                                                <div className="p-3 border-round shadow-1" style={{ backgroundColor: '#f0fdf4', border: '1px solid #22c55e' }}>
+                                                    <h6 className="m-0 mb-2" style={{ color: '#166534' }}>Estadísticas</h6>
+                                                    <p className="m-0"><strong>Total de Servicios:</strong> {vehiculoData.totalServicios}</p>
+                                                    <p className="m-0"><strong>Costo Total:</strong> {vehiculoData.costoTotal.toLocaleString('es-HN', { style: 'currency', currency: 'HNL' })}</p>
+                                                    <p className="m-0"><strong>Promedio por Servicio:</strong> {(vehiculoData.costoTotal / vehiculoData.totalServicios).toLocaleString('es-HN', { style: 'currency', currency: 'HNL' })}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Historial de servicios */}
+                                    <div className="col-12">
+                                        <h6 className="mb-3">Historial de Servicios</h6>
+                                        <DataTable
+                                            value={vehiculoData.servicios}
+                                            paginator
+                                            rows={5}
+                                            showGridlines
+                                            size="small"
+                                            responsiveLayout="scroll"
+                                            emptyMessage="No hay servicios para este vehículo."
+                                        >
+                                            <Column 
+                                                field="tipoServicio" 
+                                                header="Tipo" 
+                                                body={(rowData) => getTipoServicioBadge(rowData.tipoServicio)}
+                                                style={{ width: '120px' }}
+                                            />
+                                            <Column 
+                                                field="estado" 
+                                                header="Estado" 
+                                                body={(rowData) => getEstadoBadge(rowData.estado || 'Pendiente')}
+                                                style={{ width: '100px' }}
+                                            />
+                                            <Column 
+                                                header="Fecha" 
+                                                body={(rowData) => formatearFechaHora(rowData.fecha)}
+                                                style={{ width: '150px' }}
+                                            />
+                                            <Column field="kilometraje" header="Km" style={{ width: '80px' }} />
+                                            <Column field="taller" header="Taller" style={{ width: '120px' }} />
+                                            <Column 
+                                                field="descripcion" 
+                                                header="Descripción"
+                                                body={(rowData) => (
+                                                    <div style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                        {rowData.descripcion || '-'}
+                                                    </div>
+                                                )}
+                                            />
+                                            <Column 
+                                                field="repuestos" 
+                                                header="Repuestos"
+                                                body={(rowData) => (
+                                                    <div style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                        {rowData.repuestos || '-'}
+                                                    </div>
+                                                )}
+                                            />
+                                            <Column 
+                                                field="costo" header="Costo"  body={(rowData) => rowData.costo?.toLocaleString('es-HN', { style: 'currency', currency: 'HNL', minimumFractionDigits: 2 })} style={{ width: '100px' }}
+                                            />
+                                            <Column 
+                                                body={(rowData) => (
+                                                    <div className="flex gap-1">
+                                                        <Button icon="pi pi-pencil"  rounded  text  size="small"severity="warning" aria-label="Editar" onClick={() => editServicio(rowData)} 
+                                                        />
+                                                        <Button icon="pi pi-trash" rounded text size="small" severity="danger" aria-label="Eliminar" onClick={() => deleteServicio(rowData)} 
+                                                        />
+                                                    </div>
+                                                )}
+                                                header="Acciones" style={{ width: '80px' }}
+                                            />
+                                        </DataTable>
+                                    </div>
+                                </div>
+                            </AccordionTab>
+                        ))}
+                    </Accordion>
+                )}
             </Dialog>
         </div>
     );

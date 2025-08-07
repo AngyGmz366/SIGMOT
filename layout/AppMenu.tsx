@@ -15,7 +15,7 @@ const AppMenu = () => {
             label: 'Home',
             items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/dashboard' }]
         },
-     
+
         /*{
             label: 'Secciones',
             icon: 'pi pi-fw pi-briefcase',
@@ -53,8 +53,8 @@ const AppMenu = () => {
             label: 'Admin',
             icon: 'pi pi-fw pi-cog',
             items: [
-               
-                 { label: 'Personas', icon: 'pi pi-fw pi-id-card', to: '/pages/Personas' },
+
+                { label: 'Personas', icon: 'pi pi-fw pi-id-card', to: '/pages/Personas' },
                 { label: 'Clientes', icon: 'pi pi-fw pi-users', to: '/pages/Clientes' },
                 { label: 'Ventas', icon: 'pi pi-fw pi-shopping-cart', to: '/pages/Ventas' },
                 { label: 'Productos', icon: 'pi pi-fw pi-tags', to: '/pages/Productos' },
@@ -63,23 +63,35 @@ const AppMenu = () => {
                // { label: 'Not Found', icon: 'pi pi-fw pi-exclamation-circle', to: '/pages/notfound' },
                 //{ label: 'Reportes', icon: 'pi pi-chart-bar', to: '/reportes' },//
                 { label: 'Vehículos', icon: 'pi pi-car', to: '/vehiculos' },
-               /* {
-                    label: 'Crud',
-                    icon: 'pi pi-fw pi-pencil',
-                    to: '/pages/crud'
-                },*/
+                /* {
+                     label: 'Crud',
+                     icon: 'pi pi-fw pi-pencil',
+                     to: '/pages/crud'
+                 },*/
                 {
                     label: 'Empleados',
                     icon: 'pi pi-fw pi-pencil',
-                    to: '/pages/Empleados'
+                    items: [
+                        {
+                            label: 'Gestión de Empleados',
+                            icon: 'pi pi-fw pi-id-card',
+                            to: '/pages/Empleados'
+                        },
+                        {
+                            label: 'Planilla de Pagos',
+                            icon: 'pi pi-fw pi-money-bill',
+                            to: '/pages/PlanillaPagos'
+                        }
+                    ]
                 },
+
                 {
                     label: 'Mantenimiento Transporte',
                     icon: 'pi pi-fw pi-pencil',
                     to: '/pages/MantenimientoTransporte'
                 },
                 {
-                    
+
                     label: 'Incidencias  y Soporte',
                     icon: 'pi pi-fw pi-exclamation-triangle',
                     to: '/admin/incidencias-sop'
@@ -106,13 +118,13 @@ const AppMenu = () => {
                     icon: 'pi pi-fw pi-exclamation-triangle',
                     to: '/cliente/incidencias-soporte'
                 },
-               
+
                 {
                     label: 'Rutas',
                     icon: 'pi pi-fw pi-map',
                     to: '/cliente/rutas'
                 },
-                 {
+                {
                     label: 'Nueva Reservación',
                     icon: 'pi pi-fw pi-user',
                     to: '/cliente/reservacion/nueva'
@@ -121,12 +133,12 @@ const AppMenu = () => {
                     label: 'Mis Reservaciones',
                     icon: 'pi pi-fw pi-user',
                     to: '/cliente/reservacion/mis-reservaciones'
-                }
-                
+                }
+
             ]
         }
 
-       
+
     ];
 
     return (
@@ -136,7 +148,7 @@ const AppMenu = () => {
                     return !item?.seperator ? <AppMenuitem item={item} root={true} index={i} key={item.label} /> : <li className="menu-separator"></li>;
                 })}
 
-               
+
             </ul>
         </MenuProvider>
     );
