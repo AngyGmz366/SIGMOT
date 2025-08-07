@@ -1,47 +1,53 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 
 const NotFoundPage = () => {
     return (
-        <div className="surface-ground flex align-items-center justify-content-center min-h-screen min-w-screen overflow-hidden">
-            <div className="flex flex-column align-items-center justify-content-center">
-                <img src="/demo/images/notfound/logo-blue.svg" alt="Sakai logo" className="mb-5 w-6rem flex-shrink-0" />
+        <div className="surface-ground flex align-items-center justify-content-center min-h-screen min-w-screen overflow-hidden bg-[#f5f1eb]">
+            <div className="flex flex-column align-items-center justify-content-center px-4">
+                <img src="/img/logo-sigmot.svg" alt="SIGMOT Logo" className="mb-5 w-8rem" />
+
                 <div
                     style={{
                         borderRadius: '56px',
                         padding: '0.3rem',
-                        background: 'linear-gradient(180deg, rgba(33, 150, 243, 0.4) 10%, rgba(33, 150, 243, 0) 30%)'
+                        background: 'linear-gradient(180deg, rgba(139, 69, 19, 0.3) 10%, rgba(255, 255, 255, 0) 30%)'
                     }}
                 >
-                    <div className="w-full surface-card py-8 px-5 sm:px-8 flex flex-column align-items-center" style={{ borderRadius: '53px' }}>
-                        <span className="text-blue-500 font-bold text-3xl">404</span>
-                        <h1 className="text-900 font-bold text-5xl mb-2">Not Found</h1>
-                        <div className="text-600 mb-5">Requested resource is not available</div>
-                        <Link href="/" className="w-full flex align-items-center py-5 border-300 border-bottom-1">
-                            <span className="flex justify-content-center align-items-center bg-cyan-400 border-round" style={{ height: '3.5rem', width: '3.5rem' }}>
-                                <i className="text-50 pi pi-fw pi-table text-2xl"></i>
+                    <div className="w-full surface-card py-8 px-5 sm:px-8 flex flex-column align-items-center shadow-2" style={{ borderRadius: '53px' }}>
+                        <span className="text-[#8b4513] font-bold text-3xl">404</span>
+                        <h1 className="text-900 font-bold text-5xl mb-2">Página no encontrada</h1>
+                        <div className="text-600 mb-5 text-center">La ruta que intentas visitar no existe o ha sido movida.</div>
+
+                        <Link href="/" className="w-full flex align-items-center mb-4 py-4 border-300 border-bottom-1 hover:surface-hover transition-colors">
+                            <span className="flex justify-content-center align-items-center bg-yellow-700 text-white border-round" style={{ height: '3.5rem', width: '3.5rem' }}>
+                                <i className="pi pi-home text-2xl"></i>
                             </span>
                             <span className="ml-4 flex flex-column">
-                                <span className="text-900 lg:text-xl font-medium mb-1">Frequently Asked Questions</span>
-                                <span className="text-600 lg:text-lg">Ultricies mi quis hendrerit dolor.</span>
+                                <span className="text-900 text-xl font-medium mb-1">Volver al inicio</span>
+                                <span className="text-600 text-lg">Explora el panel principal de SIGMOT</span>
                             </span>
                         </Link>
-                        <Link href="/" className="w-full flex align-items-center py-5 border-300 border-bottom-1">
-                            <span className="flex justify-content-center align-items-center bg-orange-400 border-round" style={{ height: '3.5rem', width: '3.5rem' }}>
-                                <i className="pi pi-fw pi-question-circle text-50 text-2xl"></i>
+
+                        <Link href="/soporte" className="w-full flex align-items-center mb-4 py-4 border-300 border-bottom-1 hover:surface-hover transition-colors">
+                            <span className="flex justify-content-center align-items-center bg-cyan-700 text-white border-round" style={{ height: '3.5rem', width: '3.5rem' }}>
+                                <i className="pi pi-info-circle text-2xl"></i>
                             </span>
                             <span className="ml-4 flex flex-column">
-                                <span className="text-900 lg:text-xl font-medium mb-1">Solution Center</span>
-                                <span className="text-600 lg:text-lg">Phasellus faucibus scelerisque eleifend.</span>
+                                <span className="text-900 text-xl font-medium mb-1">Centro de Soporte</span>
+                                <span className="text-600 text-lg">Consulta nuestras preguntas frecuentes</span>
                             </span>
                         </Link>
-                        <Link href="/" className="w-full flex align-items-center mb-5 py-5 border-300 border-bottom-1">
-                            <span className="flex justify-content-center align-items-center bg-indigo-400 border-round" style={{ height: '3.5rem', width: '3.5rem' }}>
-                                <i className="pi pi-fw pi-unlock text-50 text-2xl"></i>
+
+                        <Link href="/contacto" className="w-full flex align-items-center py-4 hover:surface-hover transition-colors">
+                            <span className="flex justify-content-center align-items-center bg-orange-700 text-white border-round" style={{ height: '3.5rem', width: '3.5rem' }}>
+                                <i className="pi pi-envelope text-2xl"></i>
                             </span>
                             <span className="ml-4 flex flex-column">
-                                <span className="text-900 lg:text-xl font-medium mb-1">Permission Manager</span>
-                                <span className="text-600 lg:text-lg">Accumsan in nisl nisi scelerisque</span>
+                                <span className="text-900 text-xl font-medium mb-1">Contáctanos</span>
+                                <span className="text-600 text-lg">Estamos aquí para ayudarte</span>
                             </span>
                         </Link>
                     </div>
@@ -52,3 +58,4 @@ const NotFoundPage = () => {
 };
 
 export default NotFoundPage;
+

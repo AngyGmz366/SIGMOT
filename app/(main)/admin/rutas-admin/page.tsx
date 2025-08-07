@@ -57,7 +57,7 @@ const PageAdminRutas: React.FC = () => {
         <Button
           label="Nueva Ruta"
           icon="pi pi-plus"
-          className="p-button-sm p-button-primary"
+          className="btn-verde"
           onClick={() => {
             setRutaSeleccionada(null);
             setMostrarFormulario(true);

@@ -127,7 +127,7 @@ const VehiculosPage = () => {
   )
 
   const leftToolbarTemplate = () => (
-    <Button label="Nuevo Vehículo" icon="pi pi-plus" className="btn-morado" onClick={abrirNuevo} />
+    <Button label="Nuevo Vehículo" icon="pi pi-plus" className="btn-verde" onClick={abrirNuevo} />
   )
 
   const rightToolbarTemplate = () => (
