@@ -145,17 +145,24 @@ const Dashboard = () => {
                 <div className="card">
                     <h5>Accesos rápidos</h5>
                     <div className="flex flex-column gap-3">
+                        
+
                         <Link href="/reportes">
                             <Button
                                 label="Ver reportes"
                                 icon="pi pi-chart-bar"
                                 className="p-button-primary"
-                                style={{ backgroundColor: '#ab47bc', border: 'none', width: '60%' }}
+                                style={{ backgroundColor: '#ac3ec0ff', border: 'none', width: '60%' }}
                             />
                         </Link>
 
                         <Link href="/admin/incidencias-sop">
                             <Button label="Ver incidencias recientes" icon="pi pi-exclamation-circle" className="p-button-info" />
+                        </Link>
+                        {/* NUEVO: Botón de Boletos */}
+                        <Link href="/pages/Ventas">
+                            <Button label="Gestionar boletos" icon="pi pi-ticket" className="p-button-help" style={{ backgroundColor: '#4f3ec0ff', border: 'none', width: '40%' }}/>
+                            
                         </Link>
                         <Link href="/cliente/rutas">
                             <Button label="Ver rutas activas" icon="pi pi-map" className="p-button-success" />
@@ -163,8 +170,6 @@ const Dashboard = () => {
                         <Link href="/admin/reservaciones">
                             <Button label="Programar viaje" icon="pi pi-calendar-plus" className="p-button-warning" />
                         </Link>
-                       
-
                     </div>
                 </div>
             </div>

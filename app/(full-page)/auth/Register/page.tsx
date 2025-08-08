@@ -7,6 +7,7 @@ import { Dropdown, DropdownChangeEvent } from 'primereact/dropdown';
 import { Calendar } from 'primereact/calendar';
 import { Button } from 'primereact/button';
 import { useRouter } from 'next/navigation';
+import Swal from 'sweetalert2';
 
 const RegistroUsuario = () => {
     const router = useRouter();
@@ -34,7 +35,17 @@ const RegistroUsuario = () => {
 
     const handleSubmit = () => {
         console.log('Datos del formulario:', form);
-        router.push('/auth/login');
+
+        // Mensaje visual de registro exitoso
+        Swal.fire({
+            icon: 'success',
+            title: 'Usuario registrado',
+            text: 'Tu cuenta ha sido creada correctamente.',
+            confirmButtonColor: '#6c5ce7',
+            confirmButtonText: 'Continuar'
+        }).then(() => {
+            router.push('/auth/login');
+        });
     };
 
     return (
@@ -57,15 +68,7 @@ const RegistroUsuario = () => {
                         }}
                     >
                         <div className="text-center mb-4">
-                             
-                           {/*<img
-                            src="/demo/images/login/LOGO-SIGMOT.png"
-                            alt="Logo SAENZ"
-                            className="mb-2 w-2 h-auto"
-                            />*/}
-                            
                             <div className="text-900 text-2xl font-semibold mb-2">Crear cuenta</div>
-                            
                         </div>
 
                         <div className="mb-3">
@@ -139,16 +142,6 @@ const RegistroUsuario = () => {
                                 backgroundColor: 'white'
                             }}
                         />
-
-                        {/* Botón volver atrás, opcional */}
-                        {/* 
-                        <Button
-                            label="Volver"
-                            icon="pi pi-arrow-left"
-                            className="w-full mt-3 p-button-text text-sm"
-                            onClick={() => router.back()}
-                        />
-                        */}
                     </div>
                 </div>
             </div>

@@ -6,7 +6,6 @@ import { Password } from 'primereact/password';
 import { Dropdown } from 'primereact/dropdown';
 import { Button } from 'primereact/button';
 import { Toast } from 'primereact/toast';
-//import { useSession } from 'next-auth/react'; // si usas autenticación
 
 const Perfil = () => {
     const toast = React.useRef<Toast>(null);
@@ -18,6 +17,7 @@ const Perfil = () => {
         direccion: '',
         genero: '',
         contrasena: '',
+        foto: ''
     });
 
     const generos = [
@@ -26,9 +26,7 @@ const Perfil = () => {
         { label: 'Otro', value: 'O' },
     ];
 
-    // Simula cargar datos desde una API
     useEffect(() => {
-        // Aquí deberías usar el id del usuario logueado
         const datosEjemplo = {
             nombre: 'Juan',
             apellido: 'Pérez',
@@ -37,14 +35,25 @@ const Perfil = () => {
             direccion: 'Col. Miraflores, Tegucigalpa',
             genero: 'M',
             contrasena: '',
+            foto: '/demo/images/avatar/stephenshaw.png' // 📌 Foto por defecto
         };
         setPerfil(datosEjemplo);
     }, []);
 
     const actualizarPerfil = () => {
-        // Aquí enviarías los datos al backend
         toast.current?.show({ severity: 'success', summary: 'Perfil actualizado', life: 3000 });
         console.log(perfil);
+    };
+
+    const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                setPerfil({ ...perfil, foto: ev.target?.result as string });
+            };
+            reader.readAsDataURL(file);
+        }
     };
 
     return (
@@ -52,6 +61,36 @@ const Perfil = () => {
             <Toast ref={toast} />
             <h2 className="text-2xl font-bold mb-4">Mi Perfil</h2>
 
+            {/* Foto de perfil */}
+            <div className="flex flex-column align-items-center mb-4">
+                {perfil.foto && (
+                    <img
+                        src={perfil.foto}
+                        alt="Foto de perfil"
+                        className="border-circle"
+                        style={{ width: '120px', height: '120px', objectFit: 'cover' }}
+                    />
+                )}
+
+                <input
+                    type="file"
+                    accept="image/*"
+                    id="fotoPerfil"
+                    style={{ display: 'none' }}
+                    onChange={handleFotoChange}
+                />
+                <label htmlFor="fotoPerfil">
+                    <Button
+                        label="Cambiar foto"
+                        icon="pi pi-upload"
+                        className="p-button-text mt-2"
+                        type="button"
+                        onClick={() => document.getElementById('fotoPerfil')?.click()}
+                    />
+                </label>
+            </div>
+
+            {/* Datos de perfil */}
             <div className="p-fluid grid formgrid">
                 <div className="field col-12 md:col-6">
                     <label htmlFor="nombre">Nombre</label>

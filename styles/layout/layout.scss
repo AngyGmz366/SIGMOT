@@ -51,7 +51,16 @@
   .btn-eliminar:hover {
     color: #d32f2f;  /* Rojo más oscuro */
   }
-  
+  .is-invalid {
+    border-color: #dc3545 !important;
+  }
+  .text-danger {
+    color: #dc3545 !important;
+  }
+  .d-none {
+    display: none !important;
+  }
+
   /* Botón Verde SIGMOT para "Nuevo Vehículo" */
   .btn-verde {
     background-color: #22c55e;     /* Verde institucional */

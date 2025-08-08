@@ -56,13 +56,28 @@ const AppMenu = () => {
 
                 { label: 'Personas', icon: 'pi pi-fw pi-id-card', to: '/pages/Personas' },
                 { label: 'Clientes', icon: 'pi pi-fw pi-users', to: '/pages/Clientes' },
-                { label: 'Ventas', icon: 'pi pi-fw pi-shopping-cart', to: '/pages/Ventas' },
-                { label: 'Productos', icon: 'pi pi-fw pi-tags', to: '/pages/Productos' },
+                { label: 'Boletos', icon: 'pi pi-ticket', to: '/pages/Ventas' },
+                { label: 'Productos', icon: 'pi pi-tag', to: '/pages/Productos' },
                 { label: 'Venta de Productos', icon: 'pi pi-fw pi-shopping-cart', to: '/pages/VentasProductos' },
                // { label: 'Timeline', icon: 'pi pi-fw pi-calendar', to: '/pages/timeline' },
                // { label: 'Not Found', icon: 'pi pi-fw pi-exclamation-circle', to: '/pages/notfound' },
                 //{ label: 'Reportes', icon: 'pi pi-chart-bar', to: '/reportes' },//
                 { label: 'Vehículos', icon: 'pi pi-car', to: '/vehiculos' },
+                // Ejemplo en tu AppMenu (modelo del menú)
+                {
+                label: 'Seguridad',
+                icon: 'pi pi-shield',
+                items: [
+                    { label: 'Roles', icon: 'pi pi-users', to: '/seguridad/roles' },
+                    { label: 'Permisos por rol', icon: 'pi pi-lock', to: '/seguridad/permisos' },
+                    { label: 'Usuarios', icon: 'pi pi-fw pi-id-card', to: '/seguridad/usuario' },
+                    { label: 'Parametros', icon: 'pi pi-cog', to: '/seguridad/parametros' },
+                    { label: 'Objetos', icon: 'pi pi-box', to: '/seguridad/objetos'},
+                    { label: 'Bitácora', icon: 'pi pi-list', to: '/seguridad/bitacora' }
+                    
+                ]
+                },
+
                 /* {
                      label: 'Crud',
                      icon: 'pi pi-fw pi-pencil',
@@ -87,7 +102,7 @@ const AppMenu = () => {
 
                 {
                     label: 'Mantenimiento Transporte',
-                    icon: 'pi pi-fw pi-pencil',
+                    icon: 'pi pi-wrench',
                     to: '/pages/MantenimientoTransporte'
                 },
                 {
@@ -131,7 +146,7 @@ const AppMenu = () => {
                 },
                 {
                     label: 'Mis Reservaciones',
-                    icon: 'pi pi-fw pi-user',
+                    icon: 'pi pi-history',
                     to: '/cliente/reservacion/mis-reservaciones'
                 }
 
