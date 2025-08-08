@@ -92,20 +92,62 @@ export default function Bitacora() {
         if (tipo !== 'pdf') return;
 
         const htmlTabla = `
-            <html>
+           <html>
             <head>
                 <meta charset="utf-8" />
-                <title>Bitácora</title>
+                <title>Bitácora - SAENZ</title>
                 <style>
-                    body { font-family: Arial, sans-serif; padding: 16px; }
-                    h2 { margin-top: 0; }
-                    table { border-collapse: collapse; width: 100%; }
-                    th, td { border: 1px solid #ddd; padding: 8px; font-size: 12px; }
-                    th { background: #f2f2f2; text-align: left; }
+                    body {
+                        font-family: Arial, sans-serif;
+                        padding: 20px;
+                        background-color: #f4f8fb;
+                        color: #333;
+                    }
+                    .header {
+                        display: flex;
+                        align-items: center;
+                        margin-bottom: 20px;
+                        border-bottom: 3px solid #1976d2;
+                        padding-bottom: 10px;
+                    }
+                    .header img {
+                        height: 50px;
+                        margin-right: 15px;
+                    }
+                    .header h2 {
+                        margin: 0;
+                        color: #1976d2;
+                    }
+                    table {
+                        border-collapse: collapse;
+                        width: 100%;
+                        background: white;
+                        box-shadow: 0px 2px 6px rgba(0,0,0,0.1);
+                    }
+                    th, td {
+                        border: 1px solid #ddd;
+                        padding: 8px;
+                        font-size: 13px;
+                    }
+                    th {
+                        background: #1976d2;
+                        color: white;
+                        text-align: left;
+                    }
+                    tr:nth-child(even) {
+                        background-color: #f2f6fc;
+                    }
+                    tr:hover {
+                        background-color: #e3f2fd;
+                    }
                 </style>
             </head>
             <body>
-                <h2>Bitácora</h2>
+                <div class="header">
+                    <img src="/demo/images/login/LOGO-SIGMOT.png" alt="Logo SIGMOT">
+                    <h2>Bitácora - SIGMOT</h2>
+                </div>
+
                 <table>
                     <thead>
                         <tr>
@@ -132,9 +174,13 @@ export default function Bitacora() {
                         `).join('')}
                     </tbody>
                 </table>
-                <script>window.onload = () => { window.print(); }</script>
+
+                <script>
+                    window.onload = () => { window.print(); }
+                </script>
             </body>
             </html>
+
         `;
 
         const w = window.open('', '_blank');
