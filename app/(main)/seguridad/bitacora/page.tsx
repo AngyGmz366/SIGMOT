@@ -145,7 +145,7 @@ export default function Bitacora() {
             <body>
                 <div class="header">
                     <img src="/demo/images/login/LOGO-SIGMOT.png" alt="Logo SIGMOT">
-                    <h2>Bitácora - SIGMOT</h2>
+                    <h2>Bitácora - SAENZ</h2>
                 </div>
 
                 <table>
