@@ -73,7 +73,8 @@ const AppMenu = () => {
                     { label: 'Usuarios', icon: 'pi pi-fw pi-id-card', to: '/seguridad/usuario' },
                     { label: 'Parametros', icon: 'pi pi-cog', to: '/seguridad/parametros' },
                     { label: 'Objetos', icon: 'pi pi-box', to: '/seguridad/objetos'},
-                    { label: 'Bitácora', icon: 'pi pi-list', to: '/seguridad/bitacora' }
+                    { label: 'Bitácora', icon: 'pi pi-history', to: '/seguridad/bitacora' },
+                    { label: 'Respaldo y Restauración', icon: 'pi pi-refresh', to: '/seguridad/respaldo' }
                     
                 ]
                 },
@@ -146,7 +147,7 @@ const AppMenu = () => {
                 },
                 {
                     label: 'Mis Reservaciones',
-                    icon: 'pi pi-history',
+                    icon: 'pi pi-file',
                     to: '/cliente/reservacion/mis-reservaciones'
                 }
 
