@@ -547,7 +547,7 @@ function cerrarDetalle() {
   )
 
   const leftToolbarTemplate = () => (
-    <Button label="Nuevo Reporte" icon="pi pi-plus" className="btn-morado" onClick={abrirNuevo} />
+    <Button label="Nuevo Reporte" icon="pi pi-plus" className="btn-verde" onClick={abrirNuevo} />
   );
 
   const estadisticas = [
