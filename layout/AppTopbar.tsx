@@ -20,12 +20,12 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
 
     return (
         <div className="layout-topbar">
-            <Link href="/" className="layout-topbar-logo" style={{ display: 'flex', alignItems: 'center' }}>
+            <Link href="/dashboard" className="layout-topbar-logo" style={{ display: 'flex', alignItems: 'center' }}>
                 <img
                     src="/demo/images/login/LOGO-SIGMOT.png"
                     alt="Logo SIGMOT"
                     style={{
-                        width: '100px',
+                        width: '150px',
                         height: 'auto',
                         maxWidth: 'none'
                     }}
