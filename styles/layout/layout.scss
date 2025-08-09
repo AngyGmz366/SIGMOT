@@ -117,4 +117,53 @@
 }
 
 
+/* ================= Reportes (estilo uniforme) ================= */
+.report-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 24px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.report-section-title {
+  font-weight: 700;
+  color: #1f2937; /* gray-800 */
+  font-size: 1.125rem; /* text-lg */
+  margin: 0 0 12px;
+}
+
+.report-actions .p-button {
+  border-radius: 9999px;
+  padding: .35rem .85rem;
+  gap: .4rem;
+}
+
+.btn-detalle {
+  background: #6d28d9 !important;  /* purple-700 */
+  border: 1px solid transparent !important;
+  color: #fff !important;
+}
+.btn-detalle:hover {
+  filter: brightness(1.02);
+}
+
+/* detalle modal layout */
+.detalle-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 10px 16px;
+}
+.detalle-item {
+  display: contents;
+}
+.detalle-key {
+  font-weight: 600;
+  color: #374151; /* gray-700 */
+}
+.detalle-val {
+  color: #111827; /* gray-900 */
+  word-break: break-word;
+}
 
