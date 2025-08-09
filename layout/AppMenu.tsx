@@ -86,11 +86,11 @@ const AppMenu = () => {
                  },*/
                 {
                     label: 'Empleados',
-                    icon: 'pi pi-fw pi-pencil',
+                    icon: 'pi pi-fw pi-id-card',
                     items: [
                         {
                             label: 'Gestión de Empleados',
-                            icon: 'pi pi-fw pi-id-card',
+                            icon: 'pi pi-fw pi-briefcase',
                             to: '/pages/Empleados'
                         },
                         {
