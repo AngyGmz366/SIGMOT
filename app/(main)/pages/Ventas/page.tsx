@@ -8,141 +8,23 @@ import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Tag } from 'primereact/tag';
 import { FilterMatchMode } from 'primereact/api';
-
+import { Dialog } from 'primereact/dialog';
+import ImprimirBoleto from '../../components/ImprimirBoleto';
 import BoletoDialog from '../../components/BoletoModal';
 import EncomiendaDialog from '../../components/EncomiendaModal';
-
-import { Dialog } from 'primereact/dialog';
-import { InputText } from 'primereact/inputtext';
-import { Dropdown } from 'primereact/dropdown';
-import { InputNumber } from 'primereact/inputnumber';
-
-export interface Boleto {
-    id: number | null;
-    cliente: string;
-    destino: string;
-    fecha: string;
-    precio: number | string;
-    tipoVenta?: 'boleto' | 'encomienda';
-    asiento?: string;
-    autobus?: string;
-    horaSalida?: string;
-    horaLlegada?: string;
-    telefono?: string;
-    cedula?: string;
-    estado?: 'vendido' | 'reservado' | 'cancelado';
-    metodoPago?: 'efectivo' | 'tarjeta' | 'transferencia';
-    descuento?: number;
-    total?: number;
-}
-
-export interface Encomienda {
-    id: number | null;
-    remitente: string;
-    destinatario: string;
-    origen: string;
-    destino: string;
-    fecha: string;
-    descripcion: string;
-    peso: number;
-    precio: number | string;
-    tipoVenta: 'encomienda';
-    telefono?: string;
-    cedulaRemitente?: string;
-    cedulaDestinatario?: string;
-    estado?: 'enviado' | 'en_transito' | 'entregado' | 'cancelado';
-    metodoPago?: 'efectivo' | 'tarjeta' | 'transferencia';
-    descuento?: number;
-    total?: number;
-}
-
-export type VentaItem = Boleto | Encomienda;
-
-interface ImprimirDialogProps {
-    visible: boolean;
-    onHide: () => void;
-    item: VentaItem | null;
-    onConfirm: () => void;
-}
-
-const ImprimirDialog: React.FC<ImprimirDialogProps> = ({ visible, onHide, item, onConfirm }) => {
-    if (!item) return null;
-
-    const esBoleto = item.tipoVenta !== 'encomienda';
-
-    // Funciones para mostrar etiquetas con estilo readonly
-    const renderInputText = (label: string, value: string | undefined) => (
-        <div className="field mb-3">
-            <label className="font-bold">{label}</label>
-            <InputText value={value || ''} disabled className="w-full" />
-        </div>
-    );
-
-    const renderInputNumber = (label: string, value: number | undefined) => (
-        <div className="field mb-3">
-            <label className="font-bold">{label}</label>
-            <InputNumber value={value ?? 0} disabled mode="currency" currency="HNL" locale="es-HN" className="w-full" />
-        </div>
-    );
-
-    return (
-        <Dialog
-            visible={visible}
-            onHide={onHide}
-            header={`Imprimir ${esBoleto ? 'Boleto' : 'Encomienda'}`}
-            modal
-            style={{ width: '40rem' }}
-            footer={
-                <div className="flex justify-content-end gap-2">
-                    <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={onHide} />
-                    <Button label="Confirmar impresión" icon="pi pi-print" severity="success" onClick={onConfirm} />
-                </div>
-            }
-        >
-            {esBoleto ? (
-                <>
-                    {renderInputText('Cliente', item.cliente)}
-                    {renderInputText('Cédula', (item as Boleto).cedula)}
-                    {renderInputText('Teléfono', (item as Boleto).telefono)}
-                    {renderInputText('Destino', item.destino)}
-                    {renderInputText('Fecha', item.fecha)}
-                    {renderInputText('Hora Salida', (item as Boleto).horaSalida)}
-                    {renderInputText('Autobús', (item as Boleto).autobus)}
-                    {renderInputText('Asiento', (item as Boleto).asiento)}
-                    {renderInputNumber('Precio', Number(item.precio))}
-                    {renderInputNumber('Descuento', (item.descuento || 0))}
-                    {renderInputNumber('Total', (item.total || 0))}
-                    {renderInputText('Método de Pago', (item.metodoPago || ''))}
-                    {renderInputText('Estado', (item.estado || ''))}
-                </>
-            ) : (
-                <>
-                    {renderInputText('Remitente', (item as Encomienda).remitente)}
-                    {renderInputText('Destinatario', (item as Encomienda).destinatario)}
-                    {renderInputText('Origen', (item as Encomienda).origen)}
-                    {renderInputText('Destino', item.destino)}
-                    {renderInputText('Fecha', item.fecha)}
-                    {renderInputText('Descripción', (item as Encomienda).descripcion)}
-                    {renderInputNumber('Peso', (item as Encomienda).peso)}
-                    {renderInputNumber('Precio', Number(item.precio))}
-                    {renderInputNumber('Descuento', (item.descuento || 0))}
-                    {renderInputNumber('Total', (item.total || 0))}
-                    {renderInputText('Método de Pago', (item.metodoPago || ''))}
-                    {renderInputText('Estado', (item.estado || ''))}
-                </>
-            )}
-        </Dialog>
-    );
-};
+import { VentaItem, Boleto, Encomienda } from '@/types/ventas';
+import { jsPDF } from 'jspdf';
+import ImprimirEncomienda from '../../components/ImprimirEncomienda';
 
 export default function VentasPage() {
     const toast = useRef<Toast>(null);
-
     const [ventaItems, setVentaItems] = useState<VentaItem[]>([]);
     const [boletoDialogVisible, setBoletoDialogVisible] = useState(false);
     const [encomiendaDialogVisible, setEncomiendaDialogVisible] = useState(false);
-    const [tipoVentaVisible, setTipoVentaVisible] = useState(true);
+const [itemParaImprimir, setItemParaImprimir] = useState<VentaItem | null>(null)
     const [currentMode, setCurrentMode] = useState<'boleto' | 'encomienda'>('boleto');
+    const [printing, setPrinting] = useState(false);
+    const [printingMode, setPrintingMode] = useState<'boleto' | 'encomienda'>('boleto');
     
     const [boleto, setBoleto] = useState<Boleto>({ 
         id: null, 
@@ -183,10 +65,195 @@ export default function VentasPage() {
         total: 0
     });
 
+
+    ////////////////////////////////////GENERAR PDF BOLETO//////////////////////////////////
+const generarPDF = (item: Boleto) => {
+  const doc = new jsPDF({
+    unit: 'mm',
+    format: [70, 145], // 7cm x 14.5cm
+  });
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text('TRANSPORTE SAENS', 35, 15, { align: 'center' });
+  doc.setFontSize(12);
+  doc.text('BOLETO DE VIAJE', 35, 22, { align: 'center' });
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+
+  let y = 35;
+  const lineHeight = 7;
+
+  doc.text(`Cliente: ${item.cliente}`, 5, y);
+  doc.text(`Cédula: ${item.cedula || 'N/A'}`, 40, y);
+  y += lineHeight;
+
+  doc.text(`Fecha: ${item.fecha}`, 5, y);
+  doc.text(`Hora Salida: ${item.horaSalida || 'N/A'}`, 40, y);
+  y += lineHeight;
+
+  doc.text(`Destino: ${item.destino}`, 5, y);
+  doc.text(`Asiento: ${item.asiento || 'N/A'}`, 40, y);
+  y += lineHeight;
+
+  doc.text(`Autobús: ${item.autobus || 'N/A'}`, 5, y);
+  doc.text(`Estado: ${item.estado}`, 40, y);
+  y += lineHeight;
+
+  doc.text(`Método Pago: ${item.metodoPago}`, 5, y);
+  y += lineHeight;
+
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Total: HNL ${item.total?.toFixed(2) || '0.00'}`, 5, y);
+  y += lineHeight;
+
+  const svgElement = document.getElementById('qr-code-svg');
+  if (svgElement) {
+    const svgData = new XMLSerializer().serializeToString(svgElement);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      if (ctx) {
+        ctx.drawImage(img, 0, 0);
+        const pngDataUrl = canvas.toDataURL('image/png');
+
+        // QR centrado horizontalmente, más grande
+        doc.addImage(pngDataUrl, 'PNG', (70 - 35) / 2, 110, 35, 35);
+
+        doc.setFontSize(7);
+        doc.text(`ID: ${item.id}`, 5, 145);
+
+        doc.save(`boleto_${item.cliente.replace(/ /g, '_')}_${item.fecha.replace(/\//g, '-')}.pdf`);
+        URL.revokeObjectURL(url);
+      }
+    };
+
+    img.onerror = () => {
+      doc.setFontSize(7);
+      doc.text(`ID: ${item.id}`, 5, 145);
+      doc.save(`boleto_${item.cliente.replace(/ /g, '_')}_${item.fecha.replace(/\//g, '-')}.pdf`);
+      URL.revokeObjectURL(url);
+    };
+
+    img.src = url;
+  } else {
+    doc.setFontSize(7);
+    doc.text(`ID: ${item.id}`, 5, 145);
+    doc.save(`boleto_${item.cliente.replace(/ /g, '_')}_${item.fecha.replace(/\//g, '-')}.pdf`);
+  }
+};
+
+
+/////////////////////////////////////////////////////////////////////////////
+
+///////////////////////GENERAR PDF ENCOMIENDA///////////////////////
+const generarPDFEncomienda = (item: Encomienda) => {
+  const doc = new jsPDF({
+    unit: 'mm',
+    format: [70, 145], // igual que boleto
+  });
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text('TRANSPORTE SAENS', 35, 15, { align: 'center' });
+  doc.setFontSize(12);
+  doc.text('COMPROBANTE ENCOMIENDA', 35, 22, { align: 'center' });
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+
+  let y = 35;
+  const lineHeight = 7;
+
+  doc.text(`Remitente: ${item.remitente}`, 5, y);
+  doc.text(`Cédula: ${item.cedulaRemitente || 'N/A'}`, 40, y);
+  y += lineHeight;
+
+  doc.text(`Destinatario: ${item.destinatario}`, 5, y);
+  doc.text(`Cédula: ${item.cedulaDestinatario || 'N/A'}`, 40, y);
+  y += lineHeight;
+
+  doc.text(`Origen: ${item.origen}`, 5, y);
+  doc.text(`Destino: ${item.destino}`, 40, y);
+  y += lineHeight;
+
+  doc.text(`Fecha: ${item.fecha}`, 5, y);
+  doc.text(`Teléfono: ${item.telefono || 'N/A'}`, 40, y);
+  y += lineHeight;
+
+  doc.text(`Descripción: ${item.descripcion.substring(0, 30)}...`, 5, y);
+  y += lineHeight;
+
+  doc.text(`Peso: ${item.peso} kg`, 5, y);
+  doc.text(`Estado: ${item.estado}`, 40, y);
+  y += lineHeight;
+
+  doc.text(`Método Pago: ${item.metodoPago}`, 5, y);
+  y += lineHeight;
+
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Total: HNL ${item.total?.toFixed(2) || '0.00'}`, 5, y);
+  y += lineHeight;
+
+  // QR
+  const svgElement = document.getElementById('qr-code-svg'); // asumes que tienes el SVG en DOM con este id
+  if (svgElement) {
+    const svgData = new XMLSerializer().serializeToString(svgElement);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      if (ctx) {
+        ctx.drawImage(img, 0, 0);
+        const pngDataUrl = canvas.toDataURL('image/png');
+
+        // QR centrado horizontalmente y tamaño 35x35
+        doc.addImage(pngDataUrl, 'PNG', (70 - 35) / 2, 110, 35, 35);
+
+        doc.setFontSize(7);
+        doc.text(`ID: ${item.id}`, 5, 145);
+
+        doc.save(`encomienda_${item.remitente.replace(/ /g, '_')}_${item.fecha.replace(/\//g, '-')}.pdf`);
+        URL.revokeObjectURL(url);
+      }
+    };
+
+    img.onerror = () => {
+      doc.setFontSize(7);
+      doc.text(`ID: ${item.id}`, 5, 145);
+      doc.save(`encomienda_${item.remitente.replace(/ /g, '_')}_${item.fecha.replace(/\//g, '-')}.pdf`);
+      URL.revokeObjectURL(url);
+    };
+
+    img.src = url;
+  } else {
+    doc.setFontSize(7);
+    doc.text(`ID: ${item.id}`, 5, 145);
+    doc.save(`encomienda_${item.remitente.replace(/ /g, '_')}_${item.fecha.replace(/\//g, '-')}.pdf`);
+  }
+};
+
+
+/////////////////////////////////////////////////////////////////////
+
+
+
     const [selectedItems, setSelectedItems] = useState<VentaItem[] | null>(null);
     const [submitted, setSubmitted] = useState(false);
     const [globalFilter, setGlobalFilter] = useState('');
-    const [filters, setFilters] = useState({
+    const [filters] = useState({
         global: { value: null, matchMode: FilterMatchMode.CONTAINS },
         cliente: { value: null, matchMode: FilterMatchMode.STARTS_WITH },
         remitente: { value: null, matchMode: FilterMatchMode.STARTS_WITH },
@@ -195,20 +262,23 @@ export default function VentasPage() {
         estado: { value: null, matchMode: FilterMatchMode.EQUALS }
     });
 
-    // Nuevo estado para imprimir
-    const [imprimirDialogVisible, setImprimirDialogVisible] = useState(false);
-    const [itemParaImprimir, setItemParaImprimir] = useState<VentaItem | null>(null);
+    // Type guard para verificar si un item es Boleto
+    const isBoleto = (item: VentaItem): item is Boleto => {
+        return item.tipoVenta === 'boleto';
+    };
 
     useEffect(() => {
         const stored = localStorage.getItem('ventaItems');
         if (stored) setVentaItems(JSON.parse(stored));
     }, []);
 
-    const guardarEnStorage = (data: VentaItem[]) => localStorage.setItem('ventaItems', JSON.stringify(data));
+    const guardarEnStorage = (data: VentaItem[]) => {
+        localStorage.setItem('ventaItems', JSON.stringify(data));
+    };
 
     const filteredItems = ventaItems.filter(item => 
         currentMode === 'boleto' 
-            ? (item.tipoVenta === 'boleto' || !item.tipoVenta)
+            ? isBoleto(item)
             : item.tipoVenta === 'encomienda'
     );
 
@@ -311,15 +381,33 @@ export default function VentasPage() {
     };
 
     const editItem = (item: VentaItem) => {
-        if (item.tipoVenta === 'encomienda') {
-            setEncomienda({ ...item as Encomienda });
-            setEncomiendaDialogVisible(true);
-        } else {
-            setBoleto({ ...item as Boleto });
+        if (isBoleto(item)) {
+            setBoleto(item);
             setBoletoDialogVisible(true);
+        } else {
+            setEncomienda(item);
+            setEncomiendaDialogVisible(true);
         }
     };
 
+    // const imprimirBoleto = (item: VentaItem) => {
+    //     if (isBoleto(item)) {
+    //         setItemParaImprimir(item);
+    //         setPrinting(true);
+    //     }
+    // };
+
+
+const imprimirItem = (item: VentaItem) => {
+  if (item.tipoVenta !== 'boleto' && item.tipoVenta !== 'encomienda') {
+    console.error('Tipo de venta no válido');
+    return;
+  }
+  
+  setItemParaImprimir(item);
+  setPrintingMode(item.tipoVenta); // Ahora TypeScript sabe que es 'boleto' o 'encomienda'
+  setPrinting(true);
+};
     const eliminarSeleccionados = () => {
         if (!selectedItems) return;
         const _items = ventaItems.filter(item => !selectedItems.includes(item));
@@ -334,22 +422,6 @@ export default function VentasPage() {
         setSelectedItems(null);
         setGlobalFilter('');
     };
-
-    // Función para abrir modal imprimir
-    const abrirModalImprimir = (item: VentaItem) => {
-        setItemParaImprimir(item);
-        setImprimirDialogVisible(true);
-    };
-
-    // Confirmar impresión
-    const confirmarImpresion = () => {
-        // Aquí podrías agregar lógica avanzada, por ejemplo generar PDF o enviar a impresora
-        window.print();
-        setImprimirDialogVisible(false);
-        setItemParaImprimir(null);
-    };
-
-    // Plantillas columnas y acciones
 
     const tipoVentaBodyTemplate = (rowData: VentaItem) => {
         const tipo = rowData.tipoVenta || 'boleto';
@@ -422,29 +494,30 @@ export default function VentasPage() {
         );
     };
 
-    const actionBodyTemplate = (rowData: VentaItem) => {
-        return (
-            <div className="flex gap-2">
-                <Button 
-                    icon="pi pi-pencil" 
-                    rounded 
-                    text 
-                    severity="info"
-                    onClick={() => editItem(rowData)} 
-                    tooltip="Editar"
-                />
-                <Button 
-                    icon="pi pi-print" 
-                    rounded 
-                    text 
-                    severity="help"
-                    onClick={() => abrirModalImprimir(rowData)} 
-                    tooltip="Imprimir"
-                />
-            </div>
-        );
-    };
-
+const actionBodyTemplate = (rowData: VentaItem) => {
+  return (
+    <div className="flex gap-2">
+      <Button 
+        icon="pi pi-pencil" 
+        rounded 
+        text 
+        severity="warning"
+        onClick={() => editItem(rowData)} 
+        tooltip="Editar"
+        tooltipOptions={{ position: 'top' }}
+      />
+      <Button 
+        icon="pi pi-print" 
+        rounded 
+        text 
+        severity="info"
+        onClick={() => imprimirItem(rowData)} 
+        tooltip="Imprimir"
+        tooltipOptions={{ position: 'top' }}
+      />
+    </div>
+  );
+};
     const clienteBodyTemplate = (rowData: VentaItem) => {
         if (rowData.tipoVenta === 'encomienda') {
             const enc = rowData as Encomienda;
@@ -516,12 +589,12 @@ export default function VentasPage() {
                 onClick={openNew} 
             />
         
-            <Button 
+            {/* <Button 
                 label="Exportar" 
                 icon="pi pi-upload" 
                 className="p-button-help"
                 onClick={() => console.log('Exportar datos')}
-            />
+            /> */}
         </div>
     );
 
@@ -679,15 +752,46 @@ export default function VentasPage() {
                         submitted={submitted}
                     />
 
-                    <ImprimirDialog
-                        visible={imprimirDialogVisible}
-                        onHide={() => setImprimirDialogVisible(false)}
-                        item={itemParaImprimir}
-                        onConfirm={confirmarImpresion}
-                    />
-                </div>
+<Dialog
+  visible={printing}
+  onHide={() => setPrinting(false)}
+  style={{ width: '450px' }}
+  header={`Imprimir ${printingMode === 'boleto' ? 'Boleto' : 'Encomienda'}`}
+  dismissableMask
+  footer={
+    <div>
+      <Button
+        label="Cerrar"
+        icon="pi pi-times"
+        onClick={() => setPrinting(false)}
+        className="p-button-text"
+      />
+      <Button
+        label="Imprimir"
+        icon="pi pi-print"
+        onClick={() => {
+          if (itemParaImprimir) {
+            if (printingMode === 'boleto') {
+              generarPDF(itemParaImprimir as Boleto);
+            } else {
+              generarPDFEncomienda(itemParaImprimir as Encomienda);
+            }
+          }
+        }}
+        className="p-button-text"
+      />
+    </div>
+  }
+>
+  {itemParaImprimir && (
+    printingMode === 'boleto' ? 
+      <ImprimirBoleto item={itemParaImprimir as Boleto} /> : 
+      <ImprimirEncomienda item={itemParaImprimir as Encomienda} />
+  )}
+</Dialog>
+
+     </div>
             </div>
         </div>
     );
 }
-

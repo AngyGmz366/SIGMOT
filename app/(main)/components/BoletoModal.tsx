@@ -1,4 +1,3 @@
-// components/BoletoModal.tsx
 'use client';
 
 import React from 'react';
@@ -9,37 +8,7 @@ import { Calendar } from 'primereact/calendar';
 import { Dropdown } from 'primereact/dropdown';
 import { InputNumber } from 'primereact/inputnumber';
 import { classNames } from 'primereact/utils';
-
-// Representa un boleto de viaje vendido
-interface Boleto {
-    id: number | null;
-    cliente: string;
-    destino: string;
-    fecha: string;
-    precio: number | string;
-    // Campos adicionales opcionales
-    tipoVenta?: 'boleto' | 'encomienda';
-    asiento?: string;
-    autobus?: string;
-    horaSalida?: string;
-    horaLlegada?: string;
-    telefono?: string;
-    cedula?: string;
-    estado?: 'vendido' | 'reservado' | 'cancelado';
-    metodoPago?: 'efectivo' | 'tarjeta' | 'transferencia';
-    descuento?: number;
-    total?: number;
-}
-
-// Props para el modal de crear/editar boleto
-interface BoletoDialogProps {
-    visible: boolean;
-    onHide: () => void;
-    boleto: Boleto;
-    setBoleto: (boleto: Boleto) => void;
-    onSave: () => void;
-    submitted?: boolean;
-}
+import { Boleto, BoletoDialogProps } from '@/types/ventas';
 
 const BoletoDialog: React.FC<BoletoDialogProps> = ({ 
     visible, 

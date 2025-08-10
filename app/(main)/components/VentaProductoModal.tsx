@@ -20,9 +20,6 @@ interface VentaModalProps {
     onSave: (venta: Venta) => void;
 }
 
-
-
-
 const metodosPago = [
     { label: 'Efectivo', value: 'efectivo' },
     { label: 'Tarjeta', value: 'tarjeta' },
@@ -43,7 +40,8 @@ export default function VentaModal({ visible, onHide, venta, productos, onSave }
         productos: [],
         total: 0,
         estado: 'pendiente',
-        metodoPago: 'efectivo'
+        metodoPago: 'efectivo',
+        cobrada: false
     });
     const [selectedProduct, setSelectedProduct] = useState<Producto | null>(null);
     const [cantidad, setCantidad] = useState<number>(1);
@@ -53,7 +51,8 @@ export default function VentaModal({ visible, onHide, venta, productos, onSave }
         if (venta) {
             setCurrentVenta({
                 ...venta,
-                productos: venta.productos ? [...venta.productos] : []
+                productos: venta.productos ? [...venta.productos] : [],
+                cobrada: venta.cobrada ?? false
             });
         } else {
             setCurrentVenta({
@@ -63,7 +62,8 @@ export default function VentaModal({ visible, onHide, venta, productos, onSave }
                 productos: [],
                 total: 0,
                 estado: 'pendiente',
-                metodoPago: 'efectivo'
+                metodoPago: 'efectivo',
+                cobrada: false
             });
         }
         setSelectedProduct(null);
@@ -140,22 +140,36 @@ export default function VentaModal({ visible, onHide, venta, productos, onSave }
     const saveVenta = () => {
         setSubmitted(true);
 
-        // Validaciones
-        if (!currentVenta.cliente || currentVenta.cliente.trim() === '') {
-            return;
-        }
+        if (!currentVenta.cliente || currentVenta.cliente.trim() === '') return;
+        if (currentVenta.productos.length === 0) return;
 
-        if (currentVenta.productos.length === 0) {
-            return;
-        }
-
-        // Crear copia profunda para evitar mutaciones
-        const ventaToSave = { 
+        const ventaToSave = {
             ...currentVenta,
-            productos: currentVenta.productos.map(p => ({...p}))
+            productos: currentVenta.productos.map(p => ({ ...p }))
         };
 
         onSave(ventaToSave);
+    };
+
+    const pagarVenta = () => {
+        // Cambiar estado a completada y marcar cobrada
+        setCurrentVenta(prev => ({
+            ...prev,
+            estado: 'completada',
+            cobrada: true
+        }));
+
+        // Luego guardar la venta
+ setTimeout(() => {
+    const ventaToSave: Venta = {
+        ...currentVenta,
+        estado: 'completada' as 'completada',
+        cobrada: true,
+        productos: currentVenta.productos.map(p => ({ ...p }))
+    };
+    onSave(ventaToSave);
+}, 100);
+
     };
 
     const productoBodyTemplate = (rowData: ProductoVendido) => `${rowData.codigo} - ${rowData.nombre}`;
@@ -199,6 +213,7 @@ export default function VentaModal({ visible, onHide, venta, productos, onSave }
         <>
             <Button label="Cancelar" icon="pi pi-times" outlined onClick={onHide} />
             <Button label="Guardar" icon="pi pi-check" severity="success" onClick={saveVenta} />
+            <Button label="Pagar" icon="pi pi-dollar" severity="warning" onClick={pagarVenta} disabled={currentVenta.estado === 'completada'} />
         </>
     );
 
@@ -212,11 +227,11 @@ export default function VentaModal({ visible, onHide, venta, productos, onSave }
             style={{ width: '70rem' }}
             footer={ventaDialogFooter}
         >
-                  <div className="grid">
+            <div className="grid">
                 <div className="col-12 md:col-6">
                     <div className="field">
                         <label htmlFor="fecha">Fecha</label>
-<Calendar
+                     <Calendar
   id="fecha"
   value={currentVenta.fecha ? new Date(currentVenta.fecha) : null}
   onChange={(e) =>
@@ -228,8 +243,6 @@ export default function VentaModal({ visible, onHide, venta, productos, onSave }
   dateFormat="dd/mm/yy"
   showIcon
 />
-
-
                     </div>
 
                     <div className="field">
@@ -346,4 +359,4 @@ export default function VentaModal({ visible, onHide, venta, productos, onSave }
             </div>
         </Dialog>
     );
-}
+} 

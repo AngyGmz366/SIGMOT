@@ -13,6 +13,9 @@ import { Dialog } from 'primereact/dialog';
 import VentaModal from '../../components/VentaProductoModal';
 import type { Venta } from '@/types/ventas';
 import type { Producto } from '@/types/productos';
+import ImprimirComprobante from '../../components/ImprimirComprobante'; 
+import jsPDF from 'jspdf';
+
 
 export default function VentasPage() {
     const toast = useRef<Toast>(null);
@@ -46,7 +49,20 @@ export default function VentasPage() {
     };
 
 
+const [imprimirDialogVisible, setImprimirDialogVisible] = useState(false);
+const [ventaParaImprimir, setVentaParaImprimir] = useState<Venta | null>(null);
 
+
+
+const abrirImprimir = (venta: Venta) => {
+    setVentaParaImprimir(venta);
+    setImprimirDialogVisible(true);
+};
+
+const cerrarImprimir = () => {
+    setImprimirDialogVisible(false);
+    setVentaParaImprimir(null);
+};
     
     useEffect(() => {
         // Cargar ventas
@@ -138,6 +154,22 @@ export default function VentasPage() {
         });
     };
 
+const imprimirDialogFooter = (
+  <>
+    <Button 
+      label="Generar PDF" 
+      icon="pi pi-file-pdf" 
+      severity="danger" 
+      onClick={() => ventaParaImprimir && generarPDFComprobante(ventaParaImprimir)} 
+    />
+    <Button 
+      label="Cerrar" 
+      icon="pi pi-times" 
+      onClick={cerrarImprimir} 
+      className="p-button-text" 
+    />
+  </>
+);
     const confirmDeleteSelectedVentas = () => {
         setDeleteVentasDialog(true);
     };
@@ -189,30 +221,146 @@ export default function VentasPage() {
         return rowData.productos?.length || 0;
     };
 
-    const actionBodyTemplate = (rowData: Venta) => {
-        return (
-            <div className="flex gap-2">
-                <Button 
-                    icon="pi pi-pencil" 
-                    rounded 
-                    text 
-                    severity="info"
-                    onClick={() => editVenta(rowData)} 
-                    tooltip="Editar"
-                    tooltipOptions={{ position: 'top' }}
-                />
-                <Button 
-                    icon="pi pi-trash" 
-                    rounded 
-                    text 
-                    severity="danger"
-                    onClick={() => confirmDeleteVenta(rowData)}
-                    tooltip="Eliminar"
-                    tooltipOptions={{ position: 'top' }}
-                />
-            </div>
-        );
-    };
+    ////////////////////////////////////////////////////////777
+const generarPDFComprobante = (venta: Venta) => {
+  const doc = new jsPDF({
+    unit: 'mm',
+    format: [80, 150], // Tamaño de ticket (80mm ancho, 150mm alto)
+  });
+
+  // Configuración inicial
+  doc.setFont('helvetica');
+  const margin = 10;
+  let y = margin;
+
+  // Encabezado
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text('COMPROBANTE DE VENTA', 40, y, { align: 'center' });
+  y += 10;
+
+  // Información de la empresa
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Tienda: Mi Tienda', margin, y);
+  y += 5;
+  doc.text(`Fecha: ${new Date(venta.fecha).toLocaleString()}`, margin, y);
+  y += 5;
+  doc.text(`Comprobante: ${venta.comprobante || 'N/A'}`, margin, y);
+  y += 5;
+  doc.line(margin, y, 70, y); // Línea divisoria
+  y += 5;
+
+  // Información del cliente
+  doc.setFontSize(11);
+  doc.text(`Cliente: ${venta.cliente || 'Consumidor Final'}`, margin, y);
+  y += 7;
+
+  // Tabla de productos
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  // Encabezados de la tabla
+  doc.text('Producto', margin, y);
+  doc.text('Cant.', margin + 40, y);
+  doc.text('Precio', margin + 55, y);
+  y += 5;
+
+  // Línea bajo encabezados
+  doc.line(margin, y, 70, y);
+  y += 5;
+
+  // Productos
+  doc.setFont('helvetica', 'normal');
+  venta.productos?.forEach((producto) => {
+    // Si nos quedamos sin espacio, añadimos nueva página
+    if (y > 130) {
+      doc.addPage([80, 150], 'portrait');
+      y = margin;
+    }
+
+    doc.text(producto.nombre || 'Producto', margin, y);
+    doc.text(producto.cantidad.toString(), margin + 40, y);
+    doc.text(`$${producto.precioUnitario.toFixed(2)}`, margin + 55, y);
+    y += 5;
+  });
+
+  // Totales
+  doc.line(margin, y, 70, y);
+  y += 5;
+
+  doc.setFont('helvetica', 'bold');
+  doc.text('Subtotal:', margin + 35, y);
+  doc.text(`$${venta.total.toFixed(2)}`, margin + 55, y);
+  y += 5;
+
+  // Método de pago
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Método de pago: ${venta.metodoPago.toUpperCase()}`, margin, y);
+  y += 5;
+
+  if (venta.metodoPago === 'efectivo' && venta.montoRecibido) {
+    doc.text(`Monto recibido: $${venta.montoRecibido.toFixed(2)}`, margin, y);
+    y += 5;
+    doc.text(`Cambio: $${(venta.cambio || 0).toFixed(2)}`, margin, y);
+    y += 5;
+  }
+
+  // Estado
+  doc.text(`Estado: ${venta.estado.toUpperCase()}`, margin, y);
+  y += 5;
+
+  // Observaciones
+  if (venta.observaciones) {
+    doc.text(`Observaciones: ${venta.observaciones}`, margin, y);
+    y += 5;
+  }
+
+  // Pie de página
+  doc.line(margin, y, 70, y);
+  y += 5;
+  doc.setFontSize(8);
+  doc.text('¡Gracias por su compra!', 40, y, { align: 'center' });
+  y += 5;
+  doc.text('Venta #' + venta.id, 40, y, { align: 'center' });
+
+  // Guardar el PDF
+  doc.save(`comprobante_${venta.id}.pdf`);
+};
+
+ // En el actionBodyTemplate agrega un botón nuevo:
+const actionBodyTemplate = (rowData: Venta) => {
+    return (
+        <div className="flex gap-2">
+            <Button 
+                icon="pi pi-pencil" 
+                rounded 
+                text 
+                severity="info"
+                onClick={() => editVenta(rowData)} 
+                tooltip="Editar"
+                tooltipOptions={{ position: 'top' }}
+            />
+            <Button 
+                icon="pi pi-print" 
+                rounded 
+                text 
+                severity="info"
+                onClick={() => abrirImprimir(rowData)}
+                tooltip="Imprimir"
+                tooltipOptions={{ position: 'top' }}
+            />
+            <Button 
+                icon="pi pi-trash" 
+                rounded 
+                text 
+                severity="danger"
+                onClick={() => confirmDeleteVenta(rowData)}
+                tooltip="Eliminar"
+                tooltipOptions={{ position: 'top' }}
+            />
+        </div>
+    );
+};
 
     const header = (
         <div className="flex flex-wrap gap-2 align-items-center justify-content-between">
@@ -332,6 +480,38 @@ export default function VentasPage() {
                             )}
                         </div>
                     </Dialog>
+<Dialog
+  visible={imprimirDialogVisible}
+  onHide={cerrarImprimir}
+  style={{ width: '450px' }}
+  header="Comprobante de Venta"
+  dismissableMask
+  footer={
+    <div>
+      <Button
+        label="Cerrar"
+        icon="pi pi-times"
+        onClick={cerrarImprimir}
+        className="p-button-text"
+      />
+      <Button
+        label="Imprimir Comprobante"
+            icon="pi pi-print"
+        onClick={() => {
+          if (ventaParaImprimir) {
+            generarPDFComprobante(ventaParaImprimir);
+          }
+        }}
+        className="p-button-text"
+        //severity="success"
+      />
+    </div>
+  }
+>
+  {ventaParaImprimir && (
+    <ImprimirComprobante item={ventaParaImprimir} />
+  )}
+</Dialog>
 
                     <Dialog 
                         visible={deleteVentasDialog} 
