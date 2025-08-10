@@ -44,7 +44,7 @@ const STORAGE_KEY = 'roles';
 
 export default function RolesPage() {
   const toast = useRef<Toast>(null);
-  const dt = useRef<DataTable<Rol>>(null); // ← tipo correcto
+  const dt = useRef<DataTable<any[]>>(null); // tipo compatible con DataTable
 
   // ====== Estado principal ======
   const [roles, setRoles] = useState<Rol[]>([]);

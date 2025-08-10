@@ -305,6 +305,12 @@ export default function ParametrosPage() {
       <div className="col-12">
         <div className="card">
           <Toast ref={toast} />
+          <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center mb-3 gap-3">
+            <div className="flex align-items-center gap-3">
+            
+             <h3 className="m-0 font-bold text-primary">Parametros del sistema</h3>
+            </div>
+         </div>
           <Toolbar className="mb-4" left={leftToolbar} />
 
           <DataTable

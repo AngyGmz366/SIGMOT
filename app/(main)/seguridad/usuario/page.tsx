@@ -202,6 +202,7 @@ export default function UsuariosPage() {
       fr.readAsDataURL(file);
     });
 
+    
   // --- UI table templates ---
   const estadoTemplate = (row: Usuario) => (
     <Tag value={row.estado === 'activo' ? 'Activo' : 'Inactivo'} severity={row.estado === 'activo' ? 'success' : 'danger'} />
@@ -229,11 +230,13 @@ export default function UsuariosPage() {
   );
 
   // --- Toolbar ---
+
   const leftToolbar = (
     <div className="flex flex-wrap gap-2">
       <Button label="Nuevo usuario" icon="pi pi-plus" severity="success" onClick={openNew} />
     </div>
   );
+  
 
   const rightToolbar = (
     <div className="flex flex-wrap gap-2 align-items-center">
@@ -274,7 +277,16 @@ export default function UsuariosPage() {
       <div className="col-12">
         <div className="card">
           <Toast ref={toast} />
-          <Toolbar className="mb-4" left={leftToolbar} right={rightToolbar} />
+          
+            <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center mb-3 gap-3">
+              <div className="flex align-items-center gap-3">
+              <i className="pi pi-users text-3xl text-primary" />
+              <h3 className="m-0 font-bold text-primary">Gestión de Usuarios</h3>
+              </div>
+              
+            </div>
+            
+            <Toolbar className="mb-4 surface-100 border-round shadow-1" left={leftToolbar} right={rightToolbar} />
 
           <DataTable
             value={data}
