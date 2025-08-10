@@ -113,12 +113,22 @@ React.useEffect(() => {
         onHide();
     };
 
-    const productDialogFooter = (
-        <React.Fragment>
-            <Button label="Cancelar" icon="pi pi-times" outlined onClick={onHide} />
-            <Button label="Guardar" icon="pi pi-check" severity="success" onClick={saveProduct} />
-        </React.Fragment>
-    );
+const productDialogFooter = (
+    <React.Fragment>
+        <Button 
+            label="Cancelar" 
+            icon="pi pi-times" 
+            outlined 
+            onClick={onHide} 
+        />
+        <Button 
+            label="Guardar" 
+            icon="pi pi-check" 
+            onClick={saveProduct} 
+        />
+    </React.Fragment>
+);
+
 
 
 
