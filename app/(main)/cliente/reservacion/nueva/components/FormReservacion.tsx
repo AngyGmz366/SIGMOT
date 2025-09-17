@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { Button } from 'primereact/button';
 import RutaSelector from './RutaSelector';
 import AsientoSelector from './AsientoSelector';
-import BoletoPreview from './BoletoPreview';
 
 export default function FormReservacion() {
   const [step, setStep] = useState<'form' | 'confirmacion'>('form');
@@ -21,9 +20,6 @@ export default function FormReservacion() {
     setStep('confirmacion');
   };
 
-  if (step === 'confirmacion') {
-    return <BoletoPreview data={formData} onBack={() => setStep('form')} />;
-  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
