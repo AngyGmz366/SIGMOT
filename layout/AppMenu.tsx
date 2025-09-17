@@ -92,11 +92,6 @@ const AppMenu = () => {
                             icon: 'pi pi-fw pi-briefcase',
                             to: '/pages/Empleados'
                         },
-                        {
-                            label: 'Planilla de Pagos',
-                            icon: 'pi pi-fw pi-money-bill',
-                            to: '/pages/PlanillaPagos'
-                        }
                     ]
                 },
 
