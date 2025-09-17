@@ -236,6 +236,12 @@ export default function ObjetosPage() {
       <div className="col-12">
         <div className="card">
           <Toast ref={toast} />
+          <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center mb-3 gap-3">
+            <div className="flex align-items-center gap-3">
+            
+             <h3 className="m-0 font-bold text-primary">Objetos</h3>
+            </div>
+         </div>
           <Toolbar className="mb-4" left={leftToolbar} right={rightToolbar} />
 
           <DataTable
@@ -285,7 +291,7 @@ export default function ObjetosPage() {
                     value={editing.nombreTecnico}
                     onChange={(e) => setEditing({ ...editing, nombreTecnico: e.target.value.trim() })}
                     className={`${submitted && !editing.nombreTecnico.trim() ? 'p-invalid w-full' : 'w-full'}`}
-                    placeholder="slug: letras minúsculas, números y -/_"
+                    placeholder="Letras minúsculas, números y -/_"
                   />
                   {submitted && !editing.nombreTecnico.trim() && <small className="p-error">Requerido</small>}
                 </div>
