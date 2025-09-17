@@ -208,6 +208,7 @@ const MantenimientoTransporte = () => {
         setDetalleServicioDialog(true);
     };
 
+    
     const accionesTemplate = (rowData: any) => (
         <div className="flex gap-2">
             <Button icon="pi pi-eye" rounded text severity="info" aria-label="Ver Detalle" onClick={() => verDetalleServicio(rowData)} />
