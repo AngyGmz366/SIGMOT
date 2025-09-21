@@ -2,18 +2,19 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 
-// Config de Firebase (copiada de tu consola)
+// Configuración de tu app Web (copiada de Firebase Console)
 const firebaseConfig = {
-  apiKey: "AIzaSyCXOMTfPKZVcwICDM-krtQu-AHabZWMMbE",
+  apiKey: "AIzaSyCXOMTfPKZVcwlCDM-krtQu-AHAbZMWMbE",
   authDomain: "sigmot-1fa80.firebaseapp.com",
   projectId: "sigmot-1fa80",
-  storageBucket: "sigmot-1fa80.appspot.com",
+  storageBucket: "sigmot-1fa80.appspot.com",  // corregido: .appspot.com
   messagingSenderId: "856492982081",
-  appId: "1:856492982081:web:0a72c930f5553f12f2debc0",
-  measurementId: "G-7BWH9V0Q9N"
+  appId: "1:856492982081:web:0a72c930f555f31f2debc0",
+  measurementId: "G-7BWH9VQ0GN",
 };
 
-// Evita inicializar más de una vez en Next.js
+// Evita inicializar más de una vez
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
+// Exporta el auth para usar en login
 export const auth = getAuth(app);
