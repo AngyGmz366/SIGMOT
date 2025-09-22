@@ -20,8 +20,8 @@ import {
   browserSessionPersistence,
 } from 'firebase/auth';
 
-const PERSONA_FK_POR_DEFECTO = 4; // 👈 usa un Id real de TBL_PERSONAS
-const ROL_DEFECTO = 1;              // 'Usuario'
+const PERSONA_FK_POR_DEFECTO = 4; // 👈 tu Id real
+const ROL_DEFECTO = 1;            // 'Usuario'
 
 type ErrorState = { email?: string; password?: string; general?: string };
 
@@ -55,7 +55,7 @@ export default function LoginPage() {
   const handleBlur = (field: 'email' | 'password') =>
     setTouched((prev) => ({ ...prev, [field]: true }));
 
-  // Llama a /api/auth/upsert después del login Firebase
+  // /api/auth/upsert después del login con Firebase
   const syncUsuarioConBD = async (idToken: string) => {
     const resp = await fetch('/api/auth/upsert', {
       method: 'POST',
@@ -67,7 +67,19 @@ export default function LoginPage() {
     return data;
   };
 
-  // Email/Contraseña
+  // 🔹 login LOCAL (tu API valida bcrypt y setea cookie httpOnly)
+  const loginLocal = async (email: string, password: string) => {
+    const r = await fetch('/api/auth/login-local', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim(), password }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data?.error || 'Credenciales inválidas (local)');
+    return data; // cookie ya quedó en el navegador si la ruta la setea
+  };
+
+  // Email/Contraseña — intenta Firebase y si falla, fallback a Local
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const valErrors = validate();
@@ -78,42 +90,43 @@ export default function LoginPage() {
     setLoading(true);
     setErrors({});
     try {
-      // 🔑 Persistencia según "Recordarme"
+      // 1) Firebase
       await setPersistence(auth, checked ? browserLocalPersistence : browserSessionPersistence);
-
-      // 1) Login
       const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
-
-      // 2) Token
       const idToken = await cred.user.getIdToken(true);
-
-      // 3) Registrar/actualizar en MySQL (SP)
       await syncUsuarioConBD(idToken);
-
-      // 4) Redirigir
       router.push('/dashboard');
     } catch (err: any) {
-      console.error(err);
-      setErrors((p) => ({ ...p, general: err?.message || 'Error iniciando sesión' }));
+      // 2) Fallback a LOCAL si el error es de credenciales
+      const code = err?.code || '';
+      const canTryLocal = ['auth/invalid-credential', 'auth/user-not-found', 'auth/wrong-password'].includes(code);
+      try {
+        if (canTryLocal) {
+          await loginLocal(email, password);
+          router.push('/dashboard');
+        } else {
+          // otros errores de Firebase (config, red, etc.)
+          throw err;
+        }
+      } catch (e: any) {
+        console.error(e);
+        setErrors((p) => ({ ...p, general: e?.message || 'Error iniciando sesión' }));
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // Google
+  // Google (solo Firebase)
   const handleLoginGoogle = async () => {
     setLoading(true);
     setErrors({});
     try {
-      // 🔑 Persistencia según "Recordarme"
       await setPersistence(auth, checked ? browserLocalPersistence : browserSessionPersistence);
-
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
-
       const idToken = await result.user.getIdToken(true);
       await syncUsuarioConBD(idToken);
-
       router.push('/dashboard');
     } catch (err: any) {
       console.error(err);
