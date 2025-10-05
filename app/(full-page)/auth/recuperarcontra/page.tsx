@@ -1,16 +1,21 @@
-/* eslint-disable @next/next/no-img-element */
 'use client';
 
+import React, { useContext, useRef, useState } from 'react';
 import { InputText } from 'primereact/inputtext';
 import { Button } from 'primereact/button';
-import { useContext, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { LayoutContext } from '../../../../layout/context/layoutcontext';
+import { Toast } from 'primereact/toast';
 import { classNames } from 'primereact/utils';
+import { LayoutContext } from '../../../../layout/context/layoutcontext';
+import { useRouter } from 'next/navigation';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '@/lib/firebaseClient';
+import api from '@/lib/axios';
 
-const RecuperarContrasena = () => {
+const RecuperarContrasena: React.FC = () => {
     const { layoutConfig } = useContext(LayoutContext);
-    const [correo, setCorreo] = useState('');
+    const [correo, setCorreo] = useState<string>('');
+    const [cargando, setCargando] = useState<boolean>(false);
+    const toast = useRef<Toast>(null);
     const router = useRouter();
 
     const containerClassName = classNames(
@@ -18,16 +23,45 @@ const RecuperarContrasena = () => {
         { 'p-input-filled': layoutConfig.inputStyle === 'filled' }
     );
 
-    const enviarCorreo = () => {
-        // Aquí iría tu lógica para llamar al backend
-        console.log('Enviando correo a:', correo);
-        // router.push('/auth/ActualizarContrasena'); // si deseas redirigir luego
+    const enviarCorreo = async (): Promise<void> => {
+        if (!correo) {
+            toast.current?.show({
+                severity: 'warn',
+                summary: 'Atención',
+                detail: 'Por favor, ingresa un correo válido.'
+            });
+            return;
+        }
+
+        try {
+            setCargando(true);
+
+            // 1️⃣ Firebase envía el correo (usa la plantilla que configuraste)
+            await sendPasswordResetEmail(auth, correo);
+
+            // 2️⃣ Registrar acción en tu BD
+            await api.post('/api/bitacora/reset', { email: correo });
+
+            toast.current?.show({
+                severity: 'success',
+                summary: 'Éxito',
+                detail: 'Correo de restablecimiento enviado. Revisa tu correo o carpeta de spam.'
+            });
+        } catch (err: any) {
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: err.message || 'No se pudo enviar el correo.'
+            });
+        } finally {
+            setCargando(false);
+        }
     };
 
     return (
         <div className={containerClassName}>
+            <Toast ref={toast} />
             <div className="flex flex-column align-items-center justify-content-center">
-
                 <div
                     style={{
                         borderRadius: '40px',
@@ -47,15 +81,20 @@ const RecuperarContrasena = () => {
                         <div className="text-center mb-4">
                             <img
                                 src="/demo/images/login/LOGO-SIGMOT.png"
-                                alt="Logo SAENZ"
+                                alt="Logo SIGMOT"
                                 className="mb-2 w-2 h-auto"
                             />
-                            <div className="text-900 text-2xl font-medium mb-2">¿Olvidaste tu contraseña?</div>
+                            <div className="text-900 text-2xl font-medium mb-2">
+                                ¿Olvidaste tu contraseña?
+                            </div>
+                            <p className="text-600 mb-4 text-sm">
+                                Ingresa tu correo electrónico y te enviaremos un enlace para restablecerla.
+                            </p>
                         </div>
 
                         <div>
                             <label htmlFor="correo" className="block text-900 text-base font-medium mb-2">
-                                Ingresa tu Correo Electrónico
+                                Correo electrónico
                             </label>
                             <InputText
                                 id="correo"
@@ -68,9 +107,10 @@ const RecuperarContrasena = () => {
                             />
 
                             <Button
-                                label="Enviar correo"
+                                label={cargando ? 'Enviando...' : 'Enviar correo'}
                                 className="w-full p-2 text-base"
-                               onClick={() => router.push('/auth/verificarcorreocontra?token=simulado123')}
+                                disabled={cargando}
+                                onClick={enviarCorreo}
                             />
 
                             <div className="flex justify-between mt-4 gap-3">
@@ -80,13 +120,10 @@ const RecuperarContrasena = () => {
                                     className="p-button-text text-blue-600 hover:text-blue-800 transition-colors"
                                     onClick={() => router.push('/auth/login')}
                                 />
-                               
                             </div>
-
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
     );
