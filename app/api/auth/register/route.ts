@@ -97,6 +97,9 @@ export async function POST(req: Request) {
           tipoPersona,
         ]
       );
+      // 🧾 Registrar creación de usuario en bitácora
+      await conn.query('CALL mydb.sp_registrar_usuario_bitacora(?, ?)', [firebaseUid, 1]);
+
 
       const toArr = (x: any) => (Array.isArray(x) ? x : [x]);
       const sets = toArr(resultSets);
@@ -154,6 +157,16 @@ export async function POST(req: Request) {
         estadoUsuario
       ]
     );
+    // 🧾 Registrar creación de usuario en bitácora
+    const [[usuario]]: any = await conn.query(
+      'SELECT Id_Usuario_PK FROM mydb.TBL_MS_USUARIO WHERE Correo = ? ORDER BY Id_Usuario_PK DESC LIMIT 1',
+      [email]
+    );
+
+    if (usuario?.Id_Usuario_PK) {
+      await conn.query('CALL mydb.sp_registrar_usuario_bitacora(?, ?)', [usuario.Id_Usuario_PK, 1]);
+    }
+
 
     const ids = Array.isArray(resultSets) ? resultSets[0] : resultSets;
     return NextResponse.json({ ok: true, mode: 'local', email, ids });

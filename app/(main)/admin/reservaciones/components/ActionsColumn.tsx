@@ -13,7 +13,7 @@ export default function ActionsColumn({ row, onEdit, onDelete, disabled }: {
       message: `¿Eliminar ${row.tipo === 'viaje' ? 'viaje' : 'encomienda'} de ${row.cliente}?`,
       header: 'Confirmar',
       icon: 'pi pi-exclamation-triangle',
-      accept: () => onDelete(row.id),
+      accept: () => row.id ? onDelete(row.id) : undefined,
     });
   };
 
@@ -24,7 +24,7 @@ export default function ActionsColumn({ row, onEdit, onDelete, disabled }: {
         rounded 
         text 
         severity="secondary"
-        onClick={() => onEdit(row.id)}
+        onClick={() => row.id && onEdit(row.id)}
       />
       <Button 
         icon="pi pi-trash" 

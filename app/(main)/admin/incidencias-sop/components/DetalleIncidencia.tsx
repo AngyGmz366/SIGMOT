@@ -3,8 +3,7 @@
 import React from 'react';
 import { Dialog } from 'primereact/dialog';
 import { Button } from 'primereact/button';
-import { Tag } from 'primereact/tag';
-import { Incidencia } from '../types';
+import type { Incidencia } from '../page';
 
 interface Props {
   incidencia: Incidencia | null;
@@ -15,57 +14,21 @@ interface Props {
 const DetalleIncidencia: React.FC<Props> = ({ incidencia, visible, onHide }) => {
   if (!incidencia) return null;
 
-  const estadoSeverity =
-    incidencia.estado === 'Resuelto'
-      ? 'success'
-      : incidencia.estado === 'En Progreso'
-      ? 'info'
-      : 'warning';
-
   return (
     <Dialog
-      header="Detalle de Incidencia"
       visible={visible}
-      style={{ width: '100%', maxWidth: '30rem' }}
+      header={`Detalle de incidencia: ${incidencia.titulo}`}
+      style={{ width: '500px' }}
+      modal
       onHide={onHide}
-      className="p-fluid"
+      footer={<Button label="Cerrar" icon="pi pi-times" onClick={onHide} />}
     >
-      {/* Información */}
-      <div className="space-y-3 text-gray-800">
-        <p>
-          <strong>Título:</strong> {incidencia.titulo}
-        </p>
-        <p>
-          <strong>Categoría:</strong> {incidencia.categoria}
-        </p>
-        <p>
-          <strong>Fecha:</strong> {incidencia.fecha}
-        </p>
-        <p>
-          <strong>Estado:</strong>{' '}
-          <Tag
-            value={incidencia.estado}
-            severity={estadoSeverity}
-            style={{ padding: '4px 8px', borderRadius: '8px', fontWeight: 'bold' }}
-          />
-        </p>
-        <div>
-          <strong>Descripción:</strong>
-          <p className="mt-1 p-2 bg-gray-50 rounded-md border border-gray-200">
-            {incidencia.descripcion}
-          </p>
-        </div>
-      </div>
-
-      {/* Botón de cierre */}
-      <div className="flex justify-end mt-4">
-        <Button
-          label="Cerrar"
-          icon="pi pi-times"
-          className="p-button-raised p-button-rounded"
-          style={{ backgroundColor: '#6a1b9a', borderColor: '#6a1b9a', color: '#fff' }}
-          onClick={onHide}
-        />
+      <div className="p-3 space-y-2">
+        <p><strong>ID:</strong> {incidencia.id}</p>
+        <p><strong>Categoría:</strong> {incidencia.categoria}</p>
+        <p><strong>Descripción:</strong> {incidencia.descripcion}</p>
+        <p><strong>Fecha:</strong> {incidencia.fecha}</p>
+        <p><strong>Estado:</strong> {incidencia.estado}</p>
       </div>
     </Dialog>
   );

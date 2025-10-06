@@ -1,4 +1,5 @@
 'use client';
+export const dynamic = 'force-dynamic';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { DataTable } from 'primereact/datatable';
@@ -24,13 +25,19 @@ type Usuario = {
   rolId: string;
   estado: 'activo' | 'inactivo';
   fechaRegistro: string; // ISO
-  foto?: string; // dataURL
+  foto?: string;
   username?: string;
   password?: string;
 };
 
+// ✅ Generador de ID seguro que no rompe SSR
+const genId = () =>
+  typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random()}`;
+
 const newUser = (roles: Rol[]): Usuario => ({
-  id: (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`),
+  id: genId(),
   nombres: '',
   apellidos: '',
   correo: '',
@@ -45,18 +52,19 @@ const newUser = (roles: Rol[]): Usuario => ({
 
 export default function UsuariosPage() {
   const toast = useRef<Toast>(null);
-
-  // --- Hydration-safe stores ---
   const [hydrated, setHydrated] = useState(false);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [roles, setRoles] = useState<Rol[]>([]);
 
+  // ✅ Cargar desde localStorage solo en cliente
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     try {
       const rawU = localStorage.getItem('usuarios');
       const rawR = localStorage.getItem('roles');
-      setUsuarios(rawU ? (JSON.parse(rawU) as Usuario[]) : []);
-      setRoles(rawR ? (JSON.parse(rawR) as Rol[]) : []);
+      setUsuarios(rawU ? JSON.parse(rawU) : []);
+      setRoles(rawR ? JSON.parse(rawR) : []);
     } catch {
       setUsuarios([]);
       setRoles([]);
@@ -65,18 +73,20 @@ export default function UsuariosPage() {
     }
   }, []);
 
+  // ✅ Guardar solo después de hidratar
   useEffect(() => {
-    if (!hydrated) return;
+    if (typeof window === 'undefined' || !hydrated) return;
     localStorage.setItem('usuarios', JSON.stringify(usuarios));
   }, [usuarios, hydrated]);
 
-  // --- Filtros / búsqueda ---
+  // --- filtros
   const [search, setSearch] = useState('');
   const [rolFilter, setRolFilter] = useState<string | null>(null);
   const [estadoFilter, setEstadoFilter] = useState<'activo' | 'inactivo' | null>(null);
   const [fechaRango, setFechaRango] = useState<[Date | null, Date | null] | null>(null);
 
   const data = useMemo(() => {
+    if (!hydrated) return [];
     const q = search.trim().toLowerCase();
     const [d1, d2] = fechaRango || [null, null];
     return usuarios.filter(u => {
@@ -95,33 +105,24 @@ export default function UsuariosPage() {
         !d1 && !d2
           ? true
           : d1 && d2
-          ? fr >= new Date(new Date(d1).setHours(0, 0, 0, 0)) &&
-            fr <= new Date(new Date(d2).setHours(23, 59, 59, 999))
+          ? fr >= new Date(d1.setHours(0, 0, 0, 0)) && fr <= new Date(d2.setHours(23, 59, 59, 999))
           : d1
-          ? fr >= new Date(new Date(d1).setHours(0, 0, 0, 0))
+          ? fr >= new Date(d1.setHours(0, 0, 0, 0))
           : d2
-          ? fr <= new Date(new Date(d2).setHours(23, 59, 59, 999))
+          ? fr <= new Date(d2.setHours(23, 59, 59, 999))
           : true;
 
       return matchText && matchRol && matchEstado && matchFecha;
     });
-  }, [usuarios, roles, search, rolFilter, estadoFilter, fechaRango]);
+  }, [usuarios, roles, search, rolFilter, estadoFilter, fechaRango, hydrated]);
 
   // --- Modales ---
   const [visibleForm, setVisibleForm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [userEdit, setUserEdit] = useState<Usuario | null>(null);
 
-  const [visibleRole, setVisibleRole] = useState(false);
-  const [userRole, setUserRole] = useState<Usuario | null>(null);
-  const [nuevoRolId, setNuevoRolId] = useState<string>('');
-
-  // --- Helpers ---
-  const rolName = (id: string) => roles.find(r => r.id === id)?.nombre || '—';
-
   const openNew = () => {
-    const u = newUser(roles);
-    setUserEdit(u);
+    setUserEdit(newUser(roles));
     setSubmitted(false);
     setVisibleForm(true);
   };
@@ -132,83 +133,57 @@ export default function UsuariosPage() {
     setVisibleForm(true);
   };
 
-  // ---- FIX: no llamar Toast dentro del setState ----
   const saveUser = () => {
     if (!userEdit) return;
     setSubmitted(true);
 
     if (!userEdit.nombres.trim() || !userEdit.apellidos.trim() || !userEdit.correo.trim() || !userEdit.rolId) return;
 
-    let msg = ''; // mensaje para toast
+    const exists = usuarios.some(p => p.id === userEdit.id);
+    const updated = {
+      ...userEdit,
+      username: userEdit.username?.trim() || userEdit.correo
+    };
 
-    setUsuarios(prev => {
-      const exists = prev.some(p => p.id === userEdit.id);
-      msg = exists ? 'Usuario actualizado' : 'Usuario creado';
+    setUsuarios(prev =>
+      exists ? prev.map(p => (p.id === updated.id ? updated : p)) : [...prev, updated]
+    );
 
-      const sanitized: Usuario = {
-        ...userEdit,
-        username: (userEdit.username?.trim() || userEdit.correo)
-      };
-
-      return exists ? prev.map(p => (p.id === sanitized.id ? sanitized : p)) : [...prev, sanitized];
+    toast.current?.show({
+      severity: 'success',
+      summary: 'Éxito',
+      detail: exists ? 'Usuario actualizado' : 'Usuario creado',
+      life: 2500
     });
-
-    // Mostrar toast después del setState
-    toast.current?.show({ severity: 'success', summary: 'Éxito', detail: msg, life: 2500 });
 
     setVisibleForm(false);
     setUserEdit(null);
   };
 
-  const toggleEstado = (u: Usuario) => {
-    setUsuarios(prev =>
-      prev.map(p => (p.id === u.id ? { ...p, estado: p.estado === 'activo' ? 'inactivo' : 'activo' } : p))
-    );
-  };
-
-  const openChangeRole = (u: Usuario) => {
-    setUserRole(u);
-    setNuevoRolId(u.rolId);
-    setVisibleRole(true);
-  };
-
-  const applyChangeRole = () => {
-    if (!userRole) return;
-    setUsuarios(prev => prev.map(p => (p.id === userRole.id ? { ...p, rolId: nuevoRolId } : p)));
-    setVisibleRole(false);
-    setUserRole(null);
-    toast.current?.show({ severity: 'success', summary: 'Rol actualizado', life: 2000 });
-  };
-
   const deleteUser = (u: Usuario) => {
     setUsuarios(prev => prev.filter(p => p.id !== u.id));
-    toast.current?.show({ severity: 'success', summary: 'Usuario eliminado', life: 2000 });
+    toast.current?.show({ severity: 'success', summary: 'Eliminado', life: 2000 });
   };
 
-  // --- File upload a dataURL ---
+  // --- File upload seguro ---
   const onSelectFoto = async (e: FileUploadSelectEvent) => {
-    if (!userEdit) return;
+    if (!userEdit || typeof window === 'undefined') return;
     const file = (e.files && (e.files as File[])[0]) || (e.files as any)?.files?.[0];
     if (!file) return;
-    const dataUrl = await fileToDataUrl(file);
-    setUserEdit({ ...userEdit, foto: dataUrl });
-  };
-
-  const fileToDataUrl = (file: File): Promise<string> =>
-    new Promise((res, rej) => {
+    const dataUrl = await new Promise<string>((res, rej) => {
       const fr = new FileReader();
       fr.onload = () => res(fr.result as string);
       fr.onerror = rej;
       fr.readAsDataURL(file);
     });
+    setUserEdit({ ...userEdit, foto: dataUrl });
+  };
 
-    
-  // --- UI table templates ---
   const estadoTemplate = (row: Usuario) => (
     <Tag value={row.estado === 'activo' ? 'Activo' : 'Inactivo'} severity={row.estado === 'activo' ? 'success' : 'danger'} />
   );
 
-  const rolTemplate = (row: Usuario) => <span>{rolName(row.rolId)}</span>;
+  const rolName = (id: string) => roles.find(r => r.id === id)?.nombre || '—';
 
   const fotoTemplate = (row: Usuario) =>
     row.foto ? <img src={row.foto} alt="foto" className="w-2rem h-2rem border-circle" /> : <span className="text-600">—</span>;
@@ -216,27 +191,15 @@ export default function UsuariosPage() {
   const accionesTemplate = (row: Usuario) => (
     <div className="flex gap-2">
       <Button icon="pi pi-user-edit" rounded text onClick={() => openEdit(row)} title="Editar" />
-      <Button icon="pi pi-sync" rounded text onClick={() => openChangeRole(row)} title="Cambiar rol" />
-      <Button
-        icon={row.estado === 'activo' ? 'pi pi-ban' : 'pi pi-check'}
-        rounded
-        text
-        severity={row.estado === 'activo' ? 'danger' : 'success'}
-        onClick={() => toggleEstado(row)}
-        title={row.estado === 'activo' ? 'Desactivar' : 'Activar'}
-      />
       <Button icon="pi pi-trash" rounded text severity="danger" onClick={() => deleteUser(row)} title="Eliminar" />
     </div>
   );
-
-  // --- Toolbar ---
 
   const leftToolbar = (
     <div className="flex flex-wrap gap-2">
       <Button label="Nuevo usuario" icon="pi pi-plus" severity="success" onClick={openNew} />
     </div>
   );
-  
 
   const rightToolbar = (
     <div className="flex flex-wrap gap-2 align-items-center">
@@ -244,73 +207,39 @@ export default function UsuariosPage() {
         <i className="pi pi-search" />
         <InputText value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar..." />
       </span>
-      <Dropdown
-        value={rolFilter}
-        onChange={(e) => setRolFilter(e.value)}
-        options={[{ label: 'Todos los roles', value: null }, ...roles.map(r => ({ label: r.nombre, value: r.id }))]}
-        placeholder="Rol"
-        className="w-12rem"
-      />
-      <Dropdown
-        value={estadoFilter}
-        onChange={(e) => setEstadoFilter(e.value)}
-        options={[
-          { label: 'Todos', value: null },
-          { label: 'Activos', value: 'activo' },
-          { label: 'Inactivos', value: 'inactivo' }
-        ]}
-        placeholder="Estado"
-        className="w-10rem"
-      />
-      <Calendar
-        value={fechaRango as any}
-        onChange={(e) => setFechaRango(e.value as any)}
-        selectionMode="range"
-        placeholder="Rango de fecha"
-        readOnlyInput
-      />
     </div>
   );
+
+  // 🚫 No renderizar tabla hasta hidratar, evita errores SSR
+  if (!hydrated) return <div className="p-4 text-center">Cargando usuarios...</div>;
 
   return (
     <div className="grid">
       <div className="col-12">
         <div className="card">
           <Toast ref={toast} />
-          
-            <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center mb-3 gap-3">
-              <div className="flex align-items-center gap-3">
-              <i className="pi pi-users text-3xl text-primary" />
-              <h3 className="m-0 font-bold text-primary">Gestión de Usuarios</h3>
-              </div>
-              
-            </div>
-            
-            <Toolbar className="mb-4 surface-100 border-round shadow-1" left={leftToolbar} right={rightToolbar} />
+
+          <Toolbar className="mb-4 surface-100 border-round shadow-1" left={leftToolbar} right={rightToolbar} />
 
           <DataTable
             value={data}
             dataKey="id"
             paginator
             rows={10}
-            rowsPerPageOptions={[5, 10, 25]}
             stripedRows
             responsiveLayout="scroll"
             emptyMessage="No se encontraron usuarios."
-            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} usuarios"
-            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
           >
-            <Column header="Foto" body={fotoTemplate} style={{ width: '6rem' }} />
+            <Column header="Foto" body={fotoTemplate} />
             <Column field="nombres" header="Nombres" sortable />
             <Column field="apellidos" header="Apellidos" sortable />
             <Column field="correo" header="Correo" sortable />
-            <Column header="Rol" body={rolTemplate} sortable />
-            <Column header="Estado" body={estadoTemplate} sortable />
-            <Column field="fechaRegistro" header="Fecha" body={(r: Usuario) => new Date(r.fechaRegistro).toLocaleDateString()} sortable />
-            <Column header="Acciones" body={accionesTemplate} headerStyle={{ minWidth: '14rem' }} />
+            <Column header="Rol" body={(r) => rolName(r.rolId)} />
+            <Column header="Estado" body={estadoTemplate} />
+            <Column field="fechaRegistro" header="Fecha" body={(r: Usuario) => new Date(r.fechaRegistro).toLocaleDateString()} />
+            <Column header="Acciones" body={accionesTemplate} />
           </DataTable>
 
-          {/* Modal de usuario */}
           <Dialog
             header={userEdit?.id ? 'Editar usuario' : 'Nuevo usuario'}
             visible={visibleForm}
@@ -327,89 +256,21 @@ export default function UsuariosPage() {
             {userEdit && (
               <div className="grid">
                 <div className="col-12 md:col-8">
-                  <div className="grid">
-                    <div className="col-12 md:col-6">
-                      <label className="block mb-2">Nombres</label>
-                      <InputText
-                        value={userEdit.nombres}
-                        onChange={(e) => setUserEdit({ ...userEdit, nombres: e.target.value })}
-                        className={`${submitted && !userEdit.nombres.trim() ? 'p-invalid w-full' : 'w-full'}`}
-                      />
-                      {submitted && !userEdit.nombres.trim() && <small className="p-error">Requerido</small>}
-                    </div>
-                    <div className="col-12 md:col-6">
-                      <label className="block mb-2">Apellidos</label>
-                      <InputText
-                        value={userEdit.apellidos}
-                        onChange={(e) => setUserEdit({ ...userEdit, apellidos: e.target.value })}
-                        className={`${submitted && !userEdit.apellidos.trim() ? 'p-invalid w-full' : 'w-full'}`}
-                      />
-                      {submitted && !userEdit.apellidos.trim() && <small className="p-error">Requerido</small>}
-                    </div>
-                    <div className="col-12 md:col-6">
-                      <label className="block mb-2">Correo</label>
-                      <InputText
-                        type="email"
-                        value={userEdit.correo}
-                        onChange={(e) => setUserEdit({ ...userEdit, correo: e.target.value })}
-                        className={`${submitted && !userEdit.correo.trim() ? 'p-invalid w-full' : 'w-full'}`}
-                      />
-                      {submitted && !userEdit.correo.trim() && <small className="p-error">Requerido</small>}
-                    </div>
-                    <div className="col-12 md:col-6">
-                      <label className="block mb-2">Teléfono</label>
-                      <InputText
-                        value={userEdit.telefono || ''}
-                        onChange={(e) => setUserEdit({ ...userEdit, telefono: e.target.value })}
-                        className="w-full"
-                      />
-                    </div>
-                    <div className="col-12 md:col-6">
-                      <label className="block mb-2">Usuario</label>
-                      <InputText
-                        value={userEdit.username || ''}
-                        onChange={(e) => setUserEdit({ ...userEdit, username: e.target.value })}
-                        className="w-full"
-                      />
-                    </div>
-                    <div className="col-12 md:col-6">
-                      <label className="block mb-2">Contraseña</label>
-                      <Password
-                        value={userEdit.password || ''}
-                        onChange={(e) => setUserEdit({ ...userEdit, password: e.target.value })}
-                        toggleMask
-                        feedback={false}
-                        inputClassName="w-full"
-                      />
-                    </div>
-                    <div className="col-12 md:col-6">
-                      <label className="block mb-2">Rol</label>
-                      <Dropdown
-                        value={userEdit.rolId}
-                        onChange={(e) => setUserEdit({ ...userEdit, rolId: e.value })}
-                        options={roles.map(r => ({ label: r.nombre, value: r.id }))}
-                        placeholder="Selecciona un rol"
-                        className={`${submitted && !userEdit.rolId ? 'p-invalid w-full' : 'w-full'}`}
-                      />
-                      {submitted && !userEdit.rolId && <small className="p-error">Requerido</small>}
-                    </div>
-                    <div className="col-12 md:col-6">
-                      <label className="block mb-2">Estado</label>
-                      <Dropdown
-                        value={userEdit.estado}
-                        onChange={(e) => setUserEdit({ ...userEdit, estado: e.value })}
-                        options={[
-                          { label: 'Activo', value: 'activo' },
-                          { label: 'Inactivo', value: 'inactivo' }
-                        ]}
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
+                  <label className="block mb-2">Nombres</label>
+                  <InputText
+                    value={userEdit.nombres}
+                    onChange={(e) => setUserEdit({ ...userEdit, nombres: e.target.value })}
+                    className={`${submitted && !userEdit.nombres.trim() ? 'p-invalid w-full' : 'w-full'}`}
+                  />
+                  <label className="block mt-3 mb-2">Correo</label>
+                  <InputText
+                    value={userEdit.correo}
+                    onChange={(e) => setUserEdit({ ...userEdit, correo: e.target.value })}
+                    className={`${submitted && !userEdit.correo.trim() ? 'p-invalid w-full' : 'w-full'}`}
+                  />
                 </div>
-
                 <div className="col-12 md:col-4">
-                  <label className="block mb-2">Foto de perfil (opcional)</label>
+                  <label className="block mb-2">Foto</label>
                   {userEdit.foto ? (
                     <img src={userEdit.foto} alt="preview" className="w-10rem h-10rem border-round mb-2 object-cover" />
                   ) : (
@@ -429,32 +290,6 @@ export default function UsuariosPage() {
                 </div>
               </div>
             )}
-          </Dialog>
-
-          {/* Cambiar rol */}
-          <Dialog
-            header="Cambiar rol"
-            visible={visibleRole}
-            style={{ width: '450px' }}
-            modal
-            onHide={() => setVisibleRole(false)}
-            footer={
-              <div className="flex justify-end gap-2">
-                <Button label="Cancelar" text onClick={() => setVisibleRole(false)} />
-                <Button label="Aplicar" onClick={applyChangeRole} />
-              </div>
-            }
-          >
-            <div className="field">
-              <label className="block mb-2">Nuevo rol</label>
-              <Dropdown
-                value={nuevoRolId}
-                onChange={(e) => setNuevoRolId(e.value)}
-                options={roles.map(r => ({ label: r.nombre, value: r.id }))}
-                placeholder="Selecciona un rol"
-                className="w-full"
-              />
-            </div>
           </Dialog>
         </div>
       </div>

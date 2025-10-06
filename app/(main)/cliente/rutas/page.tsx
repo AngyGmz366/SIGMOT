@@ -1,39 +1,59 @@
-"use client";
+'use client'; // 👈 debe ir primero y sola (sin dynamic ni revalidate)
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
-import MapaInteractivo from "./components/MapaInteractivo"; // ← Ahora usa el que te pasé con Leaflet puro
-import PanelLateral from "./components/PanelLateral";
-import HorariosTabla from "./components/HorariosTable";
-import AsientosBus from "./components/Asientos/AsientosBus";
-import { obtenerRutasMock } from "./acciones/rutas.acciones";
-import { Ruta } from "./Types/rutas.types";
+/* eslint-disable @next/next/no-img-element */
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic'; // 👈 Leaflet solo cliente
+import PanelLateral from './components/PanelLateral';
+import HorariosTabla from './components/HorariosTable';
+import AsientosBus from './components/Asientos/AsientosBus';
+import { obtenerRutasMock } from './acciones/rutas.acciones';
+import { Ruta } from './Types/rutas.types';
+
+// ✅ Import dinámico para evitar SSR en Leaflet
+const MapaInteractivo = dynamic(() => import('./components/MapaInteractivo'), {
+  ssr: false,
+  loading: () => <p className="text-center text-gray-500">Cargando mapa...</p>,
+});
 
 const PageRutas: React.FC = () => {
-  const rutasDisponibles = obtenerRutasMock();
-  const [rutaSeleccionada, setRutaSeleccionada] = useState<Ruta>(rutasDisponibles[0]);
   const router = useRouter();
 
-  // Simulación de asientos
+  const [rutasDisponibles, setRutasDisponibles] = useState<Ruta[]>([]);
+  const [rutaSeleccionada, setRutaSeleccionada] = useState<Ruta | null>(null);
+
+  useEffect(() => {
+    // Cargar rutas de ejemplo en cliente
+    const rutas = obtenerRutasMock();
+    setRutasDisponibles(rutas);
+    if (rutas.length > 0) setRutaSeleccionada(rutas[0]);
+  }, []);
+
+  if (!rutaSeleccionada) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <p className="text-gray-500">Cargando rutas...</p>
+      </div>
+    );
+  }
+
+  // Simulación de asientos (puedes sustituirlo luego por datos reales)
   const asientosSimulados = Array.from({ length: 21 }, (_, i) => ({
     numero: i + 1,
-    ocupado: [2, 5, 12].includes(i + 1)
+    ocupado: [2, 5, 12].includes(i + 1),
   }));
 
-  // Manejar selección de ruta
+  // Evento al seleccionar una ruta
   const manejarSeleccionRuta = (ruta: Ruta) => {
     setRutaSeleccionada(ruta);
-    router.push(`/cliente/reservacion`);
+    router.push('/cliente/reservacion');
   };
 
   return (
     <div className="flex h-screen">
       {/* Panel lateral */}
-      <div className="border-right-1 surface-border" style={{ width: "300px" }}>
-        <PanelLateral
-          rutas={rutasDisponibles}
-          onSeleccionarRuta={manejarSeleccionRuta}
-        />
+      <div className="border-right-1 surface-border" style={{ width: '300px' }}>
+        <PanelLateral rutas={rutasDisponibles} onSeleccionarRuta={manejarSeleccionRuta} />
       </div>
 
       {/* Contenido principal */}

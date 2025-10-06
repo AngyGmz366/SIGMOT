@@ -34,6 +34,8 @@ export async function POST(req: Request) {
 
     // 3) Registrar el resultado en BD
     await conn.query('CALL mydb.sp_login_local_post_login(?, ?)', [usuarioId, ok ? 1 : 0]);
+    // 3.1 Registrar inicio de sesión en bitácora
+    await conn.query('CALL sp_iniciar_sesion(?, ?)', [usuarioId, 1]); // 1 = objeto "Login/Seguridad"
 
     if (!ok) return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 });
     if (estado !== 1) return NextResponse.json({ error: 'Usuario no activo' }, { status: 403 });

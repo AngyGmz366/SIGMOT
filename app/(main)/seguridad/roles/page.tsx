@@ -12,9 +12,11 @@ import { Tag } from 'primereact/tag';
 import { InputSwitch } from 'primereact/inputswitch';
 import { v4 as uuidv4 } from 'uuid';
 
-// ====== Tipos ======
+/* ===============================
+   Tipos
+=============================== */
 type PermisoAcciones = {
-  objeto: string;        // nombre técnico/etiqueta del objeto (p.e. 'personas', 'productos')
+  objeto: string;
   ver: boolean;
   crear: boolean;
   editar: boolean;
@@ -26,10 +28,12 @@ type Rol = {
   nombre: string;
   descripcion: string;
   activo: boolean;
-  permisos: PermisoAcciones[]; // permisos asociados al rol
+  permisos: PermisoAcciones[];
 };
 
-// ====== Permisos base (catálogo de objetos del sistema) ======
+/* ===============================
+   Catálogo base de permisos
+=============================== */
 const PERMISOS_BASE: PermisoAcciones[] = [
   { objeto: 'personas', ver: false, crear: false, editar: false, eliminar: false },
   { objeto: 'usuarios', ver: false, crear: false, editar: false, eliminar: false },
@@ -42,16 +46,19 @@ const PERMISOS_BASE: PermisoAcciones[] = [
 
 const STORAGE_KEY = 'roles';
 
+/* ===============================
+   Componente principal
+=============================== */
 export default function RolesPage() {
   const toast = useRef<Toast>(null);
-  const dt = useRef<DataTable<any[]>>(null); // tipo compatible con DataTable
+  const dt = useRef<DataTable<Rol[]>>(null);
 
-  // ====== Estado principal ======
   const [roles, setRoles] = useState<Rol[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
-  // Cargar desde localStorage (una sola vez)
+  // ✅ Solo accede a localStorage en cliente
   useEffect(() => {
+    if (typeof window === 'undefined') return; // evita error en SSR
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       setRoles(raw ? JSON.parse(raw) : []);
@@ -62,16 +69,15 @@ export default function RolesPage() {
     }
   }, []);
 
-  // Guardar en localStorage cuando cambien los roles (solo si ya hidrató)
+  // Guardar cambios en localStorage
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || typeof window === 'undefined') return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(roles));
   }, [roles, hydrated]);
 
   const [selected, setSelected] = useState<Rol[]>([]);
   const [search, setSearch] = useState('');
 
-  // Modal crear/editar rol
   const [visibleForm, setVisibleForm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [editing, setEditing] = useState<Rol>({
@@ -79,10 +85,12 @@ export default function RolesPage() {
     nombre: '',
     descripcion: '',
     activo: true,
-    permisos: JSON.parse(JSON.stringify(PERMISOS_BASE)),
+    permisos: structuredClone(PERMISOS_BASE),
   });
 
-  // ====== Filtrado de tabla principal ======
+  /* ===============================
+     Filtros y helpers
+  =============================== */
   const data = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return roles;
@@ -94,16 +102,17 @@ export default function RolesPage() {
     );
   }, [roles, search]);
 
-  // ====== Helpers ======
   const rolVacio = (): Rol => ({
     id: '',
     nombre: '',
     descripcion: '',
     activo: true,
-    permisos: JSON.parse(JSON.stringify(PERMISOS_BASE)),
+    permisos: structuredClone(PERMISOS_BASE),
   });
 
-  // ====== CRUD ======
+  /* ===============================
+     CRUD de Roles
+  =============================== */
   const abrirNuevo = () => {
     setEditing(rolVacio());
     setSubmitted(false);
@@ -111,8 +120,7 @@ export default function RolesPage() {
   };
 
   const abrirEditar = (row: Rol) => {
-    // clonar profundo para no mutar referencia
-    setEditing(JSON.parse(JSON.stringify(row)));
+    setEditing(structuredClone(row));
     setSubmitted(false);
     setVisibleForm(true);
   };
@@ -153,7 +161,9 @@ export default function RolesPage() {
     toast.current?.show({ severity: 'success', summary: 'Eliminados', detail: 'Roles eliminados', life: 2500 });
   };
 
-  // ====== Templates de tabla principal ======
+  /* ===============================
+     Templates y acciones
+  =============================== */
   const estadoTemplate = (row: Rol) => (
     <Tag value={row.activo ? 'Activo' : 'Inactivo'} severity={row.activo ? 'success' : 'danger'} />
   );
@@ -194,7 +204,9 @@ export default function RolesPage() {
     </div>
   );
 
-  // ====== Modal: Formulario + Permisos con switches ======
+  /* ===============================
+     Permisos del rol
+  =============================== */
   const [permisoFilter, setPermisoFilter] = useState('');
 
   const permisosFiltrados = useMemo(() => {
@@ -209,30 +221,23 @@ export default function RolesPage() {
     setEditing({ ...editing, permisos: copia });
   };
 
-  // ====== SOLO LO PEDIDO: Marcar/Desmarcar TODO ======
   const marcarTodo = () => {
-    const permisos = editing.permisos.map(p => ({
-      ...p,
-      ver: true,
-      crear: true,
-      editar: true,
-      eliminar: true,
-    }));
-    setEditing({ ...editing, permisos });
+    setEditing({
+      ...editing,
+      permisos: editing.permisos.map(p => ({ ...p, ver: true, crear: true, editar: true, eliminar: true })),
+    });
   };
 
   const desmarcarTodo = () => {
-    const permisos = editing.permisos.map(p => ({
-      ...p,
-      ver: false,
-      crear: false,
-      editar: false,
-      eliminar: false,
-    }));
-    setEditing({ ...editing, permisos });
+    setEditing({
+      ...editing,
+      permisos: editing.permisos.map(p => ({ ...p, ver: false, crear: false, editar: false, eliminar: false })),
+    });
   };
 
-  // ====== Footers ======
+  /* ===============================
+     Footers
+  =============================== */
   const footerForm = (
     <div className="flex justify-end gap-2">
       <Button label="Cancelar" icon="pi pi-times" text onClick={() => setVisibleForm(false)} />
@@ -254,6 +259,9 @@ export default function RolesPage() {
     </>
   );
 
+  /* ===============================
+     Render final
+  =============================== */
   return (
     <div className="grid">
       <div className="col-12">
@@ -275,8 +283,6 @@ export default function RolesPage() {
             responsiveLayout="scroll"
             header={header}
             emptyMessage="No se encontraron roles."
-            currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} roles"
-            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
           >
             <Column selectionMode="multiple" headerStyle={{ width: '3rem' }} />
             <Column field="nombre" header="Nombre" sortable />
@@ -349,73 +355,32 @@ export default function RolesPage() {
                     />
                   </span>
 
-                  {/* ← NUEVOS BOTONES, SOLO ESTO */}
                   <Button type="button" label="Marcar todo" icon="pi pi-check-circle" outlined size="small" onClick={marcarTodo} />
                   <Button type="button" label="Desmarcar todo" icon="pi pi-times-circle" outlined severity="danger" size="small" onClick={desmarcarTodo} />
                 </div>
               </div>
 
-              <DataTable
-                value={permisosFiltrados}
-                dataKey="objeto"
-                responsiveLayout="scroll"
-                stripedRows
-                emptyMessage="No hay objetos que coincidan."
-              >
+              <DataTable value={permisosFiltrados} dataKey="objeto" responsiveLayout="scroll" stripedRows emptyMessage="No hay objetos que coincidan.">
                 <Column field="objeto" header="Objeto" />
-                <Column
-                  header="Ver"
-                  body={(row, opts) => (
-                    <InputSwitch
-                      checked={row.ver}
-                      onChange={(e) => togglePermiso(opts.rowIndex, 'ver', e.value as boolean)}
-                    />
-                  )}
-                  style={{ textAlign: 'center' }}
-                />
-                <Column
-                  header="Crear"
-                  body={(row, opts) => (
-                    <InputSwitch
-                      checked={row.crear}
-                      onChange={(e) => togglePermiso(opts.rowIndex, 'crear', e.value as boolean)}
-                    />
-                  )}
-                  style={{ textAlign: 'center' }}
-                />
-                <Column
-                  header="Editar"
-                  body={(row, opts) => (
-                    <InputSwitch
-                      checked={row.editar}
-                      onChange={(e) => togglePermiso(opts.rowIndex, 'editar', e.value as boolean)}
-                    />
-                  )}
-                  style={{ textAlign: 'center' }}
-                />
-                <Column
-                  header="Eliminar"
-                  body={(row, opts) => (
-                    <InputSwitch
-                      checked={row.eliminar}
-                      onChange={(e) => togglePermiso(opts.rowIndex, 'eliminar', e.value as boolean)}
-                    />
-                  )}
-                  style={{ textAlign: 'center' }}
-                />
+                {['ver', 'crear', 'editar', 'eliminar'].map((campo) => (
+                  <Column
+                    key={campo}
+                    header={campo.charAt(0).toUpperCase() + campo.slice(1)}
+                    body={(row, opts) => (
+                      <InputSwitch
+                        checked={row[campo as keyof PermisoAcciones] as boolean}
+                        onChange={(e) => togglePermiso(opts.rowIndex, campo as any, e.value as boolean)}
+                      />
+                    )}
+                    style={{ textAlign: 'center' }}
+                  />
+                ))}
               </DataTable>
             </div>
           </Dialog>
 
-          {/* Confirmar eliminar uno */}
-          <Dialog
-            visible={!!confirmDeleteOne}
-            style={{ width: '450px' }}
-            header="Confirmar"
-            modal
-            footer={footerDeleteOne}
-            onHide={() => setConfirmDeleteOne(null)}
-          >
+          {/* Confirmaciones */}
+          <Dialog visible={!!confirmDeleteOne} style={{ width: '450px' }} header="Confirmar" modal footer={footerDeleteOne} onHide={() => setConfirmDeleteOne(null)}>
             <div className="flex align-items-center">
               <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
               <span>
@@ -424,15 +389,7 @@ export default function RolesPage() {
             </div>
           </Dialog>
 
-          {/* Confirmar eliminar varios */}
-          <Dialog
-            visible={confirmDeleteMany}
-            style={{ width: '450px' }}
-            header="Confirmar"
-            modal
-            footer={footerDeleteMany}
-            onHide={() => setConfirmDeleteMany(false)}
-          >
+          <Dialog visible={confirmDeleteMany} style={{ width: '450px' }} header="Confirmar" modal footer={footerDeleteMany} onHide={() => setConfirmDeleteMany(false)}>
             <div className="flex align-items-center">
               <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
               <span>¿Seguro que deseas eliminar los roles seleccionados?</span>

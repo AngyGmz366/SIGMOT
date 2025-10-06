@@ -1,11 +1,12 @@
 'use client';
-
-import Layout from '../../layout/layout';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-/* Auto logout solo visual */
-function useAutoLogout(timeoutMs: number = 15 * 60 * 1000) {
+/**
+ * Cierra la sesión automáticamente tras un período de inactividad.
+ * @param timeoutMs Tiempo de inactividad (por defecto 15 min)
+ */
+export default function useAutoLogout(timeoutMs: number = 15 * 60 * 1000) {
   const router = useRouter();
 
   useEffect(() => {
@@ -15,8 +16,9 @@ function useAutoLogout(timeoutMs: number = 15 * 60 * 1000) {
       clearTimeout(timer);
       timer = setTimeout(() => {
         console.warn('⏰ Sesión cerrada por inactividad');
-        fetch('/api/auth/logout', { method: 'POST' });
-        router.replace('/auth/login');
+        localStorage.removeItem('auth_token');
+        fetch('/api/auth/logout', { method: 'POST' }); // registra bitácora
+        router.replace('/auth/inicio');
       }, timeoutMs);
     };
 
@@ -34,9 +36,3 @@ function useAutoLogout(timeoutMs: number = 15 * 60 * 1000) {
     };
   }, [router, timeoutMs]);
 }
-
-export default function MainLayout({ children }: { children: React.ReactNode }) {
-  useAutoLogout();
-  return <Layout>{children}</Layout>;
-}
-// app/%28main%29/layout.tsx
