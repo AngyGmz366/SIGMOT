@@ -10,7 +10,7 @@ import { Tag } from 'primereact/tag';
 import { FilterMatchMode } from 'primereact/api';
 import { InputText } from 'primereact/inputtext';
 import { Dialog } from 'primereact/dialog';
-import VentaModal from '../../components/VentaProductoModal';
+//import VentaModal from '../../components/VentaProductoModal';
 import type { Venta } from '@/types/ventas';
 import type { Producto } from '@/types/productos';
 import ImprimirComprobante from '../../components/ImprimirComprobante'; 
@@ -455,13 +455,13 @@ const actionBodyTemplate = (rowData: Venta) => {
                         <Column body={actionBodyTemplate} exportable={false} style={{ minWidth: '8rem' }} header="Acciones" />
                     </DataTable>
 
-                    <VentaModal
+                    {/* <VentaModal
                         visible={ventaDialogVisible}
                         onHide={hideDialog}
                         venta={currentVenta}
                         productos={productos}
                         onSave={saveVenta}
-                    />
+                    />*/}
 
                     <Dialog 
                         visible={deleteVentaDialog} 
