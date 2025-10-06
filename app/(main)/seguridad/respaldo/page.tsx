@@ -1,5 +1,6 @@
 'use client';
-export const dynamic = 'force-dynamic'; // 🔹 Evita que Render/Next.js prerenderice esta página
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 /* eslint-disable @next/next/no-img-element */
 import React, { useEffect, useRef, useState } from 'react';
@@ -23,8 +24,9 @@ export default function BackupRestoreSIGMOT() {
   const [selectedBackup, setSelectedBackup] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // 🔹 Solo se ejecuta en el cliente (dentro de useEffect)
+  // 🔹 Solo se ejecuta en el cliente
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     try {
       const ejemplos: BackupItem[] = [
         {
@@ -53,13 +55,23 @@ export default function BackupRestoreSIGMOT() {
     }
   }, []);
 
+  // 🔹 Función segura para formatear fechas
+  const formatFecha = (fecha: string) => {
+    try {
+      if (typeof window === 'undefined') return fecha;
+      return new Date(fecha).toLocaleString();
+    } catch {
+      return fecha;
+    }
+  };
+
   const formatSize = (bytes: number) => {
     const kb = bytes / 1024;
     const mb = kb / 1024;
     return mb >= 1 ? `${mb.toFixed(2)} MB` : `${kb.toFixed(0)} KB`;
   };
 
-  // --- Acciones (simuladas)
+  // --- Acciones simuladas
   const crearBackup = async () => {
     setLoading(true);
     try {
@@ -142,7 +154,10 @@ export default function BackupRestoreSIGMOT() {
       <div className="grid">
         {/* Crear Respaldo */}
         <div className="col-12 md:col-6">
-          <div className="surface-card p-4 border-round shadow-1" style={{ borderTop: '4px solid #0ea5e9' }}>
+          <div
+            className="surface-card p-4 border-round shadow-1"
+            style={{ borderTop: '4px solid #0ea5e9' }}
+          >
             <div className="flex align-items-center gap-2 mb-2">
               <i className="pi pi-database text-primary" />
               <h3 className="m-0">Crear Respaldo</h3>
@@ -167,20 +182,19 @@ export default function BackupRestoreSIGMOT() {
             ) : (
               <ul className="list-none p-0 m-0">
                 {backups.map((b) => (
-                  <li key={b.value} className="flex align-items-center justify-content-between py-2">
+                  <li
+                    key={b.value}
+                    className="flex align-items-center justify-content-between py-2"
+                  >
                     <div className="flex align-items-center gap-2">
-                      <span className="pi pi-circle-fill text-500" style={{ fontSize: '0.5rem' }} />
+                      <span
+                        className="pi pi-circle-fill text-500"
+                        style={{ fontSize: '0.5rem' }}
+                      />
                       <span className="font-medium">{b.label}</span>
                     </div>
                     <small className="text-600">
-                      {(() => {
-                        try {
-                          return new Date(b.fecha).toLocaleString();
-                        } catch {
-                          return b.fecha;
-                        }
-                      })()}{' '}
-                      · {formatSize(b.tamano)}
+                      {formatFecha(b.fecha)} · {formatSize(b.tamano)}
                     </small>
                   </li>
                 ))}
@@ -191,7 +205,10 @@ export default function BackupRestoreSIGMOT() {
 
         {/* Restaurar Respaldo */}
         <div className="col-12 md:col-6">
-          <div className="surface-card p-4 border-round shadow-1" style={{ borderTop: '4px solid #22c55e' }}>
+          <div
+            className="surface-card p-4 border-round shadow-1"
+            style={{ borderTop: '4px solid #22c55e' }}
+          >
             <div className="flex align-items-center gap-2 mb-2">
               <i className="pi pi-history text-green-500" />
               <h3 className="m-0">Restaurar Respaldo</h3>
