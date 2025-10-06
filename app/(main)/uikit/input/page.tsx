@@ -37,7 +37,7 @@ interface InputValue {
 const InputDemo: Page = () => {
     const [floatValue, setFloatValue] = useState("");
     const [autoValue, setAutoValue] = useState<Demo.Country[]>([]);
-    const [selectedAutoValue, setSelectedAutoValue] = useState(null);
+    const [selectedAutoValue, setSelectedAutoValue] = useState<Demo.Country[]>([]);
     const [autoFilteredValue, setAutoFilteredValue] = useState<Demo.Country[]>(
         []
     );
@@ -226,7 +226,7 @@ const InputDemo: Page = () => {
                         dropdown
                         multiple
                         value={selectedAutoValue}
-                        onChange={(e) => setSelectedAutoValue(e.value)}
+                        onChange={(e) => setSelectedAutoValue(e.value as Demo.Country[])}
                         suggestions={autoFilteredValue}
                         completeMethod={searchCountry}
                         field="name"
