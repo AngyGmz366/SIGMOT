@@ -1,7 +1,9 @@
-// /lib/firebaseClient.ts
-import { initializeApp, getApps } from 'firebase/app';
+'use client'; // 👈 fuerza ejecución solo en el navegador
+
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 
+// ⚠️ Usa variables de entorno NEXT_PUBLIC_ para exponerlas en el cliente
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
@@ -11,6 +13,21 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 };
 
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
-export const auth = getAuth(app);
-console.log('🔥 FIREBASE CLIENT CONFIG:', firebaseConfig);
+// ✅ Protege la inicialización para que no se ejecute durante SSR
+let app;
+if (typeof window !== 'undefined') {
+  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+} else {
+  // En entorno servidor (build / SSR), devuelve un objeto vacío temporal
+  app = {} as any;
+}
+
+// Exportar auth solo si existe app
+export const auth = typeof window !== 'undefined' ? getAuth(app) : ({} as any);
+
+// 🟢 Solo muestra el log si se ejecuta en navegador
+if (typeof window !== 'undefined') {
+  console.log('🔥 FIREBASE CLIENT CONFIG:', firebaseConfig);
+}
+
+export default app;
