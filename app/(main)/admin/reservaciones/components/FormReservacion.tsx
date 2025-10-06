@@ -109,15 +109,21 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
           />
         </div>
       ) : (
-        <div className="col-12">
-          <InputText
-            value={(formData as any).peso || ''}
-            onChange={(e) => setFormData({ ...formData, peso: Number(e.target.value) })}
-            placeholder="Peso (kg)"
-            className="w-full"
-            type="number"
-          />
-        </div>
+       <div className="col-12">
+        <InputText
+          value={((formData as ReservacionEncomienda).peso !== undefined && (formData as ReservacionEncomienda).peso !== null) ? String((formData as ReservacionEncomienda).peso) : ''}
+          onChange={(e) =>
+            setFormData({
+              ...(formData as ReservacionEncomienda),
+              peso: Number(e.target.value),
+            })
+          }
+          placeholder="Peso (kg)"
+          className="w-full"
+          type="number"
+        />
+</div>
+
       )}
 
 
