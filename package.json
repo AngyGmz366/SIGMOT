@@ -27,7 +27,7 @@
     "jspdf-autotable": "^5.0.2",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.536.0",
-    "mysql2": "^3.15.0",
+    "mysql2": "^3.15.1",
     "next": "^15.4.5",
     "primeflex": "^4.0.0",
     "primeicons": "^7.0.0",
