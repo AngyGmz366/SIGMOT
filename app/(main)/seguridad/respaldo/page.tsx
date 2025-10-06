@@ -20,13 +20,33 @@ export default function BackupRestoreSIGMOT() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const ejemplos: BackupItem[] = [
-      { label: 'SIGMOT-2025-08-08-12-09-23.sql', value: 'SIGMOT-2025-08-08-12-09-23.sql', fecha: '2025-08-08T12:09:23', tamano: 5_242_880 },
-      { label: 'SIGMOT-2025-08-05-21-00-00.sql', value: 'SIGMOT-2025-08-05-21-00-00.sql', fecha: '2025-08-05T21:00:00', tamano: 10_485_760 },
-      { label: 'SIGMOT-2025-08-01-09-00-00.sql', value: 'SIGMOT-2025-08-01-09-00-00.sql', fecha: '2025-08-01T09:00:00', tamano: 2_097_152 }
-    ];
-    setBackups(ejemplos);
-    setSelectedBackup(ejemplos[0]?.value ?? null);
+    // 👇 try/catch por si Render intenta prerenderizar
+    try {
+      const ejemplos: BackupItem[] = [
+        {
+          label: 'SIGMOT-2025-08-08-12-09-23.sql',
+          value: 'SIGMOT-2025-08-08-12-09-23.sql',
+          fecha: '2025-08-08T12:09:23',
+          tamano: 5_242_880
+        },
+        {
+          label: 'SIGMOT-2025-08-05-21-00-00.sql',
+          value: 'SIGMOT-2025-08-05-21-00-00.sql',
+          fecha: '2025-08-05T21:00:00',
+          tamano: 10_485_760
+        },
+        {
+          label: 'SIGMOT-2025-08-01-09-00-00.sql',
+          value: 'SIGMOT-2025-08-01-09-00-00.sql',
+          fecha: '2025-08-01T09:00:00',
+          tamano: 2_097_152
+        }
+      ];
+      setBackups(ejemplos);
+      setSelectedBackup(ejemplos[0]?.value ?? null);
+    } catch (err) {
+      console.error('Error inicializando backups:', err);
+    }
   }, []);
 
   const formatSize = (bytes: number) => {
@@ -40,9 +60,19 @@ export default function BackupRestoreSIGMOT() {
     setLoading(true);
     try {
       // await fetch('/api/backup/create', { method: 'POST' });
-      toast.current?.show({ severity: 'success', summary: 'SIGMOT', detail: 'Respaldo generado en el servidor.', life: 2500 });
+      toast.current?.show({
+        severity: 'success',
+        summary: 'SIGMOT',
+        detail: 'Respaldo generado en el servidor.',
+        life: 2500
+      });
     } catch (e: any) {
-      toast.current?.show({ severity: 'error', summary: 'Error', detail: e?.message || 'No se pudo generar el respaldo.', life: 3500 });
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail: e?.message || 'No se pudo generar el respaldo.',
+        life: 3500
+      });
     } finally {
       setLoading(false);
     }
@@ -50,7 +80,12 @@ export default function BackupRestoreSIGMOT() {
 
   const restaurarBackup = () => {
     if (!selectedBackup) {
-      toast.current?.show({ severity: 'warn', summary: 'Atención', detail: 'Selecciona un respaldo.', life: 2500 });
+      toast.current?.show({
+        severity: 'warn',
+        summary: 'Atención',
+        detail: 'Selecciona un respaldo.',
+        life: 2500
+      });
       return;
     }
 
@@ -63,9 +98,19 @@ export default function BackupRestoreSIGMOT() {
         setLoading(true);
         try {
           // await fetch('/api/backup/restore', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre: selectedBackup }) });
-          toast.current?.show({ severity: 'success', summary: 'SIGMOT', detail: 'La base de datos fue restaurada correctamente.', life: 3000 });
+          toast.current?.show({
+            severity: 'success',
+            summary: 'SIGMOT',
+            detail: 'La base de datos fue restaurada correctamente.',
+            life: 3000
+          });
         } catch (e: any) {
-          toast.current?.show({ severity: 'error', summary: 'Error', detail: e?.message || 'No se pudo restaurar el respaldo.', life: 3500 });
+          toast.current?.show({
+            severity: 'error',
+            summary: 'Error',
+            detail: e?.message || 'No se pudo restaurar el respaldo.',
+            life: 3500
+          });
         } finally {
           setLoading(false);
         }
@@ -94,7 +139,10 @@ export default function BackupRestoreSIGMOT() {
       <div className="grid">
         {/* Card: Crear Respaldo */}
         <div className="col-12 md:col-6">
-          <div className="surface-card p-4 border-round shadow-1" style={{ borderTop: '4px solid #0ea5e9' }}>
+          <div
+            className="surface-card p-4 border-round shadow-1"
+            style={{ borderTop: '4px solid #0ea5e9' }}
+          >
             <div className="flex align-items-center gap-2 mb-2">
               <i className="pi pi-database text-primary" />
               <h3 className="m-0">Crear Respaldo</h3>
@@ -119,13 +167,27 @@ export default function BackupRestoreSIGMOT() {
             ) : (
               <ul className="list-none p-0 m-0">
                 {backups.map((b) => (
-                  <li key={b.value} className="flex align-items-center justify-content-between py-2">
+                  <li
+                    key={b.value}
+                    className="flex align-items-center justify-content-between py-2"
+                  >
                     <div className="flex align-items-center gap-2">
-                      <span className="pi pi-circle-fill text-500" style={{ fontSize: '0.5rem' }} />
+                      <span
+                        className="pi pi-circle-fill text-500"
+                        style={{ fontSize: '0.5rem' }}
+                      />
                       <span className="font-medium">{b.label}</span>
                     </div>
                     <small className="text-600">
-                      {new Date(b.fecha).toLocaleString()} · {formatSize(b.tamano)}
+                      {/* 👇 Corrección: Date envuelta en try/catch */}
+                      {(() => {
+                        try {
+                          return new Date(b.fecha).toLocaleString();
+                        } catch {
+                          return b.fecha;
+                        }
+                      })()}{' '}
+                      · {formatSize(b.tamano)}
                     </small>
                   </li>
                 ))}
@@ -136,7 +198,10 @@ export default function BackupRestoreSIGMOT() {
 
         {/* Card: Restaurar Respaldo */}
         <div className="col-12 md:col-6">
-          <div className="surface-card p-4 border-round shadow-1" style={{ borderTop: '4px solid #22c55e' }}>
+          <div
+            className="surface-card p-4 border-round shadow-1"
+            style={{ borderTop: '4px solid #22c55e' }}
+          >
             <div className="flex align-items-center gap-2 mb-2">
               <i className="pi pi-history text-green-500" />
               <h3 className="m-0">Restaurar Respaldo</h3>
@@ -165,7 +230,8 @@ export default function BackupRestoreSIGMOT() {
             <Divider />
             <small className="text-600">
               <i className="pi pi-info-circle mr-2" />
-              Esta operación sobreescribe los datos actuales. Asegúrate de tener un respaldo reciente.
+              Esta operación sobreescribe los datos actuales. Asegúrate de tener un respaldo
+              reciente.
             </small>
           </div>
         </div>
