@@ -1,111 +1,72 @@
 "use client";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { InputText } from "primereact/inputtext";
-import { Dropdown } from "primereact/dropdown";
 import { ListBox } from "primereact/listbox";
 import { Card } from "primereact/card";
-import { Ruta } from "../Types/rutas.types";
-import "primeicons/primeicons.css";
+import { RutaPublica } from "../Types/rutas.types";
 
 interface PanelLateralProps {
-  rutas: Ruta[];
-  onSeleccionarRuta: (ruta: Ruta) => void;
+  rutas: RutaPublica[];
+  onSeleccionarRuta: (ruta: RutaPublica) => void;
 }
 
-const PanelLateral: React.FC<PanelLateralProps> = ({
-  rutas,
-  onSeleccionarRuta,
-}) => {
-  const [filtroTexto, setFiltroTexto] = useState("");
-  const [estadoFiltro, setEstadoFiltro] = useState<string | null>(null);
-  const [rutaSeleccionadaId, setRutaSeleccionadaId] = useState<number | null>(
-    null
-  );
+const PanelLateral: React.FC<PanelLateralProps> = ({ rutas, onSeleccionarRuta }) => {
+  const [filtro, setFiltro] = useState("");
+  const [seleccion, setSeleccion] = useState<number | null>(null);
 
-  const estados = [
-    { label: "Todos", value: null },
-    { label: "Activos", value: "activo" },
-    { label: "Inactivos", value: "inactivo" },
-  ];
-
-  const rutasFiltradas = rutas.filter(
-    (ruta) =>
-      ruta.nombre.toLowerCase().includes(filtroTexto.toLowerCase()) &&
-      (estadoFiltro === null || ruta.estado === estadoFiltro)
-  );
+  const filtradas = useMemo(() => {
+    const q = filtro.trim().toLowerCase();
+    if (!q) return rutas;
+    return rutas.filter(r =>
+      r.origen.toLowerCase().includes(q) ||
+      r.destino.toLowerCase().includes(q)
+    );
+  }, [rutas, filtro]);
 
   return (
-    <Card
-      title="Rutas Disponibles"
-      className="h-full shadow-2"
-      style={{
-        width: "100%",
-        maxWidth: "300px",
-        borderTop: "4px solid #6f42c1",
-      }}
-    >
+    <Card title="Rutas Disponibles" className="h-full shadow-2"
+      style={{ width: "100%", maxWidth: 300, borderTop: "4px solid #6f42c1" }}>
       <div className="p-fluid">
-        {/* Campo de búsqueda */}
         <span className="p-input-icon-left mb-3">
           <i className="pi pi-search" />
           <InputText
-            value={filtroTexto}
-            onChange={(e) => setFiltroTexto(e.target.value)}
-            placeholder="Buscar ruta..."
-            style={{ borderRadius: "8px" }}
+            value={filtro}
+            onChange={(e) => setFiltro(e.target.value)}
+            placeholder="Buscar origen o destino..."
+            style={{ borderRadius: 8 }}
           />
         </span>
 
-        {/* Filtro por estado */}
-        <Dropdown
-          value={estadoFiltro}
-          options={estados}
-          onChange={(e) => setEstadoFiltro(e.value)}
-          placeholder="Filtrar por estado"
-          style={{
-            borderRadius: "8px",
-            marginBottom: "1rem",
-          }}
-        />
-
-        {/* Lista de rutas con resaltado */}
         <ListBox
-          value={rutaSeleccionadaId}
-          options={rutasFiltradas}
+          value={seleccion}
+          options={filtradas}
+          optionValue="id"
+          optionLabel="__lbl" // no lo usamos, pintamos custom
           onChange={(e) => {
-            setRutaSeleccionadaId(e.value);
+            setSeleccion(e.value);
             const ruta = rutas.find((r) => r.id === e.value);
             if (ruta) onSeleccionarRuta(ruta);
           }}
-          optionLabel="nombre"
-          optionValue="id"
-          itemTemplate={(ruta) => {
-            const esSeleccionada = rutaSeleccionadaId === ruta.id;
+          itemTemplate={(r: RutaPublica) => {
+            const sel = seleccion === r.id;
             return (
               <div
                 style={{
-                  padding: "8px",
-                  borderBottom: "1px solid #eee",
-                  borderRadius: "6px",
-                  backgroundColor: esSeleccionada ? "#6f42c1" : "transparent",
-                  color: esSeleccionada ? "white" : "black",
-                  transition: "0.3s",
-                  cursor: "pointer",
+                  padding: 8, borderBottom: "1px solid #eee", borderRadius: 6,
+                  background: sel ? "#6f42c1" : "transparent",
+                  color: sel ? "white" : "black", transition: "0.2s",
                 }}
               >
-                <div style={{ fontWeight: "bold" }}>{ruta.nombre}</div>
-                <small>
-                  {ruta.origen} → {ruta.destino}
-                </small>
+                <div style={{ fontWeight: 700 }}>
+                  {r.origen} → {r.destino}
+                </div>
+                <small>🕒 {r.tiempoEstimado ?? "-"}</small>
                 <br />
-                <small>🕒 {ruta.tiempoEstimado}</small>
+                <small>💵 Lps. {r.precio.toFixed(2)}</small>
               </div>
             );
           }}
-          style={{
-            width: "100%",
-            borderRadius: "8px",
-          }}
+          style={{ width: "100%", borderRadius: 8 }}
         />
       </div>
     </Card>
