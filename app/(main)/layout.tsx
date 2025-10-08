@@ -1,28 +1,42 @@
-import { Metadata } from 'next';
+'use client';
+
 import Layout from '../../layout/layout';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
-interface AppLayoutProps {
-    children: React.ReactNode;
+/* Auto logout solo visual */
+function useAutoLogout(timeoutMs: number = 15 * 60 * 1000) {
+  const router = useRouter();
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+
+    const resetTimer = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        console.warn('⏰ Sesión cerrada por inactividad');
+        fetch('/api/auth/logout', { method: 'POST' });
+        router.replace('/auth/login');
+      }, timeoutMs);
+    };
+
+    ['click', 'mousemove', 'keydown', 'scroll', 'touchstart'].forEach(evt =>
+      window.addEventListener(evt, resetTimer)
+    );
+
+    resetTimer();
+
+    return () => {
+      clearTimeout(timer);
+      ['click', 'mousemove', 'keydown', 'scroll', 'touchstart'].forEach(evt =>
+        window.removeEventListener(evt, resetTimer)
+      );
+    };
+  }, [router, timeoutMs]);
 }
 
-export const metadata: Metadata = {
-    title: 'PrimeReact Sakai',
-    description: 'The ultimate collection of design-agnostic, flexible and accessible React UI Components.',
-    robots: { index: false, follow: false },
-    viewport: { initialScale: 1, width: 'device-width' },
-    openGraph: {
-        type: 'website',
-        title: 'PrimeReact SAKAI-REACT',
-        url: 'https://sakai.primereact.org/',
-        description: 'The ultimate collection of design-agnostic, flexible and accessible React UI Components.',
-        images: ['https://www.primefaces.org/static/social/sakai-react.png'],
-        ttl: 604800
-    },
-    icons: {
-        icon: '/favicon.ico'
-    }
-};
-
-export default function AppLayout({ children }: AppLayoutProps) {
-    return <Layout>{children}</Layout>;
+export default function MainLayout({ children }: { children: React.ReactNode }) {
+  useAutoLogout();
+  return <Layout>{children}</Layout>;
 }
+// app/%28main%29/layout.tsx

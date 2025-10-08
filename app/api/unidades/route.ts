@@ -1,68 +1,54 @@
-// app/api/unidades/route.ts
-import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+export const runtime = "nodejs";
+import { NextResponse } from "next/server";
+import { db } from "../../../lib/db"; // ruta relativa desde app/api/unidades
 
-export const runtime = 'nodejs';
+// GET /api/unidades?placa=&marca=&modelo=&anio=&estado=&limit=50&offset=0
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const placa  = searchParams.get("placa");
+  const marca  = searchParams.get("marca");
+  const modelo = searchParams.get("modelo");
+  const anio   = searchParams.get("anio");
+  const estado = searchParams.get("estado");
+  const limit  = Number(searchParams.get("limit") ?? 50);
+  const offset = Number(searchParams.get("offset") ?? 0);
 
-// ✅ GET: Obtener todas las unidades
-export async function GET() {
-  try {
-    const [rows]: any = await db.query(`
-      SELECT 
-        Id_Unidad_PK AS id,
-        Id_EstadoUnidad_FK AS estado_unidad_id,
-        Numero_Placa AS numero_placa,
-        Marca_Unidad AS marca,
-        Modelo AS modelo,
-        Año AS anio,
-        Capacidad_Asientos AS capacidad_asientos,
-        Descripcion AS descripcion
-      FROM TBL_UNIDADES
-      ORDER BY Marca_Unidad, Modelo
-      LIMIT 500
-    `);
-    return NextResponse.json({ items: rows });
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: 'internal_error', detail: String(err) },
-      { status: 500 }
-    );
-  }
+  const [rows]: any = await db.query(
+    "CALL mydb.sp_unidades_listar(?,?,?,?,?,?,?)",
+    [
+      placa ?? null,
+      marca ?? null,
+      modelo ?? null,
+      anio ? Number(anio) : null,
+      estado ? Number(estado) : null,
+      limit,
+      offset,
+    ]
+  );
+  return NextResponse.json(rows[0] ?? []);
 }
 
-// ✅ POST: Crear una nueva unidad
+// POST /api/unidades
 export async function POST(req: Request) {
   try {
-    const {
-      Id_EstadoUnidad_FK,
-      Numero_Placa,
-      Marca_Unidad,
-      Modelo,
-      Año,
-      Capacidad_Asientos,
-      Descripcion,
-    } = await req.json();
+    const b = await req.json();
+    const params = [
+      b.numeroPlaca,
+      b.marca ?? null,
+      b.modelo ?? null,
+      b.anio ?? null,
+      b.capacidadAsientos ?? null,
+      b.descripcion ?? null,
+      b.idEstadoFk ?? 1,
+    ];
+    const [rows]: any = await db.query("CALL mydb.sp_unidades_crear(?,?,?,?,?,?,?)", params);
+    const nuevoId = rows[0][0].Id_Unidad_PK;
 
-    const [result]: any = await db.query(
-      `INSERT INTO TBL_UNIDADES 
-        (Id_EstadoUnidad_FK, Numero_Placa, Marca_Unidad, Modelo, Año, Capacidad_Asientos, Descripcion)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        Id_EstadoUnidad_FK,
-        Numero_Placa,
-        Marca_Unidad,
-        Modelo,
-        Año,
-        Capacidad_Asientos,
-        Descripcion,
-      ]
-    );
-
-    return NextResponse.json({ id: result.insertId });
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: 'internal_error', detail: String(err) },
-      { status: 500 }
-    );
+    const [one]: any = await db.query("CALL mydb.sp_unidades_obtener(?)", [nuevoId]);
+    return NextResponse.json(one[0][0], { status: 201 });
+  } catch (e: any) {
+    const msg = e?.message || "Error al crear unidad";
+    const status = /placa.*existe|duplicad/i.test(msg) ? 409 : 400;
+    return NextResponse.json({ error: msg }, { status });
   }
 }

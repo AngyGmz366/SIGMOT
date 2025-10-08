@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-'use client';
+'use client'; // Fuerza render del lado del cliente
 
 import { useRouter } from 'next/navigation';
 import React, { useContext, useState } from 'react';
@@ -9,37 +9,41 @@ import { Password } from 'primereact/password';
 import { LayoutContext } from '../../../../layout/context/layoutcontext';
 import { InputText } from 'primereact/inputtext';
 import { classNames } from 'primereact/utils';
+import Image from 'next/image';
 
 import { auth } from '@/lib/firebase';
 import {
-  signInWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithPopup,
-  setPersistence,
-  browserLocalPersistence,
-  browserSessionPersistence,
+  signInWithEmailAndPassword, // login normal firebase (correo/clave)
+  GoogleAuthProvider,         // proveedor de google
+  signInWithPopup,            // abre el popup de google
+  setPersistence,             // define si la sesión queda guardada
+  browserLocalPersistence,    // sesión se guarda en el navegador (recordarme)
+  browserSessionPersistence,  // sesión solo mientras la pestaña esté abierta
 } from 'firebase/auth';
 
-const PERSONA_FK_POR_DEFECTO = 4; // 👈 tu Id real
-const ROL_DEFECTO = 1;            // 'Usuario'
+const ROL_DEFECTO = 1; // rol por defecto "usuario"
 
+// estructura de errores (pa guardar mensajes de error en el form)
 type ErrorState = { email?: string; password?: string; general?: string };
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [checked, setChecked] = useState(false);
-  const [errors, setErrors] = useState<ErrorState>({});
-  const [touched, setTouched] = useState<{ email: boolean; password: boolean }>({ email: false, password: false });
-  const [loading, setLoading] = useState(false);
+  // cosas que controlo del form
+  const [email, setEmail] = useState(''); // input de correo
+  const [password, setPassword] = useState(''); // input de clave
+  const [checked, setChecked] = useState(false); // checkbox recordarme
+  const [errors, setErrors] = useState<ErrorState>({}); // errores que muestro en UI
+  const [touched, setTouched] = useState<{ email: boolean; password: boolean }>({ email: false, password: false }); // si ya tocó cada input
+  const [loading, setLoading] = useState(false); // cuando está cargando, desactivo botones
   const router = useRouter();
-  const { layoutConfig } = useContext(LayoutContext);
+  const { layoutConfig } = useContext(LayoutContext); // estilos del layout
 
+  // clase del contenedor (solo estilos visuales)
   const containerClassName = classNames(
     'surface-ground flex align-items-center justify-content-center min-h-screen min-w-screen overflow-hidden',
     { 'p-input-filled': layoutConfig.inputStyle === 'filled' }
   );
 
+  // validaciones básicas del form
   const validate = (): ErrorState => {
     const errs: ErrorState = {};
     if (!email.trim()) errs.email = 'El correo es obligatorio.';
@@ -49,25 +53,27 @@ export default function LoginPage() {
     return errs;
   };
 
+  // mostrar error solo si ya tocó el input
   const showError = (field: keyof ErrorState) =>
     (field === 'email' || field === 'password') && Boolean(errors[field] && touched[field]);
 
+  // marcar un input como "tocado"
   const handleBlur = (field: 'email' | 'password') =>
     setTouched((prev) => ({ ...prev, [field]: true }));
 
-  // /api/auth/upsert después del login con Firebase
+  // este pega al backend para sincronizar el usuario en mi BD
   const syncUsuarioConBD = async (idToken: string) => {
     const resp = await fetch('/api/auth/upsert', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
-      body: JSON.stringify({ personaFk: PERSONA_FK_POR_DEFECTO, rolDefecto: ROL_DEFECTO }),
+      body: JSON.stringify({ rolDefecto: ROL_DEFECTO }), // mando solo el rol
     });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data?.detail || data?.error || 'Error al sincronizar usuario');
     return data;
   };
 
-  // 🔹 login LOCAL (tu API valida bcrypt y setea cookie httpOnly)
+  // login local (no firebase, sino API propia con bcrypt)
   const loginLocal = async (email: string, password: string) => {
     const r = await fetch('/api/auth/login-local', {
       method: 'POST',
@@ -76,12 +82,14 @@ export default function LoginPage() {
     });
     const data = await r.json();
     if (!r.ok) throw new Error(data?.error || 'Credenciales inválidas (local)');
-    return data; // cookie ya quedó en el navegador si la ruta la setea
+    return data; // acá el backend ya me dejó la cookie httpOnly
   };
 
-  // Email/Contraseña — intenta Firebase y si falla, fallback a Local
+  // login normal (correo y clave)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 1. valido inputs
     const valErrors = validate();
     setErrors(valErrors);
     setTouched({ email: true, password: true });
@@ -90,14 +98,14 @@ export default function LoginPage() {
     setLoading(true);
     setErrors({});
     try {
-      // 1) Firebase
+      // 2. intento login en firebase
       await setPersistence(auth, checked ? browserLocalPersistence : browserSessionPersistence);
       const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
       const idToken = await cred.user.getIdToken(true);
-      await syncUsuarioConBD(idToken);
-      router.push('/dashboard');
+      await syncUsuarioConBD(idToken); // sincronizo con mi BD
+      router.push('/dashboard'); // redirijo al dashboard
     } catch (err: any) {
-      // 2) Fallback a LOCAL si el error es de credenciales
+      // 3. si falla firebase, pruebo login local
       const code = err?.code || '';
       const canTryLocal = ['auth/invalid-credential', 'auth/user-not-found', 'auth/wrong-password'].includes(code);
       try {
@@ -105,7 +113,6 @@ export default function LoginPage() {
           await loginLocal(email, password);
           router.push('/dashboard');
         } else {
-          // otros errores de Firebase (config, red, etc.)
           throw err;
         }
       } catch (e: any) {
@@ -117,29 +124,42 @@ export default function LoginPage() {
     }
   };
 
-  // Google (solo Firebase)
+  // login con google
   const handleLoginGoogle = async () => {
     setLoading(true);
     setErrors({});
     try {
       await setPersistence(auth, checked ? browserLocalPersistence : browserSessionPersistence);
       const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
+      provider.setCustomParameters({ prompt: 'select_account' }); // me obliga a elegir cuenta
+
+      const result = await signInWithPopup(auth, provider); // abre popup
       const idToken = await result.user.getIdToken(true);
-      await syncUsuarioConBD(idToken);
+      await syncUsuarioConBD(idToken); // sincronizo con mi BD
       router.push('/dashboard');
     } catch (err: any) {
+      if (err?.code === 'auth/popup-closed-by-user') {
+        // si cierro el popup no hago nada (no mostrar error)
+        return;
+      }
       console.error(err);
-      setErrors((p) => ({ ...p, general: err?.message || 'Error con Google' }));
+      setErrors((p) => ({ ...p, general: err?.message || 'No se pudo iniciar sesión con Google.' }));
     } finally {
       setLoading(false);
     }
   };
 
+  // UI del login
   return (
     <div className={containerClassName}>
       <div className="flex flex-column align-items-center justify-content-center">
-        <div style={{ borderRadius: '40px', padding: '0.2rem', background: 'linear-gradient(to bottom, #6366f1 5%, transparent 10%)' }}>
+        <div
+          style={{
+            borderRadius: '40px',
+            padding: '0.2rem',
+            background: 'linear-gradient(to bottom, #6366f1 5%, transparent 10%)',
+          }}
+        >
           <form
             onSubmit={handleSubmit}
             className="py-6 px-4 sm:px-6"
@@ -147,17 +167,26 @@ export default function LoginPage() {
             noValidate
           >
             <div className="text-center mb-4">
-              <img src="/demo/images/login/LOGO-SIGMOT.png" alt="Logo SIGMOT" className="mb-2 w-2 h-auto" />
+              <Image
+                src="/demo/images/login/LOGO-SIGMOT.png"
+                alt="Logo SAENZ"
+                width={120}
+                height={120}
+                priority
+                className="mx-auto mb-3"
+              />
+
               <div className="text-900 text-2xl font-medium mb-2">Inicio de Sesión</div>
             </div>
 
             {errors.general && (
-              <div className="p-2 mb-3 border-round surface-100 text-red-600">
-                {errors.general}
-              </div>
+              <div className="p-2 mb-3 border-round surface-100 text-red-600">{errors.general}</div>
             )}
 
-            <label htmlFor="email" className="block text-900 text-base font-medium mb-2">Correo electrónico</label>
+            {/* input correo */}
+            <label htmlFor="email" className="block text-900 text-base font-medium mb-2">
+              Correo electrónico
+            </label>
             <InputText
               id="email"
               value={email}
@@ -170,7 +199,10 @@ export default function LoginPage() {
             />
             {showError('email') && <small className="text-danger">{errors.email}</small>}
 
-            <label htmlFor="password" className="block text-900 font-medium text-base mb-2 mt-4">Contraseña</label>
+            {/* input clave */}
+            <label htmlFor="password" className="block text-900 font-medium text-base mb-2 mt-4">
+              Contraseña
+            </label>
             <Password
               inputId="password"
               value={password}
@@ -186,6 +218,7 @@ export default function LoginPage() {
             />
             {showError('password') && <small className="text-danger">{errors.password}</small>}
 
+            {/* recordar + link recuperar */}
             <div className="flex align-items-center justify-content-between mb-4 mt-3 gap-3">
               <div className="flex align-items-center">
                 <Checkbox
@@ -195,7 +228,9 @@ export default function LoginPage() {
                   className="mr-2"
                   disabled={loading}
                 />
-                <label htmlFor="rememberme" className="text-sm">Recordarme</label>
+                <label htmlFor="rememberme" className="text-sm">
+                  Recordarme
+                </label>
               </div>
               <a
                 className="font-medium no-underline text-sm cursor-pointer"
@@ -206,11 +241,19 @@ export default function LoginPage() {
               </a>
             </div>
 
-            <Button type="submit" label={loading ? 'Ingresando...' : 'Iniciar sesión'} className="w-full p-2 text-base" disabled={loading} />
+            {/* botones */}
+            <Button
+              type="submit"
+              label={loading ? 'Ingresando...' : 'Iniciar sesión'}
+              icon="pi pi-sign-in" iconPos="right"
+              className="w-full p-2 text-base"
+              disabled={loading}
+            />
 
             <Button
               type="button"
               label="Iniciar con Google"
+               icon="pi pi-google"  iconPos="right"
               className="w-full p-2 text-base mt-3 p-button-outlined"
               onClick={handleLoginGoogle}
               disabled={loading}
@@ -219,6 +262,7 @@ export default function LoginPage() {
             <Button
               type="button"
               label="Crear cuenta"
+                icon="pi pi-user-plus"  iconPos="right"
               className="w-full p-2 text-base mt-3 p-button-outlined"
               onClick={() => router.push('/auth/Register')}
               disabled={loading}

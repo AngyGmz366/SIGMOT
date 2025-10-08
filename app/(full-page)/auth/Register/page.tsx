@@ -55,16 +55,38 @@ const RegistroUsuario: React.FC = () => {
 
   const validateLocal = (): ErrorState => {
     const err: ErrorState = {};
+    
+    // Nombre
     if (!form.nombres.trim()) err.nombres = 'Nombre completo requerido.';
-    if (!form.correo.trim()) err.correo = 'Correo requerido.';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo)) err.correo = 'Correo inválido.';
+
+    // Correo: requerido + formato correcto
+    if (!form.correo.trim()) {
+      err.correo = 'Correo requerido.';
+    } else {
+      // Patrón RFC 5322 simplificado (acepta Gmail, Outlook, etc.)
+      const emailRegex =
+        /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+      if (!emailRegex.test(form.correo.trim())) {
+        err.correo = 'Formato de correo no válido. Ejemplo: usuario@gmail.com';
+      }
+    }
+
+    // Contraseñas
     if (!form.contrasena) err.contrasena = 'Contraseña requerida.';
     else if (form.contrasena.length < 8) err.contrasena = 'Mínimo 8 caracteres.';
-    if (!form.repetirContrasena) err.repetirContrasena = 'Repite la contraseña.';
-    else if (form.contrasena !== form.repetirContrasena) err.repetirContrasena = 'No coinciden.';
-    if (!form.fechaNacimiento) err.fechaNacimiento = 'Selecciona tu fecha.';
+
+    if (!form.repetirContrasena)
+      err.repetirContrasena = 'Repite la contraseña.';
+    else if (form.contrasena !== form.repetirContrasena)
+      err.repetirContrasena = 'Las contraseñas no coinciden.';
+
+    // Fecha
+    if (!form.fechaNacimiento)
+      err.fechaNacimiento = 'Selecciona tu fecha de nacimiento.';
+
     return err;
   };
+
 
   // ---------- REGISTRO LOCAL (correo/contraseña) ----------
   const handleSubmitLocal = async () => {

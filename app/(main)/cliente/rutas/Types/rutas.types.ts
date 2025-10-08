@@ -1,23 +1,14 @@
-// ✅ /Types/rutas.types.ts
-import type { LatLngExpression } from 'leaflet';
-
-type Coordenada = [number, number];
-
-export interface Parada {
-  nombre: string;
-  posicion: Coordenada;
-  horario: string[];
-  tarifa: number;
-}
-
-export interface Ruta {
-  id: string;
-  nombre: string;
+export type RutaPublica = {
+  id: number;
   origen: string;
   destino: string;
-  estado: 'activo' | 'inactivo';
-  coordenadas: Coordenada[];
-  paradas: Parada[];
-  tiempoEstimado?: string; // tiempo total estimado de la ruta
-  asientosDisponibles?: number; // 👈 Agregado
+  tiempoEstimado: string | null; // "HH:mm:ss" o null
+  distancia: number | null;
+  precio: number;                // viene con valor (filtrado en API)
+  horarios: string[];            // ["06:00","12:00","18:00"]
+};
+
+// opcional para pintar rápido sin corchetes
+export function horariosToStr(hs: string[]) {
+  return (hs ?? []).map(h => String(h).replace(/^0/, '')).join(' • ');
 }

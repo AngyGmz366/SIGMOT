@@ -1,24 +1,38 @@
 'use client';
 
 import React from 'react';
-import { Ruta } from '@/app/(main)/cliente/rutas/Types/rutas.types';
 import { Button } from 'primereact/button';
 import { Tag } from 'primereact/tag';
 
+type EstadoUI = 'activo' | 'inactivo';
+
+export type RutaUI = {
+  id: number;
+  origen: string;
+  destino: string;
+  estado: EstadoUI;
+  tiempoEstimado?: string | null;
+  distancia?: number | null;
+  descripcion?: string | null;
+};
+
 interface RutasAdminTableProps {
-  rutas: Ruta[];
-  onEditarRuta: (ruta: Ruta) => void;
-  onEliminarRuta: (rutaId: string) => void;
-  onCambiarEstado: (rutaId: string, nuevoEstado: 'activo' | 'inactivo') => void;
+  rutas: RutaUI[];
+  loading?: boolean;
+  onEditarRuta: (ruta: RutaUI) => void;
+  onEliminarRuta: (id: number) => void;                           // inactivar
+  onCambiarEstado: (id: number, nuevoEstado: EstadoUI) => void;   // toggle
 }
 
 const RutasAdminTable: React.FC<RutasAdminTableProps> = ({
   rutas,
+  loading,
   onEditarRuta,
   onEliminarRuta,
   onCambiarEstado
 }) => {
-  const estadoTemplate = (estado: 'activo' | 'inactivo', id: string) => {
+
+  const estadoTemplate = (estado: EstadoUI, id: number) => {
     if (estado === 'activo') {
       return (
         <Tag
@@ -31,10 +45,11 @@ const RutasAdminTable: React.FC<RutasAdminTableProps> = ({
       );
     }
     return (
-      <Button
-        label="Inactivo"
+      <Tag
+        value="Inactivo"
+        severity="warning"
         icon="pi pi-times-circle"
-        className="p-button-warning p-button-sm text-white"
+        className="px-3 py-1 cursor-pointer text-white"
         onClick={() => onCambiarEstado(id, 'activo')}
       />
     );
@@ -54,13 +69,13 @@ const RutasAdminTable: React.FC<RutasAdminTableProps> = ({
           </tr>
         </thead>
         <tbody>
-          {rutas.map((ruta) => (
+          {!loading && rutas.map((ruta) => (
             <tr key={ruta.id} className="border-t hover:bg-purple-50 transition-colors">
-              <td className="py-2 px-4">{ruta.nombre}</td>
+              <td className="py-2 px-4">{`${ruta.origen} → ${ruta.destino}`}</td>
               <td className="py-2 px-4">{ruta.origen}</td>
               <td className="py-2 px-4">{ruta.destino}</td>
               <td className="py-2 px-4">{estadoTemplate(ruta.estado, ruta.id)}</td>
-              <td className="py-2 px-4">{ruta.tiempoEstimado}</td>
+              <td className="py-2 px-4">{ruta.tiempoEstimado || '-'}</td>
               <td className="py-2 px-4 text-center space-x-2">
                 <Button
                   icon="pi pi-pencil"
@@ -71,20 +86,22 @@ const RutasAdminTable: React.FC<RutasAdminTableProps> = ({
                 <Button
                   icon="pi pi-trash"
                   className="p-button-sm p-button-danger"
-                  onClick={() => onEliminarRuta(ruta.id)}
-                  tooltip="Eliminar ruta"
+                  onClick={() => onEliminarRuta(ruta.id)}   // inactivar
+                  tooltip="Inactivar ruta"
                 />
               </td>
             </tr>
           ))}
+
+          {loading && (
+            <tr><td className="py-4 px-4 text-gray-500" colSpan={6}>Cargando...</td></tr>
+          )}
+
+          {!loading && rutas.length === 0 && (
+            <tr><td className="py-4 px-4 text-gray-500" colSpan={6}>No hay rutas registradas.</td></tr>
+          )}
         </tbody>
       </table>
-
-      {rutas.length === 0 && (
-        <div className="text-center text-gray-500 py-4">
-          No hay rutas registradas.
-        </div>
-      )}
     </div>
   );
 };
