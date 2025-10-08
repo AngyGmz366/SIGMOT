@@ -1,119 +1,81 @@
 // @/types/ventas.ts
-
-// Representa un boleto de viaje vendido
-// type/boleto.ts
-
-// Representa un boleto de viaje vendido
-interface Boleto {
-    id: number | null;
-    cliente: string;
-    destino: string;
-    fecha: string;
-    precio: number | string;
-    // Campos adicionales opcionales
-    tipoVenta?: 'boleto' | 'encomienda';
-    asiento?: string;
-    autobus?: string;
-    horaSalida?: string;
-    horaLlegada?: string;
-    telefono?: string;
-    cedula?: string;
-    estado?: 'vendido' | 'reservado' | 'cancelado';
-    metodoPago?: 'efectivo' | 'tarjeta' | 'transferencia';
-    descuento?: number;
-    total?: number;
-}
-
-// Props para el modal de crear/editar boleto
-interface BoletoDialogProps {
-  visible: boolean;
-  onHide: () => void;
-  boleto: BoletoType;           // Aquí debes usar el tipo correcto de tu modelo 'boleto'
-  setBoleto: React.Dispatch<React.SetStateAction<BoletoType>>;
-  onSave: () => void;
-  submitted: boolean;
-}
-
-
-export interface Encomienda {
-    id: number | null;
-    remitente: string;
-    destinatario: string;
-    origen: string;
-    destino: string;
-    fecha: string;
-    descripcion: string;
-    peso: number;
-    precio: number | string;
-    tipoVenta: 'encomienda';
-    telefono?: string;
-    cedulaRemitente?: string;
-    cedulaDestinatario?: string;
-    estado?: 'enviado' | 'en_transito' | 'entregado' | 'cancelado';
-    metodoPago?: 'efectivo' | 'tarjeta' | 'transferencia';
-    descuento?: number;
-    total?: number;
-}
-
-export type VentaItem = Boleto | Encomienda;
-
-
-interface BoletoDialogProps {
-    visible: boolean;
-    onHide: () => void;
-    boleto: Boleto;
-    setBoleto: (boleto: Boleto) => void;
-    onSave: () => void;
-    submitted?: boolean;
-}
-
-
-// export interface VentaItem {
-//   id: number | null;
-//    tipoVenta: 'boleto' | 'encomienda'; 
-//   cliente?: string;
-//   cedula?: string;
-//   telefono?: string;
-//   destino?: string;
-//   fecha?: string;
-//   precio?: number;
-//   descuento?: number;
-//   total?: number;
-//   metodoPago?: string;
-//   estado?: string;  // Puedes usar un enum para representar los estados
-// }
-
-
-
-/////////////////////////////77777
-
-// types/ventas.ts
-
-export interface ProductoVendido {
-  productoId: number;
-  codigo: string;
-  nombre: string;
-  cantidad: number;
-  precioUnitario: number;
-  subtotal: number;
-}
-
-export interface Venta {
+export type VentaItem = {
   id: number | null;
-  fecha: string; // ISO string
-  cliente: string;
-  documento?: string; // opcional, para el documento del cliente, que usas en el PDF
-  montoPagado?: number;
-
-  cobrada?: boolean;
-  productos: ProductoVendido[];
-  subtotal?: number;  // opcional, que usas en el PDF
-  impuestos?: number; // opcional, que usas en el PDF
+  tipoVenta: 'boleto' | 'encomienda';
+  fecha: string;
+  precio: number;
+  descuento: number;
   total: number;
-  estado: 'pendiente' | 'completada' | 'cancelada';
-  metodoPago: 'efectivo' | 'tarjeta' | 'transferencia';
-  observaciones?: string;
-  montoRecibido?: number;
-  cambio?: number;
-  comprobante?: string;
-}
+
+  estado: string;
+  metodoPago: string;
+};
+
+// ----------------------
+// 🎟️ Boleto
+// ----------------------
+export type Boleto = VentaItem & {
+  tipoVenta: 'boleto';
+
+  // 🖥️ Textos visibles en UI
+  cliente: string;
+  cedula: string;
+  telefono: string;
+  fecha: string; 
+  origen: string;   // ✅ nuevo
+  destino: string;
+  destino: string;
+  asiento: string;
+  autobus: string;
+  horaSalida: string;
+  horaLlegada: string;
+
+  // 🔗 FKs (únicos que vamos a usar para persistencia)
+  Id_Cliente_FK?: number | null;
+  Id_Viaje_FK?: number | null;
+  Id_Asiento_FK?: number | null;      // 👈 agregado para relación asiento
+  Id_Unidad_FK?: number | null;       // 👈 si quieres guardar autobús directo
+  Id_PuntoVenta_FK?: number | null;
+Id_MetodoPago_FK?: number | null;
+
+  Id_EstadoTicket_FK?: number | null;
+  Codigo_Ticket?: string;
+};
+
+// ----------------------
+// 📦 Encomienda
+// ----------------------
+export type Encomienda = VentaItem & {
+  tipoVenta: 'encomienda';
+
+  remitente: string;
+  destinatario: string;
+  origen: string;
+  destino: string;
+  descripcion: string;
+  peso: number;
+  telefono: string;
+  cedulaRemitente: string;
+  cedulaDestinatario: string;
+
+  estado?: 'enviado' | 'entregado' | 'en_transito' | 'cancelado';
+
+  // 🔗 FKs
+  Id_Remitente_FK?: number | null;
+  Id_Destinatario_FK?: number | null;
+  Id_Origen_FK?: number | null;
+  Id_Destino_FK?: number | null;
+  Id_PuntoVenta_FK?: number | null;
+ metodoPago?: string;  // 👈 acepta cualquier string
+
+  Id_EstadoEncomienda_FK?: number | null;
+  Codigo_Encomienda?: string;
+};
+
+// ----------------------
+// Catálogo genérico
+// ----------------------
+export type Opcion = {
+  label: string;
+  value: string | number;
+};
