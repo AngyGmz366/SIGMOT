@@ -159,9 +159,10 @@ export async function POST(req: Request) {
     );
     // 🧾 Registrar creación de usuario en bitácora
     const [[usuario]]: any = await conn.query(
-      'SELECT Id_Usuario_PK FROM mydb.TBL_MS_USUARIO WHERE Correo = ? ORDER BY Id_Usuario_PK DESC LIMIT 1',
+      'SELECT Id_Usuario_PK FROM mydb.TBL_MS_USUARIO WHERE Correo_Electronico = ? ORDER BY Id_Usuario_PK DESC LIMIT 1',
       [email]
     );
+
 
     if (usuario?.Id_Usuario_PK) {
       await conn.query('CALL mydb.sp_registrar_usuario_bitacora(?, ?)', [usuario.Id_Usuario_PK, 1]);
