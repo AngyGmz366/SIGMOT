@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-'use client'; // este login corre del lado del cliente (navegador), no en el server
+'use client'; // Fuerza render del lado del cliente
 
 import { useRouter } from 'next/navigation';
 import React, { useContext, useState } from 'react';
@@ -9,6 +9,7 @@ import { Password } from 'primereact/password';
 import { LayoutContext } from '../../../../layout/context/layoutcontext';
 import { InputText } from 'primereact/inputtext';
 import { classNames } from 'primereact/utils';
+import Image from 'next/image';
 
 import { auth } from '@/lib/firebase';
 import {
@@ -166,7 +167,15 @@ export default function LoginPage() {
             noValidate
           >
             <div className="text-center mb-4">
-              <img src="/demo/images/login/LOGO-SIGMOT.png" alt="Logo SIGMOT" className="mb-2 w-2 h-auto" />
+              <Image
+                src="/demo/images/login/LOGO-SIGMOT.png"
+                alt="Logo SAENZ"
+                width={120}
+                height={120}
+                priority
+                className="mx-auto mb-3"
+              />
+
               <div className="text-900 text-2xl font-medium mb-2">Inicio de Sesión</div>
             </div>
 
