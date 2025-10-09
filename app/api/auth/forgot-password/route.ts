@@ -41,9 +41,18 @@ export async function POST(req: Request) {
 
     const idUsuario = usuario.Id_Usuario_PK;
 
-    // 2️⃣ Generar token aleatorio (64 caracteres)
+   // 2️⃣ Generar token aleatorio (64 caracteres)
     const token = crypto.randomBytes(32).toString('hex');
-    const expiraEn = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+
+    // 🔸 Obtener las horas de expiración desde los parámetros del sistema
+    const [paramRows]: any = await conn.query(
+      "SELECT Valor FROM mydb.TBL_MS_PARAMETROS WHERE Parametro = 'RESET_TOKEN_HORAS' LIMIT 1"
+    );
+
+
+    const horasExpira = Number(paramRows?.[0]?.Valor ?? 12); // fallback a 12h por defecto
+    const expiraEn = new Date(Date.now() + horasExpira * 60 * 60 * 1000); // Token válido por las horas configuradas
+
 
     // 3️⃣ Guardar token en la tabla
     await conn.query(
@@ -92,7 +101,7 @@ export async function POST(req: Request) {
             </a>
 
             <p style="margin-top: 20px; color: #777; font-size: 13px;">
-              Este enlace expirará en 1 hora. Si no solicitaste este cambio, ignora este mensaje.
+              Este enlace expirará en 12 horas. Si no solicitaste este cambio, ignora este mensaje.
             </p>
           </div>
 
