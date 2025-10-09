@@ -1,319 +1,333 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Dialog } from 'primereact/dialog';
 import { Button } from 'primereact/button';
-import { InputText } from 'primereact/inputtext';
 import { Calendar } from 'primereact/calendar';
 import { Dropdown } from 'primereact/dropdown';
 import { InputNumber } from 'primereact/inputnumber';
+import { InputText } from 'primereact/inputtext';
+
 import { classNames } from 'primereact/utils';
-import { Boleto, BoletoDialogProps } from '@/types/ventas';
 
-const BoletoDialog: React.FC<BoletoDialogProps> = ({ 
-    visible, 
-    onHide, 
-    boleto, 
-    setBoleto, 
-    onSave, 
-    submitted = false 
+import { Boleto } from '@/types/ventas';
+import {
+  getClientes,
+  getViajes,
+  getUnidades,
+  getAsientos,
+  getMetodosPago,
+  getEstadosTicket,
+} from '@/modulos/boletos/servicios/ventas.servicios';
+
+type Opcion = { label: string; value: number | string; disabled?: boolean };
+
+type Props = {
+  visible: boolean;
+  onHide: () => void;
+  boleto: Boleto;
+  setBoleto: (b: Boleto) => void;
+  onSave: (boleto: Boleto) => void | Promise<void>;
+  submitted?: boolean;
+};
+
+const BoletoDialog: React.FC<Props> = ({
+  visible,
+  onHide,
+  boleto,
+  setBoleto,
+  onSave,
+  submitted = false,
 }) => {
-    
-    const estadoOptions = [
-        { label: 'Vendido', value: 'vendido' },
-        { label: 'Reservado', value: 'reservado' },
-        { label: 'Cancelado', value: 'cancelado' }
-    ];
+  // Catálogos
+  const [optClientes, setOptClientes] = useState<Opcion[]>([]);
+  const [optDestinos, setOptDestinos] = useState<Opcion[]>([]);
+  const [optAutobuses, setOptAutobuses] = useState<Opcion[]>([]);
+  const [optAsientos, setOptAsientos] = useState<Opcion[]>([]);
+  const [optMetodosPago, setOptMetodosPago] = useState<Opcion[]>([]);
+  const [optEstados, setOptEstados] = useState<Opcion[]>([]);
+  const [saving, setSaving] = useState(false);
 
-    const metodoPagoOptions = [
-        { label: 'Efectivo', value: 'efectivo' },
-        { label: 'Tarjeta', value: 'tarjeta' },
-        { label: 'Transferencia', value: 'transferencia' }
-    ];
+  // Cargar catálogos cuando se abre el modal
+useEffect(() => {
+  if (!visible) return;
+  (async () => {
+    try {
+      const [clientes, destinos, autobuses, metodos, estados] = await Promise.all([
+        getClientes(),
+        getViajes(),
+        getUnidades(),
+        getMetodosPago(),
+        getEstadosTicket(),
+      ]);
 
-    const destinoOptions = [
-        { label: 'Tegucigalpa', value: 'Tegucigalpa' },
-        { label: 'San Pedro Sula', value: 'San Pedro Sula' },
-        { label: 'La Ceiba', value: 'La Ceiba' },
-        { label: 'Choluteca', value: 'Choluteca' },
-        { label: 'Comayagua', value: 'Comayagua' },
-        { label: 'Puerto Cortés', value: 'Puerto Cortés' },
-        { label: 'Danlí', value: 'Danlí' },
-        { label: 'Juticalpa', value: 'Juticalpa' }
-    ];
+      setOptClientes(clientes);
+      setOptDestinos(destinos);
+      setOptAutobuses(autobuses);
+      setOptMetodosPago(metodos);
+      setOptEstados(estados);
 
-    const autobusOptions = [
-        { label: 'Bus 001', value: 'Bus 001' },
-        { label: 'Bus 002', value: 'Bus 002' },
-        { label: 'Bus 003', value: 'Bus 003' },
-        { label: 'Bus 004', value: 'Bus 004' },
-        { label: 'Bus 005', value: 'Bus 005' }
-    ];
+      // 🔹 Si el boleto tiene una unidad seleccionada, carga sus asientos también
+      if (boleto.Id_Unidad_FK) {
+        const asientos = await getAsientos(boleto.Id_Unidad_FK);
+        setOptAsientos(asientos);
+      }
+    } catch (err) {
+      console.error('❌ Error cargando catálogos:', err);
+    }
+  })();
+}, [visible, boleto.Id_Unidad_FK]);
 
-    const onInputChange = (field: keyof Boleto, value: any) => {
-        setBoleto({ ...boleto, [field]: value });
-    };
 
-    const onInputNumberChange = (field: keyof Boleto, value: number | null) => {
-        setBoleto({ ...boleto, [field]: value || 0 });
-    };
-
-    const calcularTotal = () => {
-        const precio = parseFloat(String(boleto.precio)) || 0;
-        const descuento = boleto.descuento || 0;
-        return precio - descuento;
-    };
-
-    React.useEffect(() => {
-        const total = calcularTotal();
-        if (total !== (boleto.total || 0)) {
-            setBoleto({ ...boleto, total });
+  // Cargar asientos cuando cambia la unidad (y cuando se abre el modal con unidad ya seleccionada)
+  useEffect(() => {
+    const loadAsientos = async () => {
+      if (!visible) return;
+      if (boleto.Id_Unidad_FK) {
+        try {
+          const asientos = await getAsientos(boleto.Id_Unidad_FK);
+          setOptAsientos(asientos);
+        } catch (err) {
+          console.error('❌ Error cargando asientos:', err);
+          setOptAsientos([]);
         }
-    }, [boleto.precio, boleto.descuento]);
+      } else {
+        setOptAsientos([]);
+      }
+    };
+    loadAsientos();
+  }, [visible, boleto.Id_Unidad_FK]);
 
-    const dialogFooter = (
-        <div className="flex justify-content-end gap-2">
-            <Button 
-                label="Cancelar" 
-                icon="pi pi-times" 
-                className="p-button-text" 
-                onClick={onHide} 
-            />
-            <Button 
-                label="Guardar" 
-                icon="pi pi-check" 
-                onClick={onSave} 
-            />
+  // Helpers
+  const calcularTotal = () => {
+    const precio = Number(boleto.precio) || 0;
+    const descuento = Number(boleto.descuento || 0);
+    const total = precio - descuento;
+    return total < 0 ? 0 : total;
+  };
+
+  const handleChangeBus = (busId: number | string | null) => {
+    setBoleto({
+      ...boleto,
+      Id_Unidad_FK: busId ? Number(busId) : null,
+      Id_Asiento_FK: null, // limpiar asiento al cambiar de bus
+    });
+  };
+
+  // Footer
+  const dialogFooter = (
+    <div className="flex justify-content-end gap-2">
+      <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={onHide} type="button" />
+      <Button
+        label={saving ? 'Guardando...' : 'Guardar'}
+        icon={saving ? 'pi pi-spin pi-spinner' : 'pi pi-check'}
+        onClick={async () => {
+          setSaving(true);
+          await onSave(boleto);
+          setSaving(false);
+        }}
+        disabled={saving}
+      />
+    </div>
+  );
+
+  return (
+    <Dialog
+      visible={visible}
+      style={{ width: '70rem' }}
+      header={boleto.id ? 'Editar Boleto' : 'Nuevo Boleto'}
+      modal
+      className="p-fluid"
+      footer={dialogFooter}
+      onHide={onHide}
+    >
+      <div className="grid formgrid">
+        {/* Cliente */}
+        <div className="col-12 md:col-6">
+          <label htmlFor="cliente" className="font-bold">
+            Cliente *
+          </label>
+          <Dropdown
+            id="cliente"
+            value={boleto.Id_Cliente_FK ?? null}
+            options={optClientes}
+            optionLabel="label"
+            optionValue="value"
+            onChange={(e) => setBoleto({ ...boleto, Id_Cliente_FK: e.value ?? null })}
+            placeholder="Seleccionar cliente"
+            filter
+            showClear
+          />
         </div>
-    );
+{/* Origen y Destino (Viaje) */}
+<div className="col-12 md:col-6">
+  <label htmlFor="viaje" className="font-bold">
+    Origen y Destino *
+  </label>
+  <Dropdown
+    id="viaje"
+    value={boleto.Id_Viaje_FK ?? null}
+    options={optDestinos} // ✅ ya trae el label “Origen → Destino”
+    optionLabel="label"
+    optionValue="value"
+    onChange={(e) =>
+      setBoleto({
+        ...boleto,
+        Id_Viaje_FK: e.value ?? null,
+      })
+    }
+    placeholder="Seleccionar ruta"
+    filter
+    showClear
+  />
+</div>
 
-    return (
-        <Dialog
-            visible={visible}
-            style={{ width: '70rem' }}
-            breakpoints={{ '960px': '75vw', '641px': '90vw' }}
-            header={boleto.id ? "Editar Boleto" : "Nuevo Boleto"}
-            modal
-            className="p-fluid"
-            footer={dialogFooter}
-            onHide={onHide}
-        >
-            <div className="grid formgrid">
-                {/* Información del Cliente */}
-                <div className="col-12">
-                    <h5>Información del Cliente</h5>
-                </div>
-                
-                <div className="col-12 md:col-6">
-                    <label htmlFor="cliente" className="font-bold">
-                        Cliente *
-                    </label>
-                    <InputText
-                        id="cliente"
-                        value={boleto.cliente}
-                        onChange={(e) => onInputChange('cliente', e.target.value)}
-                        required
-                        autoFocus
-                        className={classNames({
-                            'p-invalid': submitted && !boleto.cliente
-                        })}
-                        placeholder="Nombre completo del cliente"
-                    />
-                    {submitted && !boleto.cliente && (
-                        <small className="p-error">El nombre del cliente es requerido.</small>
-                    )}
-                </div>
 
-                <div className="col-12 md:col-6">
-                    <label htmlFor="cedula" className="font-bold">
-                        Cédula/Identidad
-                    </label>
-                    <InputText
-                        id="cedula"
-                        value={boleto.cedula || ''}
-                        onChange={(e) => onInputChange('cedula', e.target.value)}
-                        placeholder="Número de identidad"
-                    />
-                </div>
 
-                <div className="col-12 md:col-6">
-                    <label htmlFor="telefono" className="font-bold">
-                        Teléfono
-                    </label>
-                    <InputText
-                        id="telefono"
-                        value={boleto.telefono || ''}
-                        onChange={(e) => onInputChange('telefono', e.target.value)}
-                        placeholder="Número de teléfono"
-                    />
-                </div>
+{/* Fecha de Compra (automática, no editable) */}
+<div className="col-12 md:col-6">
+  <label htmlFor="fecha" className="font-bold">
+    Fecha de Compra
+  </label>
+  <InputText
+    id="fecha"
+    value={
+      boleto.fecha
+        ? new Date(boleto.fecha).toLocaleDateString('es-HN')
+        : new Date().toLocaleDateString('es-HN')
+    }
+    disabled
+    className="bg-gray-100 text-gray-600"
+  />
+</div>
 
-                {/* Información del Viaje */}
-                <div className="col-12 mt-4">
-                    <h5>Información del Viaje</h5>
-                </div>
 
-                <div className="col-12 md:col-6">
-                    <label htmlFor="destino" className="font-bold">
-                        Destino *
-                    </label>
-                    <Dropdown
-                        id="destino"
-                        value={boleto.destino}
-                        options={destinoOptions}
-                        onChange={(e) => onInputChange('destino', e.value)}
-                        placeholder="Seleccionar destino"
-                        filter
-                        className={classNames({
-                            'p-invalid': submitted && !boleto.destino
-                        })}
-                    />
-                    {submitted && !boleto.destino && (
-                        <small className="p-error">El destino es requerido.</small>
-                    )}
-                </div>
+        {/* Autobús */}
+        <div className="col-12 md:col-6">
+          <label htmlFor="autobus" className="font-bold">
+            Autobús
+          </label>
+         <Dropdown
+  id="autobus"
+  value={boleto.Id_Unidad_FK ?? null}
+  options={optAutobuses}
+  optionLabel="label"
+  optionValue="value"
+  onChange={(e) => {
+    const newUnidad = e.value ?? null;
+    setBoleto({ ...boleto, Id_Unidad_FK: newUnidad });
+    handleChangeBus(newUnidad); // carga asientos
+  }}
+  placeholder="Seleccionar autobús"
+  filter
+  showClear
+/>
 
-                <div className="col-12 md:col-6">
-                    <label htmlFor="fecha" className="font-bold">
-                        Fecha de Viaje *
-                    </label>
-                    <Calendar
-                        id="fecha"
-                        value={boleto.fecha ? new Date(boleto.fecha) : null}
-                        onChange={(e) => onInputChange('fecha', e.value?.toISOString().split('T')[0] || '')}
-                        dateFormat="dd/mm/yy"
-                        placeholder="Seleccionar fecha"
-                        showIcon
-                        className={classNames({
-                            'p-invalid': submitted && !boleto.fecha
-                        })}
-                    />
-                    {submitted && !boleto.fecha && (
-                        <small className="p-error">La fecha es requerida.</small>
-                    )}
-                </div>
+        </div>
 
-                <div className="col-12 md:col-4">
-                    <label htmlFor="horaSalida" className="font-bold">
-                        Hora de Salida
-                    </label>
-                    <InputText
-                        id="horaSalida"
-                        value={boleto.horaSalida || ''}
-                        onChange={(e) => onInputChange('horaSalida', e.target.value)}
-                        placeholder="HH:MM"
-                    />
-                </div>
+        {/* Asiento */}
+        <div className="col-12 md:col-6">
+          <label htmlFor="asiento" className="font-bold">
+            Asiento
+          </label>
+          <Dropdown
+            id="asiento"
+            value={boleto.Id_Asiento_FK ?? null}
+            options={optAsientos}
+            optionLabel="label"
+            optionValue="value"
+            onChange={(e) => setBoleto({ ...boleto, Id_Asiento_FK: e.value ?? null })}
+            placeholder="Seleccionar asiento"
+            filter
+            showClear
+            disabled={!boleto.Id_Unidad_FK}
+          />
+        </div>
 
-                <div className="col-12 md:col-4">
-                    <label htmlFor="autobus" className="font-bold">
-                        Autobús
-                    </label>
-                    <Dropdown
-                        id="autobus"
-                        value={boleto.autobus}
-                        options={autobusOptions}
-                        onChange={(e) => onInputChange('autobus', e.value)}
-                        placeholder="Seleccionar autobús"
-                    />
-                </div>
+        {/* Precio / Descuento / Total */}
+        <div className="col-12 md:col-4">
+          <label htmlFor="precio" className="font-bold">
+            Precio *
+          </label>
+          <InputNumber
+            id="precio"
+            value={boleto.precio ?? 0}
+            onValueChange={(e) => setBoleto({ ...boleto, precio: e.value ?? 0 })}
+            mode="currency"
+            currency="HNL"
+            locale="es-HN"
+          />
+        </div>
 
-                <div className="col-12 md:col-4">
-                    <label htmlFor="asiento" className="font-bold">
-                        Asiento
-                    </label>
-                    <InputText
-                        id="asiento"
-                        value={boleto.asiento || ''}
-                        onChange={(e) => onInputChange('asiento', e.target.value)}
-                        placeholder="Ej: A1, B5"
-                    />
-                </div>
+        <div className="col-12 md:col-4">
+          <label htmlFor="descuento" className="font-bold">
+            Descuento
+          </label>
+          <InputNumber
+            id="descuento"
+            value={boleto.descuento ?? 0}
+            onValueChange={(e) => setBoleto({ ...boleto, descuento: e.value ?? 0 })}
+            mode="currency"
+            currency="HNL"
+            locale="es-HN"
+          />
+        </div>
 
-                {/* Información de Pago */}
-                <div className="col-12 mt-4">
-                    <h5>Información de Pago</h5>
-                </div>
+        <div className="col-12 md:col-4">
+          <label htmlFor="total" className="font-bold">
+            Total
+          </label>
+          <InputNumber id="total" value={calcularTotal()} mode="currency" currency="HNL" locale="es-HN" disabled />
+        </div>
 
-                <div className="col-12 md:col-4">
-                    <label htmlFor="precio" className="font-bold">
-                        Precio *
-                    </label>
-                    <InputNumber
-                        id="precio"
-                        value={parseFloat(String(boleto.precio)) || 0}
-                        onValueChange={(e) => onInputNumberChange('precio', e.value ?? 0)}
-                        mode="currency"
-                        currency="HNL"
-                        locale="es-HN"
-                        placeholder="0.00"
-                        className={classNames({
-                            'p-invalid': submitted && (!boleto.precio || parseFloat(String(boleto.precio)) <= 0)
-                        })}
-                    />
-                    {submitted && (!boleto.precio || parseFloat(String(boleto.precio)) <= 0) && (
-                        <small className="p-error">El precio es requerido y debe ser mayor a 0.</small>
-                    )}
-                </div>
+        {/* Método de pago */}
+        <div className="col-12 md:col-6">
+          <label htmlFor="metodoPago" className="font-bold">
+            Método de Pago *
+          </label>
+          <Dropdown
+            id="metodoPago"
+            value={boleto.Id_MetodoPago_FK ?? null}
+            options={optMetodosPago}
+            optionLabel="label"
+            optionValue="value"
+            onChange={(e) => setBoleto({ ...boleto, Id_MetodoPago_FK: e.value ?? null })}
+            placeholder="Seleccione método"
+            filter
+            showClear
+          />
+        </div>
 
-                <div className="col-12 md:col-4">
-                    <label htmlFor="descuento" className="font-bold">
-                        Descuento
-                    </label>
-                    <InputNumber
-                        id="descuento"
-                        value={boleto.descuento ?? 0}
-                        onValueChange={(e) => onInputNumberChange('descuento', e.value ?? 0)}
-                        mode="currency"
-                        currency="HNL"
-                        locale="es-HN"
-                        placeholder="0.00"
-                    />
-                </div>
-
-                <div className="col-12 md:col-4">
-                    <label htmlFor="total" className="font-bold">
-                        Total
-                    </label>
-                    <InputNumber
-                        id="total"
-                        value={calcularTotal()}
-                        mode="currency"
-                        currency="HNL"
-                        locale="es-HN"
-                        disabled
-                        className="p-inputtext-lg font-bold text-green-600"
-                    />
-                </div>
-
-                <div className="col-12 md:col-6">
-                    <label htmlFor="metodoPago" className="font-bold">
-                        Método de Pago
-                    </label>
-                    <Dropdown
-                        id="metodoPago"
-                        value={boleto.metodoPago || 'efectivo'}
-                        options={metodoPagoOptions}
-                        onChange={(e) => onInputChange('metodoPago', e.value)}
-                        placeholder="Seleccionar método"
-                    />
-                </div>
-
-                <div className="col-12 md:col-6">
-                    <label htmlFor="estado" className="font-bold">
-                        Estado
-                    </label>
-                    <Dropdown
-                        id="estado"
-                        value={boleto.estado || 'vendido'}
-                        options={estadoOptions}
-                        onChange={(e) => onInputChange('estado', e.value)}
-                        placeholder="Seleccionar estado"
-                    />
-                </div>
-            </div>
-        </Dialog>
-    );
+        {/* Estado */}
+        <div className="col-12 md:col-6">
+          <label htmlFor="estado" className="font-bold">
+            Estado
+          </label>
+         <Dropdown
+  id="estado"
+  value={boleto.Id_EstadoTicket_FK ?? 1} // 1 = Pendiente por defecto
+  options={optEstados.filter(
+    (e) =>
+      !['cancelado', 'reembolsado', 'usado'].includes(
+        (e.label || '').toLowerCase().trim()
+      )
+  )}
+  optionLabel="label"
+  optionValue="value"
+  onChange={(e) =>
+    setBoleto({
+      ...boleto,
+      Id_EstadoTicket_FK: e.value ?? null,
+    })
+  }
+  placeholder="Seleccione estado"
+  filter
+  showClear={false} // 🚫 No permitir limpiar el estado
+/>
+        </div>
+      </div>
+    </Dialog>
+  );
 };
 
 export default BoletoDialog;

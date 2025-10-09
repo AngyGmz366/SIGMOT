@@ -2,19 +2,18 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 
-// Configuración de tu app Web (copiada de Firebase Console)
 const firebaseConfig = {
-  apiKey: "AIzaSyCXOMTfPKZVcwlCDM-krtQu-AHAbZMWMbE",
-  authDomain: "sigmot-1fa80.firebaseapp.com",
-  projectId: "sigmot-1fa80",
-  storageBucket: "sigmot-1fa80.appspot.com",  // corregido: .appspot.com
-  messagingSenderId: "856492982081",
-  appId: "1:856492982081:web:0a72c930f555f31f2debc0",
-  measurementId: "G-7BWH9VQ0GN",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
 // Evita inicializar más de una vez
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Exporta el auth para usar en login
+// Exporta auth para usarlo en login/register/etc.
 export const auth = getAuth(app);

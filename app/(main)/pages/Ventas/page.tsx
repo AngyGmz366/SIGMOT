@@ -9,43 +9,264 @@ import { Column } from 'primereact/column';
 import { Tag } from 'primereact/tag';
 import { FilterMatchMode } from 'primereact/api';
 import { Dialog } from 'primereact/dialog';
+
 import ImprimirBoleto from '../../components/ImprimirBoleto';
+import ImprimirEncomienda from '../../components/ImprimirEncomienda';
 import BoletoDialog from '../../components/BoletoModal';
 import EncomiendaDialog from '../../components/EncomiendaModal';
+
+
+
+import axios from "axios"; 
+
 import { VentaItem, Boleto, Encomienda } from '@/types/ventas';
 import { jsPDF } from 'jspdf';
-import ImprimirEncomienda from '../../components/ImprimirEncomienda';
+
+import {
+  listarBoletos,
+  crearBoleto,
+  actualizarBoleto,
+  eliminarBoleto,
+} from '@/modulos/boletos/servicios/ventas.servicios';
+
+// Type Guards
+function isBoleto(item: VentaItem): item is Boleto {
+  return item.tipoVenta === 'boleto';
+}
+function isEncomienda(item: VentaItem): item is Encomienda {
+  return item.tipoVenta === 'encomienda';
+}
+
+
+
+
 
 export default function VentasPage() {
-    const toast = useRef<Toast>(null);
-    const [ventaItems, setVentaItems] = useState<VentaItem[]>([]);
-    const [boletoDialogVisible, setBoletoDialogVisible] = useState(false);
-    const [encomiendaDialogVisible, setEncomiendaDialogVisible] = useState(false);
-const [itemParaImprimir, setItemParaImprimir] = useState<VentaItem | null>(null)
-    const [currentMode, setCurrentMode] = useState<'boleto' | 'encomienda'>('boleto');
-    const [printing, setPrinting] = useState(false);
-    const [printingMode, setPrintingMode] = useState<'boleto' | 'encomienda'>('boleto');
-    
-    const [boleto, setBoleto] = useState<Boleto>({ 
-        id: null, 
-        cliente: '', 
-        destino: '', 
-        fecha: '', 
-        precio: 0,
+  const toast = useRef<Toast>(null);
+
+  const [ventaItems, setVentaItems] = useState<VentaItem[]>([]);
+  const [selectedItems, setSelectedItems] = useState<VentaItem[] | null>(null);
+
+  const [boletoDialogVisible, setBoletoDialogVisible] = useState(false);
+  const [encomiendaDialogVisible, setEncomiendaDialogVisible] = useState(false);
+
+  const [itemParaImprimir, setItemParaImprimir] = useState<VentaItem | null>(null);
+  const [printing, setPrinting] = useState(false);
+  const [printingMode, setPrintingMode] = useState<'boleto' | 'encomienda'>('boleto');
+
+  const [currentMode, setCurrentMode] = useState<'boleto' | 'encomienda'>('boleto');
+  const [submitted, setSubmitted] = useState(false);
+  const [globalFilter, setGlobalFilter] = useState('');
+
+  // Estado del Boleto en edición/creación
+  const [boleto, setBoleto] = useState<Boleto>({
+    id: null,
+    tipoVenta: 'boleto',
+
+    // UI
+    cliente: '',
+    cedula: '',
+    telefono: '',
+    origen: '',
+    destino: '',
+    asiento: '',
+    autobus: '',
+    horaSalida: '',
+    horaLlegada: '',
+
+    // VentaItem
+    fecha: '',
+    precio: 0,
+    descuento: 0,
+    total: 0,
+    estado: 'vendido',
+    metodoPago: 'efectivo',
+
+    // FKs
+    Id_Cliente_FK: null,
+    Id_Viaje_FK: null,
+    Id_Asiento_FK: null,
+    Id_Unidad_FK: null,
+    Id_PuntoVenta_FK: null,
+    Id_MetodoPago_FK: null,
+    Id_EstadoTicket_FK: null,
+    Codigo_Ticket: '',
+  });
+
+  const [encomienda, setEncomienda] = useState<Encomienda>({
+    id: null,
+    remitente: '',
+    destinatario: '',
+    origen: '',
+    destino: '',
+    fecha: '',
+    descripcion: '',
+    peso: 0,
+    precio: 0,
+    tipoVenta: 'encomienda',
+    telefono: '',
+    cedulaRemitente: '',
+    cedulaDestinatario: '',
+    estado: 'enviado',
+    metodoPago: 'efectivo',
+    descuento: 0,
+    total: 0,
+  });
+
+  const [filters] = useState({
+    global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    cliente: { value: null, matchMode: FilterMatchMode.STARTS_WITH },
+    remitente: { value: null, matchMode: FilterMatchMode.STARTS_WITH },
+    destino: { value: null, matchMode: FilterMatchMode.STARTS_WITH },
+    tipoVenta: { value: null, matchMode: FilterMatchMode.EQUALS },
+    estado: { value: null, matchMode: FilterMatchMode.EQUALS },
+  });
+
+  // Cargar tickets al montar
+  useEffect(() => {
+    (async () => {
+      try {
+        const tickets = await listarBoletos();
+        setVentaItems(tickets);
+      } catch (err) {
+        console.error('❌ Error cargando tickets:', err);
+      }
+    })();
+  }, []);
+
+  // Guardar (crear/editar) boleto
+  const saveBoleto = async (b: Boleto) => {
+    console.log("🧾 Payload enviado al guardar boleto:", boleto);
+    console.log('🧾 Payload al guardar boleto:', b); 
+    setSubmitted(true);
+    try {
+      const viajeId = Number(b.Id_Viaje_FK);
+      const clienteId = Number(b.Id_Cliente_FK ?? b.cliente);
+      const precio = Number(b.precio);
+      const metodoId = Number(b.Id_MetodoPago_FK);
+
+      if (!clienteId || !viajeId || !precio || !metodoId) {
+        toast.current?.show({
+          severity: 'warn',
+          summary: 'Validación',
+          detail: 'Cliente, viaje, método de pago y precio son obligatorios',
+          life: 3000,
+        });
+        return;
+      }
+const payload: Partial<Boleto> = {
+  fecha: b.fecha || new Date().toISOString().slice(0, 10),
+  precio: Number(b.precio),
+  descuento: Number(b.descuento || 0),
+  Id_Viaje_FK: Number(b.Id_Viaje_FK),
+  Id_Cliente_FK: Number(b.Id_Cliente_FK),
+  Id_PuntoVenta_FK: b.Id_PuntoVenta_FK ?? 1,
+  Id_MetodoPago_FK: Number(b.Id_MetodoPago_FK),
+  Id_EstadoTicket_FK: Number(b.Id_EstadoTicket_FK) ?? 1, // ✅ importante
+};
+
+
+
+      if (b.id) {
+        await actualizarBoleto(b.id, payload);
+      } else {
+        await crearBoleto(payload);
+      }
+
+      const updated = await listarBoletos();
+      setVentaItems(updated);
+
+      toast.current?.show({
+        severity: 'success',
+        summary: 'Éxito',
+        detail: b.id ? 'Boleto actualizado' : 'Boleto creado',
+        life: 3000,
+      });
+
+      setBoletoDialogVisible(false);
+    } catch (err) {
+      console.error('❌ Error al guardar boleto:', err);
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo guardar el boleto',
+        life: 3000,
+      });
+    }
+  };
+
+const eliminarSeleccionados = async () => {
+  if (!selectedItems?.length) return;
+
+  try {
+    for (const item of selectedItems) {
+      if (isBoleto(item) && item.id != null) {
+        console.log(`🗑️ Eliminando boleto ID ${item.id}...`);
+        await eliminarBoleto(item.id);
+      }
+    }
+
+    const updated = await listarBoletos();
+    setVentaItems(updated);
+    setSelectedItems([]);
+
+    toast.current?.show({
+      severity: 'success',
+      summary: 'Éxito',
+      detail: 'Boletos eliminados correctamente',
+      life: 3000,
+    });
+  } catch (err: any) {
+    console.error('❌ Error al eliminar boletos:', err?.response?.data || err);
+    toast.current?.show({
+      severity: 'error',
+      summary: 'Error',
+      detail: err?.response?.data?.error || 'No se pudieron eliminar los boletos',
+      life: 4000,
+    });
+  }
+};
+
+
+
+
+  
+  const filteredItems = ventaItems.filter((item) =>
+    currentMode === 'boleto' ? isBoleto(item) : isEncomienda(item)
+  );
+
+  const openNew = () => {
+    if (currentMode === 'boleto') {
+      setBoleto({
+        id: null,
         tipoVenta: 'boleto',
+        cliente: '',
+        cedula: '',
+        telefono: '',
+        origen: '',
+        destino: '',
         asiento: '',
         autobus: '',
         horaSalida: '',
         horaLlegada: '',
-        telefono: '',
-        cedula: '',
+        fecha: '',
+        precio: 0,
+        descuento: 0,
+        total: 0,
         estado: 'vendido',
         metodoPago: 'efectivo',
-        descuento: 0,
-        total: 0
-    });
-
-    const [encomienda, setEncomienda] = useState<Encomienda>({
+        Id_Cliente_FK: null,
+        Id_Viaje_FK: null,
+        Id_Asiento_FK: null,
+        Id_Unidad_FK: null,
+        Id_PuntoVenta_FK: null,
+        Id_MetodoPago_FK: null,
+        Id_EstadoTicket_FK: null,
+        Codigo_Ticket: '',
+      });
+      setBoletoDialogVisible(true);
+    } else {
+      setEncomienda({
         id: null,
         remitente: '',
         destinatario: '',
@@ -62,736 +283,434 @@ const [itemParaImprimir, setItemParaImprimir] = useState<VentaItem | null>(null)
         estado: 'enviado',
         metodoPago: 'efectivo',
         descuento: 0,
-        total: 0
-    });
+        total: 0,
+      });
+      setEncomiendaDialogVisible(true);
+    }
+    setSubmitted(false);
+  };
 
+  const imprimirItem = (item: VentaItem) => {
+    if (item.tipoVenta !== 'boleto' && item.tipoVenta !== 'encomienda') return;
+    setItemParaImprimir(item);
+    setPrintingMode(item.tipoVenta);
+    setPrinting(true);
+  };
 
-    ////////////////////////////////////GENERAR PDF BOLETO//////////////////////////////////
-const generarPDF = (item: Boleto) => {
-  const doc = new jsPDF({
-    unit: 'mm',
-    format: [70, 145], // 7cm x 14.5cm
-  });
+  const cambiarModo = (nuevoModo: 'boleto' | 'encomienda') => {
+    setCurrentMode(nuevoModo);
+    setSelectedItems(null);
+    setGlobalFilter('');
+  };
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.text('TRANSPORTE SAENS', 35, 15, { align: 'center' });
-  doc.setFontSize(12);
-  doc.text('BOLETO DE VIAJE', 35, 22, { align: 'center' });
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-
-  let y = 35;
-  const lineHeight = 7;
-
-  doc.text(`Cliente: ${item.cliente}`, 5, y);
-  doc.text(`Cédula: ${item.cedula || 'N/A'}`, 40, y);
-  y += lineHeight;
-
-  doc.text(`Fecha: ${item.fecha}`, 5, y);
-  doc.text(`Hora Salida: ${item.horaSalida || 'N/A'}`, 40, y);
-  y += lineHeight;
-
-  doc.text(`Destino: ${item.destino}`, 5, y);
-  doc.text(`Asiento: ${item.asiento || 'N/A'}`, 40, y);
-  y += lineHeight;
-
-  doc.text(`Autobús: ${item.autobus || 'N/A'}`, 5, y);
-  doc.text(`Estado: ${item.estado}`, 40, y);
-  y += lineHeight;
-
-  doc.text(`Método Pago: ${item.metodoPago}`, 5, y);
-  y += lineHeight;
-
-  doc.setFont('helvetica', 'bold');
-  doc.text(`Total: HNL ${item.total?.toFixed(2) || '0.00'}`, 5, y);
-  y += lineHeight;
-
-  const svgElement = document.getElementById('qr-code-svg');
-  if (svgElement) {
-    const svgData = new XMLSerializer().serializeToString(svgElement);
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(svgBlob);
-
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      if (ctx) {
-        ctx.drawImage(img, 0, 0);
-        const pngDataUrl = canvas.toDataURL('image/png');
-
-        // QR centrado horizontalmente, más grande
-        doc.addImage(pngDataUrl, 'PNG', (70 - 35) / 2, 110, 35, 35);
-
-        doc.setFontSize(7);
-        doc.text(`ID: ${item.id}`, 5, 145);
-
-        doc.save(`boleto_${item.cliente.replace(/ /g, '_')}_${item.fecha.replace(/\//g, '-')}.pdf`);
-        URL.revokeObjectURL(url);
-      }
-    };
-
-    img.onerror = () => {
-      doc.setFontSize(7);
-      doc.text(`ID: ${item.id}`, 5, 145);
-      doc.save(`boleto_${item.cliente.replace(/ /g, '_')}_${item.fecha.replace(/\//g, '-')}.pdf`);
-      URL.revokeObjectURL(url);
-    };
-
-    img.src = url;
-  } else {
-    doc.setFontSize(7);
-    doc.text(`ID: ${item.id}`, 5, 145);
-    doc.save(`boleto_${item.cliente.replace(/ /g, '_')}_${item.fecha.replace(/\//g, '-')}.pdf`);
-  }
-};
-
-
-/////////////////////////////////////////////////////////////////////////////
-
-///////////////////////GENERAR PDF ENCOMIENDA///////////////////////
-const generarPDFEncomienda = (item: Encomienda) => {
-  const doc = new jsPDF({
-    unit: 'mm',
-    format: [70, 145], // igual que boleto
-  });
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.text('TRANSPORTE SAENS', 35, 15, { align: 'center' });
-  doc.setFontSize(12);
-  doc.text('COMPROBANTE ENCOMIENDA', 35, 22, { align: 'center' });
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-
-  let y = 35;
-  const lineHeight = 7;
-
-  doc.text(`Remitente: ${item.remitente}`, 5, y);
-  doc.text(`Cédula: ${item.cedulaRemitente || 'N/A'}`, 40, y);
-  y += lineHeight;
-
-  doc.text(`Destinatario: ${item.destinatario}`, 5, y);
-  doc.text(`Cédula: ${item.cedulaDestinatario || 'N/A'}`, 40, y);
-  y += lineHeight;
-
-  doc.text(`Origen: ${item.origen}`, 5, y);
-  doc.text(`Destino: ${item.destino}`, 40, y);
-  y += lineHeight;
-
-  doc.text(`Fecha: ${item.fecha}`, 5, y);
-  doc.text(`Teléfono: ${item.telefono || 'N/A'}`, 40, y);
-  y += lineHeight;
-
-  doc.text(`Descripción: ${item.descripcion.substring(0, 30)}...`, 5, y);
-  y += lineHeight;
-
-  doc.text(`Peso: ${item.peso} kg`, 5, y);
-  doc.text(`Estado: ${item.estado}`, 40, y);
-  y += lineHeight;
-
-  doc.text(`Método Pago: ${item.metodoPago}`, 5, y);
-  y += lineHeight;
-
-  doc.setFont('helvetica', 'bold');
-  doc.text(`Total: HNL ${item.total?.toFixed(2) || '0.00'}`, 5, y);
-  y += lineHeight;
-
-  // QR
-  const svgElement = document.getElementById('qr-code-svg'); // asumes que tienes el SVG en DOM con este id
-  if (svgElement) {
-    const svgData = new XMLSerializer().serializeToString(svgElement);
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(svgBlob);
-
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      if (ctx) {
-        ctx.drawImage(img, 0, 0);
-        const pngDataUrl = canvas.toDataURL('image/png');
-
-        // QR centrado horizontalmente y tamaño 35x35
-        doc.addImage(pngDataUrl, 'PNG', (70 - 35) / 2, 110, 35, 35);
-
-        doc.setFontSize(7);
-        doc.text(`ID: ${item.id}`, 5, 145);
-
-        doc.save(`encomienda_${item.remitente.replace(/ /g, '_')}_${item.fecha.replace(/\//g, '-')}.pdf`);
-        URL.revokeObjectURL(url);
-      }
-    };
-
-    img.onerror = () => {
-      doc.setFontSize(7);
-      doc.text(`ID: ${item.id}`, 5, 145);
-      doc.save(`encomienda_${item.remitente.replace(/ /g, '_')}_${item.fecha.replace(/\//g, '-')}.pdf`);
-      URL.revokeObjectURL(url);
-    };
-
-    img.src = url;
-  } else {
-    doc.setFontSize(7);
-    doc.text(`ID: ${item.id}`, 5, 145);
-    doc.save(`encomienda_${item.remitente.replace(/ /g, '_')}_${item.fecha.replace(/\//g, '-')}.pdf`);
-  }
-};
-
-
-/////////////////////////////////////////////////////////////////////
-
-
-
-    const [selectedItems, setSelectedItems] = useState<VentaItem[] | null>(null);
-    const [submitted, setSubmitted] = useState(false);
-    const [globalFilter, setGlobalFilter] = useState('');
-    const [filters] = useState({
-        global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-        cliente: { value: null, matchMode: FilterMatchMode.STARTS_WITH },
-        remitente: { value: null, matchMode: FilterMatchMode.STARTS_WITH },
-        destino: { value: null, matchMode: FilterMatchMode.STARTS_WITH },
-        tipoVenta: { value: null, matchMode: FilterMatchMode.EQUALS },
-        estado: { value: null, matchMode: FilterMatchMode.EQUALS }
-    });
-
-    // Type guard para verificar si un item es Boleto
-    const isBoleto = (item: VentaItem): item is Boleto => {
-        return item.tipoVenta === 'boleto';
-    };
-
-    useEffect(() => {
-        const stored = localStorage.getItem('ventaItems');
-        if (stored) setVentaItems(JSON.parse(stored));
-    }, []);
-
-    const guardarEnStorage = (data: VentaItem[]) => {
-        localStorage.setItem('ventaItems', JSON.stringify(data));
-    };
-
-    const filteredItems = ventaItems.filter(item => 
-        currentMode === 'boleto' 
-            ? isBoleto(item)
-            : item.tipoVenta === 'encomienda'
+  const tipoVentaBodyTemplate = (rowData: VentaItem) => {
+    const tipo = rowData.tipoVenta || 'boleto';
+    return (
+      <Tag
+        value={tipo.toUpperCase()}
+        severity={tipo === 'boleto' ? 'success' : 'info'}
+        icon={tipo === 'boleto' ? 'pi pi-ticket' : 'pi pi-box'}
+      />
     );
+  };
 
-    const openNew = () => {
-        if (currentMode === 'boleto') {
-            setBoleto({ 
-                id: null, 
-                cliente: '', 
-                destino: '', 
-                fecha: '', 
-                precio: 0,
-                tipoVenta: 'boleto',
-                asiento: '',
-                autobus: '',
-                horaSalida: '',
-                horaLlegada: '',
-                telefono: '',
-                cedula: '',
-                estado: 'vendido',
-                metodoPago: 'efectivo',
-                descuento: 0,
-                total: 0
-            });
-            setBoletoDialogVisible(true);
-        } else {
-            setEncomienda({
-                id: null,
-                remitente: '',
-                destinatario: '',
-                origen: '',
-                destino: '',
-                fecha: '',
-                descripcion: '',
-                peso: 0,
-                precio: 0,
-                tipoVenta: 'encomienda',
-                telefono: '',
-                cedulaRemitente: '',
-                cedulaDestinatario: '',
-                estado: 'enviado',
-                metodoPago: 'efectivo',
-                descuento: 0,
-                total: 0
-            });
-            setEncomiendaDialogVisible(true);
-        }
-        setSubmitted(false);
+  const estadoBodyTemplate = (rowData: VentaItem) => {
+    const estado =
+      rowData.estado || (rowData.tipoVenta === 'encomienda' ? 'enviado' : 'vendido');
+    const getSeverity = (e: string) => {
+      switch (e) {
+        case 'vendido':
+        case 'entregado':
+          return 'success';
+        case 'reservado':
+        case 'en_transito':
+          return 'warning';
+        case 'cancelado':
+          return 'danger';
+        case 'enviado':
+          return 'info';
+        default:
+          return 'info';
+      }
     };
+    return <Tag value={estado.toUpperCase().replace('_', ' ')} severity={getSeverity(estado)} />;
+  };
 
-    const saveBoleto = () => {
-        setSubmitted(true);
-        if (boleto.cliente.trim()) {
-            let _items = [...ventaItems];
-            let _boleto = { ...boleto };
+const metodoPagoBodyTemplate = (rowData: VentaItem) => {
+  const metodo = (rowData.metodoPago || '').toLowerCase().trim();
 
-            const precio = parseFloat(String(_boleto.precio)) || 0;
-            const descuento = _boleto.descuento || 0;
-            _boleto.total = precio - descuento;
+  const getIcon = (m: string) => {
+    switch (m) {
+      case 'efectivo':
+        return 'pi pi-money-bill';     // 💵
+      case 'tarjeta':
+      case 'tarjeta de crédito':
+      case 'tarjeta de debito':
+        return 'pi pi-credit-card';    // 💳
+      case 'transferencia':
+      case 'banco':
+      case 'deposito':
+        return 'pi pi-send';           // 🔁
+      default:
+        return 'pi pi-question';       // ❓ fallback
+    }
+  };
 
-            if (boleto.id) {
-                const index = _items.findIndex((item) => item.id === boleto.id);
-                _items[index] = _boleto;
-                toast.current?.show({ severity: 'success', summary: 'Actualizado', detail: 'Boleto actualizado', life: 3000 });
-            } else {
-                _boleto.id = new Date().getTime();
-                _items.push(_boleto);
-                toast.current?.show({ severity: 'success', summary: 'Creado', detail: 'Boleto registrado', life: 3000 });
-            }
-
-            setVentaItems(_items);
-            guardarEnStorage(_items);
-            setBoletoDialogVisible(false);
-        }
-    };
-
-    const saveEncomienda = () => {
-        setSubmitted(true);
-        if (encomienda.remitente.trim() && encomienda.destinatario.trim()) {
-            let _items = [...ventaItems];
-            let _encomienda = { ...encomienda };
-
-            const precio = parseFloat(String(_encomienda.precio)) || 0;
-            const descuento = _encomienda.descuento || 0;
-            _encomienda.total = precio - descuento;
-
-            if (encomienda.id) {
-                const index = _items.findIndex((item) => item.id === encomienda.id);
-                _items[index] = _encomienda;
-                toast.current?.show({ severity: 'success', summary: 'Actualizado', detail: 'Encomienda actualizada', life: 3000 });
-            } else {
-                _encomienda.id = new Date().getTime();
-                _items.push(_encomienda);
-                toast.current?.show({ severity: 'success', summary: 'Creado', detail: 'Encomienda registrada', life: 3000 });
-            }
-
-            setVentaItems(_items);
-            guardarEnStorage(_items);
-            setEncomiendaDialogVisible(false);
-        }
-    };
-
-    const editItem = (item: VentaItem) => {
-        if (isBoleto(item)) {
-            setBoleto(item);
-            setBoletoDialogVisible(true);
-        } else {
-            setEncomienda(item);
-            setEncomiendaDialogVisible(true);
-        }
-    };
-
-    // const imprimirBoleto = (item: VentaItem) => {
-    //     if (isBoleto(item)) {
-    //         setItemParaImprimir(item);
-    //         setPrinting(true);
-    //     }
-    // };
-
-
-const imprimirItem = (item: VentaItem) => {
-  if (item.tipoVenta !== 'boleto' && item.tipoVenta !== 'encomienda') {
-    console.error('Tipo de venta no válido');
-    return;
-  }
-  
-  setItemParaImprimir(item);
-  setPrintingMode(item.tipoVenta); // Ahora TypeScript sabe que es 'boleto' o 'encomienda'
-  setPrinting(true);
-};
-    const eliminarSeleccionados = () => {
-        if (!selectedItems) return;
-        const _items = ventaItems.filter(item => !selectedItems.includes(item));
-        setVentaItems(_items);
-        guardarEnStorage(_items);
-        setSelectedItems(null);
-        toast.current?.show({ severity: 'success', summary: 'Eliminados', detail: 'Elementos eliminados', life: 3000 });
-    };
-
-    const cambiarModo = (nuevoModo: 'boleto' | 'encomienda') => {
-        setCurrentMode(nuevoModo);
-        setSelectedItems(null);
-        setGlobalFilter('');
-    };
-
-    const tipoVentaBodyTemplate = (rowData: VentaItem) => {
-        const tipo = rowData.tipoVenta || 'boleto';
-        return (
-            <Tag 
-                value={tipo.toUpperCase()} 
-                severity={tipo === 'boleto' ? 'success' : 'info'}
-                icon={tipo === 'boleto' ? 'pi pi-ticket' : 'pi pi-box'}
-            />
-        );
-    };
-
-    const estadoBodyTemplate = (rowData: VentaItem) => {
-        const estado = rowData.estado || (rowData.tipoVenta === 'encomienda' ? 'enviado' : 'vendido');
-        const getSeverity = (estado: string) => {
-            switch (estado) {
-                case 'vendido':
-                case 'entregado': return 'success';
-                case 'reservado':
-                case 'en_transito': return 'warning';
-                case 'cancelado': return 'danger';
-                case 'enviado': return 'info';
-                default: return 'info';
-            }
-        };
-
-        return (
-            <Tag 
-                value={estado.toUpperCase().replace('_', ' ')} 
-                severity={getSeverity(estado)}
-            />
-        );
-    };
-
-    const metodoPagoBodyTemplate = (rowData: VentaItem) => {
-        const metodo = rowData.metodoPago || 'efectivo';
-        const getIcon = (metodo: string) => {
-            switch (metodo) {
-                case 'efectivo': return 'pi pi-money-bill';
-                case 'tarjeta': return 'pi pi-credit-card';
-                case 'transferencia': return 'pi pi-send';
-                default: return 'pi pi-question';
-            }
-        };
-
-        return (
-            <div className="flex align-items-center gap-2">
-                <i className={getIcon(metodo)}></i>
-                <span className="capitalize">{metodo}</span>
-            </div>
-        );
-    };
-
-    const precioBodyTemplate = (rowData: VentaItem) => {
-        const precio = parseFloat(String(rowData.precio)) || 0;
-        const descuento = rowData.descuento || 0;
-        const total = rowData.total || precio;
-        
-        return (
-            <div>
-                <div className="font-semibold">${total.toFixed(2)}</div>
-                {descuento > 0 && (
-                    <div className="text-sm text-gray-500">
-                        Precio: ${precio.toFixed(2)}
-                        <br />
-                        Desc: -${descuento.toFixed(2)}
-                    </div>
-                )}
-            </div>
-        );
-    };
-
-const actionBodyTemplate = (rowData: VentaItem) => {
   return (
-    <div className="flex gap-2">
-      <Button 
-        icon="pi pi-pencil" 
-        rounded 
-        text 
-        severity="warning"
-        onClick={() => editItem(rowData)} 
-        tooltip="Editar"
-        tooltipOptions={{ position: 'top' }}
-      />
-      <Button 
-        icon="pi pi-print" 
-        rounded 
-        text 
-        severity="info"
-        onClick={() => imprimirItem(rowData)} 
-        tooltip="Imprimir"
-        tooltipOptions={{ position: 'top' }}
-      />
+    <div className="flex align-items-center gap-2">
+      <i className={`${getIcon(metodo)} text-lg`} />
+      <span className="capitalize">{metodo || 'Desconocido'}</span>
     </div>
   );
 };
-    const clienteBodyTemplate = (rowData: VentaItem) => {
-        if (rowData.tipoVenta === 'encomienda') {
-            const enc = rowData as Encomienda;
-            return (
-                <div>
-                    <div className="font-semibold">{enc.remitente}</div>
-                    <div className="text-sm text-gray-500">Para: {enc.destinatario}</div>
-                </div>
-            );
-        } else {
-            const bol = rowData as Boleto;
-            return bol.cliente;
-        }
-    };
 
-    const detallesBodyTemplate = (rowData: VentaItem) => {
-        if (rowData.tipoVenta === 'encomienda') {
-            const enc = rowData as Encomienda;
-            return (
-                <div className="text-sm">
-                    <div>{enc.descripcion}</div>
-                    <div className="text-gray-500">{enc.peso} kg</div>
-                </div>
-            );
-        } else {
-            const bol = rowData as Boleto;
-            return (
-                <div className="text-sm">
-                    {bol.autobus && <div>Bus: {bol.autobus}</div>}
-                    {bol.asiento && <div>Asiento: {bol.asiento}</div>}
-                    {bol.horaSalida && <div>{bol.horaSalida}</div>}
-                </div>
-            );
-        }
-    };
 
-    const header = (
-        <div className="flex flex-wrap gap-2 align-items-center justify-content-between">
-            <div className="flex align-items-center gap-3">
-                <h4 className="m-0">
-                    Gestión de {currentMode === 'boleto' ? 'Boletos' : 'Encomiendas'}
-                </h4>
-                <Button
-                    icon={currentMode === 'boleto' ? 'pi pi-box' : 'pi pi-ticket'}
-                    label={`Cambiar a ${currentMode === 'boleto' ? 'Encomiendas' : 'Boletos'}`}
-                    className="p-button-outlined p-button-sm"
-                    onClick={() => cambiarModo(currentMode === 'boleto' ? 'encomienda' : 'boleto')}
-                />
-            </div>
-            <span className="p-input-icon-left">
-                <i className="pi pi-search" />
-                <input
-                    type="search"
-                    value={globalFilter}
-                    onChange={(e) => setGlobalFilter(e.target.value)}
-                    placeholder="Buscar..."
-                    className="p-inputtext p-component"
-                />
-            </span>
-        </div>
-    );
-
-    const leftToolbar = (
-        <div className="flex flex-wrap gap-2">
-            <Button 
-                label={`Nuevo ${currentMode === 'boleto' ? 'Boleto' : 'Encomienda'}`}
-                icon="pi pi-plus" 
-                severity="success" 
-                onClick={openNew} 
-            />
-        
-            {/* <Button 
-                label="Exportar" 
-                icon="pi pi-upload" 
-                className="p-button-help"
-                onClick={() => console.log('Exportar datos')}
-            /> */}
-        </div>
-    );
-
-    const rightToolbar = (
-        <div className="flex flex-wrap gap-2">
-            <Button 
-                label="Eliminar Seleccionados" 
-                icon="pi pi-trash" 
-                severity="danger" 
-                onClick={eliminarSeleccionados} 
-                disabled={!selectedItems || !selectedItems.length} 
-            />
-        </div>
-    );
-
+  const precioBodyTemplate = (rowData: VentaItem) => {
+    const precio = parseFloat(String(rowData.precio)) || 0;
+    const descuento = rowData.descuento || 0;
+    const total = rowData.total || precio;
     return (
-        <div className="grid crud-demo">
-            <div className="col-12">
-                <div className="card">
-                    <Toast ref={toast} />
-                    
-                    <Toolbar className="mb-4" left={leftToolbar} right={rightToolbar} />
-                    
-                    <DataTable
-                        value={filteredItems}
-                        selection={selectedItems}
-                        onSelectionChange={(e: any) => setSelectedItems(e.value)}
-                        dataKey="id"
-                        paginator
-                        rows={10}
-                        rowsPerPageOptions={[5, 10, 25, 50]}
-                        className="datatable-responsive"
-                        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate={`Mostrando {first} a {last} de {totalRecords} ${currentMode === 'boleto' ? 'boletos' : 'encomiendas'}`}
-                        globalFilter={globalFilter}
-                        header={header}
-                        filters={filters}
-                        filterDisplay="menu"
-                        responsiveLayout="scroll"
-                        emptyMessage={`No se encontraron ${currentMode === 'boleto' ? 'boletos' : 'encomiendas'}.`}
-                    >
-                        <Column 
-                            selectionMode="multiple" 
-                            headerStyle={{ width: '3rem' }}
-                            exportable={false}
-                        />
-                        
-                        <Column 
-                            field="tipoVenta" 
-                            header="Tipo" 
-                            body={tipoVentaBodyTemplate}
-                            sortable
-                            filter
-                            filterPlaceholder="Filtrar por tipo"
-                            style={{ minWidth: '8rem' }}
-                        />
-                        
-                        <Column 
-                            field={currentMode === 'boleto' ? 'cliente' : 'remitente'}
-                            header={currentMode === 'boleto' ? 'Cliente' : 'Remitente/Destinatario'}
-                            body={clienteBodyTemplate}
-                            sortable
-                            filter
-                            filterPlaceholder={`Buscar por ${currentMode === 'boleto' ? 'cliente' : 'remitente'}`}
-                            style={{ minWidth: '12rem' }}
-                        />
-                        
-                        {currentMode === 'boleto' && (
-                            <>
-                                <Column 
-                                    field="cedula" 
-                                    header="Cédula" 
-                                    sortable
-                                    style={{ minWidth: '10rem' }}
-                                />
-                                <Column 
-                                    field="telefono" 
-                                    header="Teléfono" 
-                                    style={{ minWidth: '10rem' }}
-                                />
-                            </>
-                        )}
-                        
-                        <Column 
-                            field="destino" 
-                            header="Destino" 
-                            sortable
-                            filter
-                            filterPlaceholder="Buscar por destino"
-                            style={{ minWidth: '10rem' }}
-                        />
-                        
-                        <Column 
-                            field="fecha" 
-                            header="Fecha" 
-                            sortable
-                            style={{ minWidth: '8rem' }}
-                        />
-                        
-                        <Column 
-                            header="Detalles"
-                            body={detallesBodyTemplate}
-                            style={{ minWidth: '10rem' }}
-                        />
-                        
-                        <Column 
-                            field="estado" 
-                            header="Estado" 
-                            body={estadoBodyTemplate}
-                            sortable
-                            filter
-                            filterPlaceholder="Filtrar por estado"
-                            style={{ minWidth: '8rem' }}
-                        />
-                        
-                        <Column 
-                            field="metodoPago" 
-                            header="Método Pago" 
-                            body={metodoPagoBodyTemplate}
-                            sortable
-                            style={{ minWidth: '10rem' }}
-                        />
-                        
-                        <Column 
-                            field="total" 
-                            header="Total" 
-                            body={precioBodyTemplate}
-                            sortable
-                            style={{ minWidth: '8rem' }}
-                        />
-                        
-                        <Column 
-                            body={actionBodyTemplate}
-                            exportable={false}
-                            style={{ minWidth: '8rem' }}
-                            header="Acciones"
-                        />
-                    </DataTable>
-                    
-                    <BoletoDialog
-                        visible={boletoDialogVisible}
-                        onHide={() => setBoletoDialogVisible(false)}
-                        boleto={boleto}
-                        setBoleto={setBoleto}
-                        onSave={saveBoleto}
-                        submitted={submitted}
-                    />
+      <div>
+        <div className="font-semibold">HNL {total.toFixed(2)}</div>
+        {descuento > 0 && (
+          <div className="text-sm text-gray-500">
+            Precio: HNL {precio.toFixed(2)}
+            <br />
+            Desc: -HNL {descuento.toFixed(2)}
+          </div>
+        )}
+      </div>
+    );
+  };
 
-                    <EncomiendaDialog
-                        visible={encomiendaDialogVisible}
-                        onHide={() => setEncomiendaDialogVisible(false)}
-                        encomienda={encomienda}
-                        setEncomienda={setEncomienda}
-                        onSave={saveEncomienda}
-                        submitted={submitted}
-                    />
+  const clienteBodyTemplate = (rowData: VentaItem) => {
+    if (isEncomienda(rowData)) {
+      return (
+        <div>
+          <div className="font-semibold">{rowData.remitente}</div>
+          <div className="text-sm text-gray-500">Para: {rowData.destinatario}</div>
+        </div>
+      );
+    } else {
+      return (rowData as Boleto).cliente;
+    }
+  };
 
-<Dialog
-  visible={printing}
-  onHide={() => setPrinting(false)}
-  style={{ width: '450px' }}
-  header={`Imprimir ${printingMode === 'boleto' ? 'Boleto' : 'Encomienda'}`}
-  dismissableMask
-  footer={
-    <div>
+
+
+const editItem = async (item: VentaItem) => {
+  if (!item?.id) {
+    toast.current?.show({
+      severity: 'warn',
+      summary: 'Advertencia',
+      detail: 'No se encontró el ID del boleto seleccionado.',
+      life: 3000,
+    });
+    return;
+  }
+
+  try {
+    console.log("🔎 Cargando boleto con ID:", item.id);
+    const res = await axios.get(`/api/boletos/${item.id}`);
+    const full = res.data?.item;
+
+    if (!full) {
+      toast.current?.show({
+        severity: 'warn',
+        summary: 'No encontrado',
+        detail: `No se encontró información del boleto #${item.id}.`,
+        life: 3000,
+      });
+      return;
+    }
+
+    setBoleto({
+      id: full.Id_Ticket_PK,
+      tipoVenta: "boleto",
+      cliente: full.Cliente || "",
+      cedula: full.Cedula || "",
+      telefono: full.Telefono || "",
+      origen: full.Origen || "",
+      destino: full.Destino || "",
+      autobus: full.Autobus || "",
+      asiento: full.asientos?.[0]?.Numero_Asiento || "",
+      horaSalida: full.Hora_Salida || "",
+      horaLlegada: "",
+      fecha: full.Fecha_Hora_Compra?.slice(0, 10) || "",
+      precio: Number(full.Precio_Total ?? 0),
+      descuento: 0,
+      total: Number(full.Precio_Total ?? 0),
+      estado: full.Estado || "vendido",
+      metodoPago: full.MetodoPago || "efectivo",
+      Id_Cliente_FK: full.Id_Cliente_FK ?? null,
+      Id_Viaje_FK: full.Id_Viaje_FK ?? null,
+      Id_Unidad_FK: full.asientos?.[0]?.Id_Unidad_FK ?? null,
+      Id_Asiento_FK: full.asientos?.[0]?.Id_Asiento_FK ?? null,
+      Id_PuntoVenta_FK: full.Id_PuntoVenta_FK ?? 1,
+      Id_MetodoPago_FK: full.Id_MetodoPago_FK ?? null,
+      Id_EstadoTicket_FK: full.Id_EstadoTicket_FK ?? null,
+      Codigo_Ticket: full.Codigo_Ticket || "",
+    });
+
+    setBoletoDialogVisible(true);
+  } catch (err) {
+    console.error("❌ Error al obtener boleto:", err);
+    toast.current?.show({
+      severity: 'error',
+      summary: 'Error',
+      detail: 'No se pudo obtener el boleto.',
+      life: 3000,
+    });
+  }
+};
+
+
+
+  const header = (
+    <div className="flex flex-wrap gap-2 align-items-center justify-content-between">
+      <div className="flex align-items-center gap-3">
+        <h4 className="m-0">Gestión de {currentMode === 'boleto' ? 'Boletos' : 'Encomiendas'}</h4>
+        <Button
+          icon={currentMode === 'boleto' ? 'pi pi-box' : 'pi pi-ticket'}
+          label={`Cambiar a ${currentMode === 'boleto' ? 'Encomiendas' : 'Boletos'}`}
+          className="p-button-outlined p-button-sm"
+          onClick={() => cambiarModo(currentMode === 'boleto' ? 'encomienda' : 'boleto')}
+        />
+      </div>
+      <span className="p-input-icon-left">
+        <i className="pi pi-search" />
+        <input
+          type="search"
+          value={globalFilter}
+          onChange={(e) => setGlobalFilter(e.target.value)}
+          placeholder="Buscar..."
+          className="p-inputtext p-component"
+        />
+      </span>
+    </div>
+  );
+
+  const leftToolbar = (
+    <div className="flex flex-wrap gap-2">
       <Button
-        label="Cerrar"
-        icon="pi pi-times"
-        onClick={() => setPrinting(false)}
-        className="p-button-text"
-      />
-      <Button
-        label="Imprimir"
-        icon="pi pi-print"
-        onClick={() => {
-          if (itemParaImprimir) {
-            if (printingMode === 'boleto') {
-              generarPDF(itemParaImprimir as Boleto);
-            } else {
-              generarPDFEncomienda(itemParaImprimir as Encomienda);
-            }
-          }
-        }}
-        className="p-button-text"
+        label={`Nuevo ${currentMode === 'boleto' ? 'Boleto' : 'Encomienda'}`}
+        icon="pi pi-plus"
+        severity="success"
+        onClick={openNew}
       />
     </div>
-  }
->
-  {itemParaImprimir && (
-    printingMode === 'boleto' ? 
-      <ImprimirBoleto item={itemParaImprimir as Boleto} /> : 
-      <ImprimirEncomienda item={itemParaImprimir as Encomienda} />
-  )}
-</Dialog>
+  );
 
-     </div>
-            </div>
+  const rightToolbar = (
+    <div className="flex flex-wrap gap-2">
+      <Button
+        label="Eliminar Seleccionados"
+        icon="pi pi-trash"
+        severity="danger"
+        onClick={eliminarSeleccionados}
+        disabled={!selectedItems?.length}
+      />
+    </div>
+  );
+
+  return (
+    <div className="grid crud-demo">
+      <div className="col-12">
+        <div className="card">
+          <Toast ref={toast} />
+
+          <Toolbar className="mb-4" left={leftToolbar} right={rightToolbar} />
+
+          <DataTable
+            value={filteredItems}
+            selection={selectedItems}
+            onSelectionChange={(e: any) => setSelectedItems(e.value)}
+            dataKey="id"
+            paginator
+            rows={10}
+            rowsPerPageOptions={[5, 10, 25, 50]}
+            className="datatable-responsive"
+            paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+            currentPageReportTemplate={`Mostrando {first} a {last} de {totalRecords} ${
+              currentMode === 'boleto' ? 'boletos' : 'encomiendas'
+            }`}
+            globalFilter={globalFilter}
+            header={header}
+            filters={filters}
+            filterDisplay="menu"
+            responsiveLayout="scroll"
+            emptyMessage={`No se encontraron ${
+              currentMode === 'boleto' ? 'boletos' : 'encomiendas'
+            }.`}
+          >
+            <Column selectionMode="multiple" headerStyle={{ width: '3rem' }} exportable={false} />
+
+            <Column
+              field="tipoVenta"
+              header="Tipo"
+              body={tipoVentaBodyTemplate}
+              sortable
+              filter
+              filterPlaceholder="Filtrar por tipo"
+              style={{ minWidth: '8rem' }}
+            />
+
+            <Column
+              field={currentMode === 'boleto' ? 'cliente' : 'remitente'}
+              header={currentMode === 'boleto' ? 'Cliente' : 'Remitente/Destinatario'}
+              body={clienteBodyTemplate}
+              sortable
+              filter
+              filterPlaceholder={`Buscar por ${currentMode === 'boleto' ? 'cliente' : 'remitente'}`}
+              style={{ minWidth: '12rem' }}
+            />
+
+            {currentMode === 'boleto' && (
+              <>
+                <Column field="cedula" header="Cédula" sortable style={{ minWidth: '10rem' }} />
+                <Column field="telefono" header="Teléfono" style={{ minWidth: '10rem' }} />
+              </>
+            )}
+
+      
+{/* Origen */}
+<Column
+  field="origen"
+  header="Origen"
+  body={(rowData) => (
+    <span className="text-sm">{rowData.origen || '—'}</span>
+  )}
+  sortable
+  filter
+  filterPlaceholder="Buscar por origen"
+  style={{ minWidth: '10rem' }}
+/>
+
+{/* Destino */}
+<Column
+  field="destino"
+  header="Destino"
+  body={(rowData) => (
+    <span className="text-sm">{rowData.destino || '—'}</span>
+  )}
+  sortable
+  filter
+  filterPlaceholder="Buscar por destino"
+  style={{ minWidth: '10rem' }}
+/>
+
+
+            <Column field="fecha" header="Fecha" sortable style={{ minWidth: '8rem' }} />
+
+  
+
+            <Column
+              field="estado"
+              header="Estado"
+              body={estadoBodyTemplate}
+              sortable
+              filter
+              filterPlaceholder="Filtrar por estado"
+              style={{ minWidth: '8rem' }}
+            />
+
+            <Column
+              field="metodoPago"
+              header="Método Pago"
+              body={metodoPagoBodyTemplate}
+              sortable
+              style={{ minWidth: '10rem' }}
+            />
+
+            <Column field="total" header="Total" body={precioBodyTemplate} sortable style={{ minWidth: '8rem' }} />
+
+            <Column
+              header="Acciones"
+              body={(rowData) => (
+                <div className="flex gap-2">
+                  <Button
+                    icon="pi pi-pencil"
+                    rounded
+                    text
+                    severity="warning"
+                    onClick={() => editItem(rowData)}
+                    tooltip="Editar"
+                    tooltipOptions={{ position: 'top' }}
+                  />
+                  <Button
+                    icon="pi pi-print"
+                    rounded
+                    text
+                    severity="info"
+                    onClick={() => imprimirItem(rowData)}
+                    tooltip="Imprimir"
+                    tooltipOptions={{ position: 'top' }}
+                  />
+                </div>
+              )}
+            />
+          </DataTable>
+
+          <BoletoDialog
+            visible={boletoDialogVisible}
+            onHide={() => setBoletoDialogVisible(false)}
+            boleto={boleto}
+            setBoleto={setBoleto}
+            onSave={saveBoleto}
+            submitted={submitted}
+          />
+
+          {/* Descomenta cuando tengas encomiendas conectadas */}
+          {/* <EncomiendaDialog
+            visible={encomiendaDialogVisible}
+            onHide={() => setEncomiendaDialogVisible(false)}
+            encomienda={encomienda}
+            setEncomienda={setEncomienda}
+            onSave={() => {}}
+            submitted={submitted}
+          /> */}
+
+          <Dialog
+            visible={printing}
+            onHide={() => setPrinting(false)}
+            style={{ width: '450px' }}
+            header={`Imprimir ${printingMode === 'boleto' ? 'Boleto' : 'Encomienda'}`}
+            dismissableMask
+            footer={
+              <div>
+                <Button
+                  label="Cerrar"
+                  icon="pi pi-times"
+                  onClick={() => setPrinting(false)}
+                  className="p-button-text"
+                />
+                <Button
+                  label="Imprimir"
+                  icon="pi pi-print"
+                  onClick={() => {
+                    if (itemParaImprimir) {
+                      if (printingMode === 'boleto') {
+                        // Usa tu ImprimirBoleto (o genera PDF aquí)
+                        window.print();
+                      } else {
+                        window.print();
+                      }
+                    }
+                  }}
+                  className="p-button-text"
+                />
+              </div>
+            }
+          >
+            {itemParaImprimir &&
+              (printingMode === 'boleto' ? (
+                <ImprimirBoleto item={itemParaImprimir as Boleto} />
+              ) : (
+                <ImprimirEncomienda item={itemParaImprimir as Encomienda} />
+              ))}
+          </Dialog>
         </div>
-    );
+      </div>
+    </div>
+  );
 }
