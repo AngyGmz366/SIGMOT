@@ -6,6 +6,7 @@ export type RutaPublica = {
   distancia: number | null;
   precio: number;                // viene con valor (filtrado en API)
   horarios: string[];            // ["06:00","12:00","18:00"]
+  coordenadas: { lat: number; lng: number }[]; // 👈 necesario para dibujar
 };
 
 // opcional para pintar rápido sin corchetes

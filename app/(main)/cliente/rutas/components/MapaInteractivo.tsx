@@ -1,94 +1,109 @@
+"use client";
 import React, { useEffect, useRef } from "react";
 import L from "leaflet";
-import { Ruta } from "../Types/rutas.types";
 import { Card } from "primereact/card";
 import "leaflet/dist/leaflet.css";
+import { RutaPublica } from "../Types/rutas.types";
 
-const busIcon = new L.Icon({
-  iconUrl: "https://cdn-icons-png.flaticon.com/512/8390/8390779.png",
-  iconSize: [38, 38],
-  iconAnchor: [19, 38],
-  popupAnchor: [0, -38],
-});
-
-interface MapaInteractivoProps {
-  ruta?: Ruta;
+interface Props {
+  rutas: RutaPublica[];
 }
 
-const MapaInteractivo: React.FC<MapaInteractivoProps> = ({ ruta }) => {
+const MapaInteractivo: React.FC<Props> = ({ rutas }) => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapInstanceRef = useRef<any>(null);
+  const mapRef = useRef<L.Map | null>(null);
 
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
-    // Si ya hay un mapa anterior, lo destruimos
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.remove();
-      mapInstanceRef.current = null;
+    if (!mapRef.current) {
+      mapRef.current = L.map(mapContainerRef.current, {
+        center: [14.5, -86.5],
+        zoom: 7,
+        minZoom: 6,
+        maxZoom: 12,
+        maxBounds: [
+          [12.98, -89.35],
+          [16.02, -83.13],
+        ],
+        maxBoundsViscosity: 1.0,
+      });
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors",
+      }).addTo(mapRef.current);
     }
 
-    // Posición inicial
-    const posicionInicial = ruta?.coordenadas?.[0] ?? [14.072275, -87.192136];
-
-    // Crear mapa
-    const map = L.map(mapContainerRef.current, {
-      center: posicionInicial,
-      zoom: 7,
-      minZoom: 6,
-      maxZoom: 10,
-      maxBounds: [
-        [12.98, -89.35],
-        [16.02, -83.13],
-      ],
-      maxBoundsViscosity: 1.0,
+    const map = mapRef.current!;
+    map.eachLayer((layer) => {
+      if (!(layer instanceof L.TileLayer)) map.removeLayer(layer);
     });
 
-    // Guardar referencia
-    mapInstanceRef.current = map;
+    const colores = ["#007bff", "#e91e63", "#ff9800", "#28a745", "#9c27b0"];
+    const allCoords: [number, number][] = [];
 
-    // Capa base
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap contributors",
-    }).addTo(map);
+    rutas.forEach((r, idx) => {
+      if (!r.coordenadas || r.coordenadas.length < 2) return;
 
-    // Dibujar línea de ruta
-    if (ruta?.coordenadas) {
-      L.polyline(ruta.coordenadas, {
-        color: ruta.estado === "activo" ? "blue" : "gray",
+      const coords = r.coordenadas.map((p) => [p.lat, p.lng]) as [
+        number,
+        number
+      ][];
+      allCoords.push(...coords);
+      const color = colores[idx % colores.length];
+
+      // 🔹 Polyline con color diferente y ligera variación de ruta
+      const polyline = L.polyline(coords, {
+        color,
         weight: 5,
-        dashArray: ruta.estado === "inactivo" ? "5, 10" : undefined,
+        opacity: 0.8,
+        lineJoin: "round",
+        dashArray: idx % 2 === 0 ? undefined : "8, 8", // una sólida, otra punteada
       }).addTo(map);
-    }
 
-    // Marcar paradas
-    ruta?.paradas?.forEach((parada) => {
-      L.marker(parada.posicion, { icon: busIcon })
+      // 📍 Marcadores
+      const inicio = coords[0];
+      const fin = coords[coords.length - 1];
+
+      L.circleMarker(inicio, {
+        radius: 6,
+        color,
+        fillColor: "#fff",
+        fillOpacity: 1,
+      })
         .addTo(map)
-        .bindPopup(
-          `<strong>${parada.nombre}</strong><br>
-           Horarios: ${parada.horario.join(", ")}<br>
-           Tarifa: L. ${parada.tarifa}`
-        );
+        .bindPopup(`<b>Inicio:</b> ${r.origen}`);
+
+      L.circleMarker(fin, {
+        radius: 6,
+        color,
+        fillColor: "#fff",
+        fillOpacity: 1,
+      })
+        .addTo(map)
+        .bindPopup(`<b>Destino:</b> ${r.destino}`);
+
+      polyline.bindPopup(
+        `<b>${r.origen} → ${r.destino}</b><br/>⏱ ${r.tiempoEstimado}<br/>💰 Lps. ${r.precio}`
+      );
     });
 
-    return () => {
-      map.remove();
-      mapInstanceRef.current = null;
-    };
-  }, [ruta]);
+    if (allCoords.length > 0) {
+      const bounds = L.latLngBounds(allCoords);
+      setTimeout(() => map.fitBounds(bounds, { padding: [60, 60] }), 200);
+    }
+  }, [rutas]);
 
   return (
-    <Card title="Mapa de Ruta" className="shadow-2 mb-4">
-      {ruta?.tiempoEstimado && (
-        <div className="px-3 pt-2 pb-0 text-sm text-primary font-medium">
-          ⏱ Tiempo estimado: <span className="text-color">{ruta.tiempoEstimado}</span>
-        </div>
-      )}
-
+    <Card title="🗺️ Mapa de Rutas Activas" className="shadow-2 mb-4">
       <div
         ref={mapContainerRef}
-        style={{ height: "50vh", minHeight: "300px", width: "100%" }}
+        style={{
+          height: "60vh",
+          minHeight: "350px",
+          width: "100%",
+          borderRadius: "12px",
+        }}
       />
     </Card>
   );
