@@ -8,7 +8,6 @@ import { Calendar } from 'primereact/calendar';
 import { Button } from 'primereact/button';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
-
 import { auth } from '@/lib/firebase';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
@@ -20,18 +19,18 @@ type FormState = {
   fechaNacimiento: Date | null;
   contrasena: string;
   repetirContrasena: string;
+  codigoVerificacion: string; // 👈 nuevo campo
 };
 
 type ErrorState = Partial<Record<keyof FormState, string>> & { general?: string };
 
-// 👇 AJUSTA este ID al de tu catálogo para "Prefiero no decir"
 const DEFAULT_GENERO_ID = 4;
 
 const generosOpts = [
   { label: 'Masculino', value: 1 },
   { label: 'Femenino', value: 2 },
   { label: 'Otro', value: 3 },
-  { label: 'Prefiero no decir', value: DEFAULT_GENERO_ID }
+  { label: 'Prefiero no decir', value: DEFAULT_GENERO_ID },
 ];
 
 const RegistroUsuario: React.FC = () => {
@@ -43,50 +42,75 @@ const RegistroUsuario: React.FC = () => {
     genero: null,
     fechaNacimiento: null,
     contrasena: '',
-    repetirContrasena: ''
+    repetirContrasena: '',
+    codigoVerificacion: '',
   });
 
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false); // para el botón de código
   const [errors, setErrors] = useState<ErrorState>({});
 
   const setField = (k: keyof FormState, v: any) => setForm((p) => ({ ...p, [k]: v }));
   const phoneSanitized = useMemo(() => form.telefono.replace(/[^\d]/g, ''), [form.telefono]);
 
+  // 🔍 Validaciones
   const validateLocal = (): ErrorState => {
     const err: ErrorState = {};
-    
-    // Nombre
-    if (!form.nombres.trim()) err.nombres = 'Nombre completo requerido.';
 
-    // Correo: requerido + formato correcto
-    if (!form.correo.trim()) {
-      err.correo = 'Correo requerido.';
-    } else {
-      // Patrón RFC 5322 simplificado (acepta Gmail, Outlook, etc.)
-      const emailRegex =
-        /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    if (!form.nombres.trim()) err.nombres = 'Nombre completo requerido.';
+    if (!form.correo.trim()) err.correo = 'Correo requerido.';
+    else {
+      const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
       if (!emailRegex.test(form.correo.trim())) {
-        err.correo = 'Formato de correo no válido. Ejemplo: usuario@gmail.com';
+        err.correo = 'Formato de correo no válido.';
       }
     }
 
-    // Contraseñas
     if (!form.contrasena) err.contrasena = 'Contraseña requerida.';
     else if (form.contrasena.length < 8) err.contrasena = 'Mínimo 8 caracteres.';
 
-    if (!form.repetirContrasena)
-      err.repetirContrasena = 'Repite la contraseña.';
+    if (!form.repetirContrasena) err.repetirContrasena = 'Repite la contraseña.';
     else if (form.contrasena !== form.repetirContrasena)
       err.repetirContrasena = 'Las contraseñas no coinciden.';
 
-    // Fecha
     if (!form.fechaNacimiento)
       err.fechaNacimiento = 'Selecciona tu fecha de nacimiento.';
+
+    if (!form.codigoVerificacion.trim())
+      err.codigoVerificacion = 'Debes ingresar el código enviado a tu correo.';
 
     return err;
   };
 
+  // ✉️ Enviar código de verificación
+  const handleSendCode = async () => {
+    if (!form.correo.trim()) {
+      return Swal.fire('Error', 'Ingresa primero un correo válido.', 'error');
+    }
+    const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    if (!emailRegex.test(form.correo.trim())) {
+      return Swal.fire('Error', 'Formato de correo inválido.', 'error');
+    }
+
+    setSendingCode(true);
+    try {
+      const res = await fetch('/api/auth/send-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.correo.trim() }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'No se pudo enviar el código');
+
+      Swal.fire('Código enviado', 'Revisa tu bandeja de entrada.', 'success');
+    } catch (e: any) {
+      Swal.fire('Error', e?.message || 'No se pudo enviar el código.', 'error');
+    } finally {
+      setSendingCode(false);
+    }
+  };
 
   // ---------- REGISTRO LOCAL (correo/contraseña) ----------
   const handleSubmitLocal = async () => {
@@ -94,7 +118,7 @@ const RegistroUsuario: React.FC = () => {
     setErrors(v);
     setTouched({
       nombres: true, correo: true, telefono: true, genero: true,
-      fechaNacimiento: true, contrasena: true, repetirContrasena: true
+      fechaNacimiento: true, contrasena: true, repetirContrasena: true, codigoVerificacion: true,
     });
     if (Object.keys(v).length) return;
 
@@ -107,23 +131,28 @@ const RegistroUsuario: React.FC = () => {
           nombres: form.nombres.trim(),
           apellidos: '',
           telefono: phoneSanitized || null,
-          genero_id: form.genero ?? DEFAULT_GENERO_ID, // 👈 fallback
+          genero_id: form.genero ?? DEFAULT_GENERO_ID,
           fecha_nacimiento: form.fechaNacimiento?.toISOString().slice(0, 10),
           email: form.correo.trim(),
           password: form.contrasena,
           rolDefecto: 1,
           tipoPersona: 1,
-          estadoUsuario: 1
-        })
+          estadoUsuario: 1,
+          codigoVerificacion: form.codigoVerificacion.trim(), // 👈 agregado
+        }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data?.detail || data?.error || 'Error registrando');
 
-      await Swal.fire({ icon: 'success', title: 'Cuenta creada', text: 'Ahora puedes iniciar sesión.' });
+      await Swal.fire({
+        icon: 'success',
+        title: 'Cuenta creada',
+        text: 'Correo verificado y cuenta registrada correctamente.',
+      });
       router.push('/auth/login');
     } catch (e: any) {
-      Swal.fire({ icon: 'error', title: 'No se pudo registrar', text: e?.message || 'Intenta de nuevo' });
+      Swal.fire('Error', e?.message || 'No se pudo registrar.', 'error');
     } finally {
       setLoading(false);
     }
@@ -141,18 +170,17 @@ const RegistroUsuario: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${idToken}`
+          Authorization: `Bearer ${idToken}`,
         },
         body: JSON.stringify({
           nombres: form.nombres?.trim() || result.user.displayName || '',
           apellidos: '',
           telefono: phoneSanitized || null,
-          genero_id: form.genero ?? DEFAULT_GENERO_ID, // 👈 fallback evita "Id_Genero_FK cannot be null"
+          genero_id: form.genero ?? DEFAULT_GENERO_ID,
           fecha_nacimiento: form.fechaNacimiento?.toISOString().slice(0, 10),
           rolDefecto: 1,
-          tipoPersona: 1
-          // correo: opcional; si no lo mandamos, el server usa el del token
-        })
+          tipoPersona: 1,
+        }),
       });
 
       const data = await res.json();
@@ -161,7 +189,7 @@ const RegistroUsuario: React.FC = () => {
       await Swal.fire({ icon: 'success', title: '¡Bienvenido!', text: 'Registro completado con Google.' });
       router.push('/dashboard');
     } catch (e: any) {
-      Swal.fire({ icon: 'error', title: 'No se pudo registrar con Google', text: e?.message || 'Intenta de nuevo' });
+      Swal.fire('Error', e?.message || 'No se pudo registrar con Google.', 'error');
     } finally {
       setLoading(false);
     }
@@ -176,7 +204,7 @@ const RegistroUsuario: React.FC = () => {
               <div className="text-900 text-2xl font-semibold mb-2">Crear cuenta</div>
             </div>
 
-            {/* Nombres */}
+            {/* Nombre */}
             <div className="mb-3">
               <label className="block mb-1 text-sm font-medium text-gray-700">Nombre completo</label>
               <InputText value={form.nombres} onChange={(e) => setField('nombres', e.target.value)} className="w-full" />
@@ -214,14 +242,33 @@ const RegistroUsuario: React.FC = () => {
               {touched.fechaNacimiento && errors.fechaNacimiento && <small className="p-error">{errors.fechaNacimiento}</small>}
             </div>
 
-            {/* Correo */}
-            <div className="mb-3">
-              <label className="block mb-1 text-sm font-medium text-gray-700">Correo Electrónico</label>
-              <InputText type="email" value={form.correo} onChange={(e) => setField('correo', e.target.value)} className="w-full" />
-              {touched.correo && errors.correo && <small className="p-error">{errors.correo}</small>}
+            {/* Correo + botón enviar código */}
+            <div className="mb-3 flex gap-2">
+              <div className="flex-1">
+                <label className="block mb-1 text-sm font-medium text-gray-700">Correo Electrónico</label>
+                <InputText type="email" value={form.correo} onChange={(e) => setField('correo', e.target.value)} className="w-full" />
+                {touched.correo && errors.correo && <small className="p-error">{errors.correo}</small>}
+              </div>
+              <div className="flex align-items-end">
+                <Button
+                  label={sendingCode ? 'Enviando...' : 'Enviar código'}
+                  icon="pi pi-send"
+                  onClick={handleSendCode}
+                  disabled={sendingCode || !form.correo}
+                />
+              </div>
             </div>
 
-            {/* Contraseñas (solo para modo LOCAL) */}
+            {/* Código de verificación */}
+            <div className="mb-3">
+              <label className="block mb-1 text-sm font-medium text-gray-700">Código de verificación</label>
+              <InputText value={form.codigoVerificacion} onChange={(e) => setField('codigoVerificacion', e.target.value)} className="w-full" />
+              {touched.codigoVerificacion && errors.codigoVerificacion && (
+                <small className="p-error">{errors.codigoVerificacion}</small>
+              )}
+            </div>
+
+            {/* Contraseñas */}
             <div className="mb-3">
               <label className="block mb-1 text-sm font-medium text-gray-700">Contraseña</label>
               <Password value={form.contrasena} onChange={(e) => setField('contrasena', e.target.value)} toggleMask className="w-full" feedback />
@@ -251,7 +298,7 @@ const RegistroUsuario: React.FC = () => {
               <div className="flex-1 border-top surface-200" />
             </div>
 
-            {/* Botón registro con Google (Firebase) */}
+            {/* Botón registro con Google */}
             <Button
               type="button"
               label="Registrarme con Google"

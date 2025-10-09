@@ -3,17 +3,16 @@ export const runtime = 'nodejs';
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 const pool = db;
-
 import bcrypt from 'bcryptjs';
 
-// Firebase Admin (solo se usa si llega Authorization)
+// Firebase Admin SDK
 import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 
 // 👇 Ajusta al ID real de "Prefiero no decir"
 const DEFAULT_GENERO_ID = 4;
 
-// Inicializa Firebase Admin una sola vez
+// Inicializa Firebase Admin solo una vez
 if (!getApps().length) {
   initializeApp({
     credential: cert({
@@ -24,30 +23,35 @@ if (!getApps().length) {
   });
 }
 
-// GET simple
+/**
+ * GET simple
+ */
 export async function GET() {
-  return NextResponse.json({ ok: true, path: '/api/auth/upsert', modes: ['firebase', 'local'] });
+  return NextResponse.json({
+    ok: true,
+    path: '/api/auth/register',
+    modes: ['firebase', 'local+verificacion'],
+  });
 }
 
 /**
- * POST /api/auth/upsert
+ * POST /api/auth/register
  * Modo Firebase:
- *  - Header: Authorization: Bearer <ID_TOKEN_FIREBASE>
- *  - Body: { nombres?, apellidos?, telefono?, genero_id?, fecha_nacimiento?, rolDefecto?, tipoPersona?, correo? }
+ *   - Header: Authorization: Bearer <ID_TOKEN_FIREBASE>
+ *   - Body opcional: { nombres?, apellidos?, telefono?, genero_id?, fecha_nacimiento?, rolDefecto?, tipoPersona? }
  *
  * Modo Local (sin token):
- *  - Body: {
- *      nombres, apellidos?, telefono?, genero_id?, fecha_nacimiento?,
- *      email, password,
- *      rolDefecto?, tipoPersona?, estadoUsuario? (FK estado, ej. 1=ACTIVO)
- *    }
+ *   - Body: {
+ *       nombres, apellidos?, telefono?, genero_id?, fecha_nacimiento?,
+ *       email, password, codigoVerificacion,
+ *       rolDefecto?, tipoPersona?, estadoUsuario?
+ *     }
  */
 export async function POST(req: Request) {
   const conn = await pool.getConnection();
   try {
     const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') || '';
-    const rawBody = await req.json().catch(() => ({} as any));
-    const body: any = rawBody || {};
+    const body: any = await req.json();
 
     // Campos comunes
     const nombresBody = (body?.nombres ?? '').trim();
@@ -68,25 +72,24 @@ export async function POST(req: Request) {
       let decoded;
       try {
         decoded = await getAuth().verifyIdToken(token);
-      } catch (e: any) {
-        return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
+      } catch {
+        return NextResponse.json({ error: 'Token Firebase inválido.' }, { status: 401 });
       }
 
       const firebaseUid = decoded.uid;
       const emailFromToken = decoded.email || '';
       const correo = (body?.correo || emailFromToken).trim();
-
       const nombres =
         nombresBody ||
         (decoded.name ? String(decoded.name) : '') ||
         (correo ? String(correo).split('@')[0] : '');
 
       if (!correo)
-        return NextResponse.json({ error: 'Correo requerido' }, { status: 400 });
+        return NextResponse.json({ error: 'Correo requerido.' }, { status: 400 });
       if (!nombres)
-        return NextResponse.json({ error: 'Nombres requeridos' }, { status: 400 });
+        return NextResponse.json({ error: 'Nombres requeridos.' }, { status: 400 });
 
-      // ✅ Usa el SP de Firebase directamente
+      // ✅ Llama al SP de Firebase
       const [resultSets]: any = await conn.query(
         `CALL mydb.sp_registro_persona_y_usuario_firebase(?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
@@ -102,7 +105,7 @@ export async function POST(req: Request) {
         ]
       );
 
-      // 🧾 Registrar en bitácora (usa Id_Usuario_PK si existe)
+      // 🧾 Bitácora
       const [[usuario]]: any = await conn.query(
         `SELECT Id_Usuario_PK FROM mydb.TBL_MS_USUARIO 
          WHERE Firebase_UID = ? OR Correo_Electronico = ? 
@@ -130,38 +133,45 @@ export async function POST(req: Request) {
     }
 
     // ───────────────────────────────────────────────
-    // 🔹 MODO 2: LOCAL (sin token, requiere email y password)
+    // 🔹 MODO 2: LOCAL (sin token, con verificación)
     // ───────────────────────────────────────────────
     const email = (body?.email ?? '').trim();
     const password = body?.password ?? '';
+    const codigoVerificacion = (body?.codigoVerificacion ?? '').trim();
     const estadoUsuario = Number(body?.estadoUsuario ?? 1); // ACTIVO por defecto
 
-    if (!email || !password || !nombresBody) {
+    if (!email || !password || !nombresBody || !codigoVerificacion) {
       return NextResponse.json(
-        { error: 'Faltan datos obligatorios (email/password/nombres)' },
+        {
+          error:
+            'Faltan datos obligatorios: correo, contraseña, nombres o código de verificación.',
+        },
         { status: 400 }
       );
     }
+
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json({ error: 'Correo inválido' }, { status: 400 });
+      return NextResponse.json({ error: 'Correo inválido.' }, { status: 400 });
     }
+
     if (String(password).length < 8) {
       return NextResponse.json(
-        { error: 'Contraseña mínima de 8 caracteres' },
+        { error: 'La contraseña debe tener al menos 8 caracteres.' },
         { status: 400 }
       );
     }
 
-    // 🔒 Hashear contraseña
-    const hash = await bcrypt.hash(String(password), 12);
+    // 🔐 Hash + salt
+    const salt = bcrypt.genSaltSync(10);
+    const passwordHash = bcrypt.hashSync(password, salt);
 
-    // ✅ Usa el SP local directamente
+    // ✅ SP con verificación de correo
     const [resultSets]: any = await conn.query(
-      `CALL mydb.sp_registro_persona_y_usuario_local(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `CALL mydb.sp_registro_persona_y_usuario_con_verificacion(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         email,
-        Buffer.from(hash), // VARBINARY
-        null, // salt
+        Buffer.from(passwordHash),
+        Buffer.from(salt),
         nombresBody,
         apellidos,
         genero_id,
@@ -170,13 +180,15 @@ export async function POST(req: Request) {
         rolDefecto,
         tipoPersona,
         estadoUsuario,
+        codigoVerificacion,
       ]
     );
 
-    // 🧾 Registrar en bitácora
+    // 🧾 Bitácora
     const [[usuario]]: any = await conn.query(
       `SELECT Id_Usuario_PK FROM mydb.TBL_MS_USUARIO 
-       WHERE Correo_Electronico = ? ORDER BY Id_Usuario_PK DESC LIMIT 1`,
+       WHERE Correo_Electronico = ? 
+       ORDER BY Id_Usuario_PK DESC LIMIT 1`,
       [email]
     );
 
@@ -190,9 +202,15 @@ export async function POST(req: Request) {
     const ids =
       Array.isArray(resultSets) && resultSets.length ? resultSets[0] : null;
 
-    return NextResponse.json({ ok: true, mode: 'local', email, ids });
+    return NextResponse.json({
+      ok: true,
+      mode: 'local',
+      message: 'Usuario registrado correctamente con verificación de correo.',
+      email,
+      ids,
+    });
   } catch (err: any) {
-    console.error('❌ Error en /api/auth/upsert:', err);
+    console.error('❌ Error en /api/auth/register:', err);
     return NextResponse.json(
       {
         error: 'Fallo en registro',
