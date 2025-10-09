@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     });
 
     await transporter.sendMail({
-      from: `"SIGMOT" <${process.env.SMTP_USER}>`,
+      from: `"SAENZ Soporte" <${process.env.SMTP_USER}>`,
       to: email,
       subject: 'Código de verificación',
         html: `
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
             </div>
 
             <div style="padding: 30px; text-align: center; color: #333;">
-                <p style="font-size: 16px;">Hola usuario,</p>
+                <p style="font-size: 16px;">Hola,</p>
                 <p style="font-size: 15px; color: #555;">
                 Tu código de verificación es:
                 </p>

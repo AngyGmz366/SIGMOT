@@ -56,7 +56,8 @@ export async function POST(req: Request) {
     const link = `${process.env.APP_URL}/auth/reset-success?token=${token}`;
 
     // 5️⃣ Cargar logo local y convertir a Base64
-    const logoPath = path.resolve('./public/demo/images/login/LOGO-SIGMOT.png');
+    const logoPath = path.join(process.cwd(), 'public', 'demo', 'images', 'login', 'LOGO-SIGMOT.png');
+
     let logoBase64 = '';
     try {
       const logoBuffer = fs.readFileSync(logoPath);
@@ -73,7 +74,7 @@ export async function POST(req: Request) {
           <div style="background-color: #004aad; padding: 20px; text-align: center;">
             ${
               logoBase64
-                ? `<img src="${logoBase64}" alt="SAENZ Logo" width="100" style="margin-bottom: 10px;" />`
+                ? `<img src="${logoBase64}" alt="SAENZ Logo" width="50" style="margin-bottom: 2px;" />`
                 : `<h2 style="color:white;margin:0;">SAENZ</h2>`
             }
             <h1 style="color: white; margin: 0;">TRANSPORTES SAENZ</h1>
