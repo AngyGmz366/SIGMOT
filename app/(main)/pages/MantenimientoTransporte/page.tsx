@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from 'primereact/button';
+import { Dropdown } from 'primereact/dropdown';
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
@@ -23,22 +24,33 @@ import esLocale from '@fullcalendar/core/locales/es';
 import { Tooltip } from 'primereact/tooltip';
 import { Accordion, AccordionTab } from 'primereact/accordion';
 import { Badge } from 'primereact/badge';
+import { listarUnidades } from '@/modulos/unidades/servicios/unidades.servicios';
+import { obtenerTiposMantenimiento } from '@/modulos/mantenimientos/servicios/tipoMantenimiento.servicios';
+import { obtenerEstadosMantenimiento } from '@/modulos/mantenimientos/servicios/estadoMantenimiento.servicios';
+import {
+    listarMantenimientos,
+    crearMantenimiento,
+    actualizarMantenimiento,
+    eliminarMantenimiento
+} from '@/modulos/mantenimientos/servicios/mantenimientos.servicios';
 
 const MantenimientoTransporte = () => {
     const emptyServicio = {
-        id: '',
+        id: null,
         vehiculo: '',
         placa: '',
         tipoServicio: '',
-        fecha: '',
+        fecha: null,
+        fechaRealizada: null,
+        proximoMantenimiento: null,
         kilometraje: 0,
-        taller: '',
+        estado: '',
         descripcion: '',
-        repuestos: '',
         costo: 0,
-        documentos: null,
-        estado: 'Pendiente' // Nuevo campo con valor por defecto
+        taller: '',
+        repuestos: '',
     };
+
 
     const [servicios, setServicios] = useState<any[]>([]);
     const [servicio, setServicio] = useState<any>(emptyServicio);
@@ -50,8 +62,60 @@ const MantenimientoTransporte = () => {
     const [alertas, setAlertas] = useState<any[]>([]);
     const [vehiculosDetalle, setVehiculosDetalle] = useState<any[]>([]);
     const toast = useRef<Toast>(null);
+    const [tiposMantenimiento, setTiposMantenimiento] = useState<TipoMantenimiento[]>([]);
+    const [estadosMantenimiento, setEstadosMantenimiento] = useState<EstadoMantenimiento[]>([]);
+
 
     const [resumen, setResumen] = useState({ verde: 0, amarillo: 0, rojo: 0 });
+
+    useEffect(() => {
+        async function cargarMantenimientos() {
+            try {
+                const data = await listarMantenimientos();
+
+                // 🔧 Mapear nombres de columnas desde BD a los usados en el front
+                const transformados = data.map((m: any) => ({
+                    id: m.Id_Mantenimiento_PK,
+                    vehiculo: m.Marca_Unidad || m.Vehiculo || '',
+                    placa: m.Numero_Placa || m.Placa || '',
+                    tipoServicio: m.Servicio || m.Tipo_Servicio || '',
+                    estado: m.Estado || '',
+                    fecha: m.Fecha_Programada || m.Fecha || null,
+                    fechaRealizada: m.Fecha_Realizada || m.FechaRealizada || null,
+                    proximoMantenimiento: m.Proximo_Mantenimiento || m.ProximoMantenimiento || null,
+                    kilometraje: m.Kilometraje || 0,
+                    taller: m.Taller || '',
+                    descripcion: m.Descripcion || '',
+                    repuestos: m.Repuestos || '',
+                    costo: m.Costo_Total || 0,
+                }));
+
+                setServicios(transformados);
+            } catch (error) {
+                console.error('❌ Error al listar mantenimientos:', error);
+            }
+        }
+
+        cargarMantenimientos();
+    }, []);
+
+    useEffect(() => {
+        async function cargarCatalogos() {
+            try {
+                const [tipos, estados] = await Promise.all([
+                    obtenerTiposMantenimiento(),
+                    obtenerEstadosMantenimiento(),
+                ]);
+                setTiposMantenimiento(tipos);
+                setEstadosMantenimiento(estados);
+            } catch (error) {
+                console.error('❌ Error al cargar catálogos de mantenimiento:', error);
+            }
+        }
+
+        cargarCatalogos();
+    }, []);
+
 
     useEffect(() => {
         addLocale('es', {
@@ -137,12 +201,12 @@ const MantenimientoTransporte = () => {
             acc[key].servicios.push(servicio);
             acc[key].totalServicios++;
             acc[key].costoTotal += servicio.costo || 0;
-            
+
             // Encontrar el último servicio (más reciente)
             if (!acc[key].ultimoServicio || new Date(servicio.fecha) > new Date(acc[key].ultimoServicio.fecha)) {
                 acc[key].ultimoServicio = servicio;
             }
-            
+
             return acc;
         }, {});
 
@@ -187,28 +251,59 @@ const MantenimientoTransporte = () => {
     };
 
     const editServicio = (rowData: any) => {
-        setServicio({ ...rowData });
+        const tipoSeleccionado = tiposMantenimiento.find(
+            (t: any) => t.Servicio === rowData.tipoServicio
+        );
+        const estadoSeleccionado = estadosMantenimiento.find(
+            (e: any) => e.Estado === rowData.estado
+        );
+        const unidadSeleccionada = unidades.find(
+            (u) => `${u.Marca_Unidad} ${u.Modelo} (${u.Año})` === rowData.vehiculo
+        );
+
+        setServicio({
+            ...rowData,
+            Id_TipoManto_FK: tipoSeleccionado ? tipoSeleccionado.Id : null,
+            Id_EstadoManto_FK: estadoSeleccionado ? estadoSeleccionado.Id : null,
+            Id_Unidad_FK: unidadSeleccionada ? unidadSeleccionada.Id_Unidad_PK : null,
+            fecha: rowData.fecha ? new Date(rowData.fecha) : null,
+            fechaRealizada: rowData.fechaRealizada ? new Date(rowData.fechaRealizada) : null,
+            proximoMantenimiento: rowData.proximoMantenimiento ? new Date(rowData.proximoMantenimiento) : null,
+        });
+
         setServicioDialog(true);
     };
 
-    const deleteServicio = (rowData: any) => {
-        const updatedServicios = servicios.filter((s) => s.id !== rowData.id);
-        setServicios(updatedServicios);
 
-        toast.current?.show({
-            severity: 'success',
-            summary: 'Eliminado',
-            detail: 'Servicio eliminado correctamente',
-            life: 3000
-        });
+    const deleteServicio = async (rowData: any) => {
+        try {
+            await eliminarMantenimiento(rowData.id);
+            const data = await listarMantenimientos();
+            setServicios(data);
+
+            toast.current?.show({
+                severity: 'success',
+                summary: 'Eliminado',
+                detail: 'Mantenimiento eliminado correctamente',
+                life: 3000
+            });
+        } catch (error) {
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudo eliminar el mantenimiento',
+                life: 3000
+            });
+        }
     };
+
 
     const verDetalleServicio = (rowData: any) => {
         setServicioSeleccionado(rowData);
         setDetalleServicioDialog(true);
     };
 
-    
+
     const accionesTemplate = (rowData: any) => (
         <div className="flex gap-2">
             <Button icon="pi pi-eye" rounded text severity="info" aria-label="Ver Detalle" onClick={() => verDetalleServicio(rowData)} />
@@ -217,40 +312,151 @@ const MantenimientoTransporte = () => {
         </div>
     );
 
-    const saveServicio = () => {
+    interface TipoMantenimiento {
+        Id: number;
+        Servicio: string;
+        Descripcion: string;
+    }
+
+    interface EstadoMantenimiento {
+        Id: number;
+        Estado: string;
+        Descripcion: string;
+    }
+
+    const saveServicio = async () => {
         setSubmitted(true);
 
-        if (servicio.vehiculo.trim()) {
-            let _servicios = [...servicios];
-            let _servicio = { ...servicio };
+        try {
+            // Validar campos obligatorios del formulario
+            if (!servicio.Id_Unidad_FK) {
+                toast.current?.show({
+                    severity: 'warn',
+                    summary: 'Unidad requerida',
+                    detail: 'Debes seleccionar una unidad o vehículo.',
+                    life: 3000,
+                });
+                return;
+            }
 
-            if (_servicio.id) {
-                const index = _servicios.findIndex((s) => s.id === _servicio.id);
-                _servicios[index] = _servicio;
+            if (!servicio.Id_TipoManto_FK) {
+                toast.current?.show({
+                    severity: 'warn',
+                    summary: 'Tipo requerido',
+                    detail: 'Selecciona el tipo de mantenimiento.',
+                    life: 3000,
+                });
+                return;
+            }
 
+            if (!servicio.Id_EstadoManto_FK) {
+                toast.current?.show({
+                    severity: 'warn',
+                    summary: 'Estado requerido',
+                    detail: 'Selecciona el estado del mantenimiento.',
+                    life: 3000,
+                });
+                return;
+            }
+
+            if (!servicio.proximoMantenimiento) {
+                toast.current?.show({
+                    severity: 'warn',
+                    summary: 'Fecha requerida',
+                    detail: 'Debes seleccionar la fecha del próximo mantenimiento.',
+                    life: 3000,
+                });
+                return;
+            }
+
+            if (servicio.fecha && servicio.proximoMantenimiento <= servicio.fecha) {
+                toast.current?.show({
+                    severity: 'warn',
+                    summary: 'Fecha inválida',
+                    detail: 'La fecha del próximo mantenimiento debe ser mayor a la programada.',
+                    life: 4000,
+                });
+                return;
+            }
+
+            // 🔧 Mapeo de campos reales que espera el SP `sp_mantenimiento_crear`
+            const payload = {
+                Id_Unidad_FK: servicio.Id_Unidad_FK,
+                Id_TipoManto_FK: servicio.Id_TipoManto_FK,
+                Id_EstadoManto_FK: servicio.Id_EstadoManto_FK,
+                Fecha_Programada: servicio.fecha
+                    ? new Date(servicio.fecha).toISOString().split('T')[0]
+                    : null,
+                Fecha_Realizada: servicio.fechaRealizada
+                    ? new Date(servicio.fechaRealizada).toISOString().split('T')[0]
+                    : null,
+                Proximo_Mantenimiento: servicio.proximoMantenimiento
+                    ? new Date(servicio.proximoMantenimiento).toISOString().split('T')[0]
+                    : null,
+                Kilometraje: servicio.kilometraje,
+                Descripcion: servicio.descripcion,
+                Costo_Total: servicio.costo,
+                Taller: servicio.taller,
+                Repuestos: servicio.repuestos,
+            };
+
+
+            if (servicio.id) {
+                // 🔄 Actualizar mantenimiento existente
+                await actualizarMantenimiento(servicio.id, payload);
                 toast.current?.show({
                     severity: 'success',
                     summary: 'Actualizado',
-                    detail: 'Servicio actualizado correctamente',
-                    life: 3000
+                    detail: 'Mantenimiento actualizado correctamente',
+                    life: 3000,
                 });
             } else {
-                _servicio.id = createId();
-                _servicios.push(_servicio);
-
+                // 🆕 Crear nuevo mantenimiento
+                await crearMantenimiento(payload);
                 toast.current?.show({
                     severity: 'success',
                     summary: 'Guardado',
-                    detail: 'Servicio registrado correctamente',
-                    life: 3000
+                    detail: 'Mantenimiento registrado correctamente',
+                    life: 3000,
                 });
             }
 
-            setServicios(_servicios);
+            // Refrescar lista y cerrar modal
+            const data = await listarMantenimientos();
+            setServicios(data);
             setServicioDialog(false);
             setServicio(emptyServicio);
+        } catch (error) {
+            console.error('❌ Error al guardar mantenimiento:', error);
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudo guardar el mantenimiento.',
+                life: 3000,
+            });
         }
     };
+
+    interface Unidad {
+        Id_Unidad_PK: number;
+        Numero_Placa: string;
+        Marca_Unidad: string;
+        Modelo: string;
+        Año: number;
+    }
+    const [unidades, setUnidades] = useState<Unidad[]>([]);
+    useEffect(() => {
+        async function cargarUnidades() {
+            try {
+                const data = await listarUnidades();
+                setUnidades(data);
+            } catch (error) {
+                console.error('❌ Error al cargar unidades:', error);
+            }
+        }
+        cargarUnidades();
+    }, []);
+
 
     const meses = [
         'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -297,9 +503,10 @@ const MantenimientoTransporte = () => {
 
     const [filtroPlaca, setFiltroPlaca] = useState('');
 
-    const serviciosFiltrados = servicios.filter(s =>
-        s.placa.toLowerCase().includes(filtroPlaca.toLowerCase())
+    const serviciosFiltrados = servicios.filter(
+        (s) => (s.placa?.toLowerCase() || '').includes(filtroPlaca.toLowerCase())
     );
+
 
     const getAlertColor = (diasRestantes: number) => {
         if (diasRestantes < 0) {
@@ -327,24 +534,41 @@ const MantenimientoTransporte = () => {
     };
 
     const getEstadoBadge = (estado: string) => {
-        return estado === 'Completado' 
+        return estado === 'Completado'
             ? <Badge value="Completado" severity="success" />
             : <Badge value="Pendiente" severity="danger" />;
     };
+
+    const servicioDialogFooter = (
+        <>
+            <Button
+                label="Cancelar"
+                icon="pi pi-times"
+                className="p-button-text"
+                onClick={hideDialog}
+            />
+            <Button
+                label="Guardar"
+                icon="pi pi-check"
+                className="p-button-text"
+                onClick={saveServicio}
+            />
+        </>
+    );
 
     return (
         <div className="grid">
             <Toast ref={toast} />
 
             <div className="col-12">
-                <Toolbar 
-                    className="mb-4" 
+                <Toolbar
+                    className="mb-4"
                     left={
                         <div className="flex gap-2">
                             <Button label="Nuevo Servicio" icon="pi pi-plus" severity="success" onClick={openNew} />
                             <Button label="Ver Detalle por Vehículo" icon="pi pi-eye" severity="info" onClick={verDetalle} />
                         </div>
-                    } 
+                    }
                 />
 
                 <div className="card">
@@ -407,7 +631,7 @@ const MantenimientoTransporte = () => {
                             .map((alerta, index) => {
                                 let mensaje = '';
                                 const estadoTexto = alerta.estado === 'Completado' ? ' (Completado)' : ' (Pendiente)';
-                                
+
                                 if (alerta.diasRestantes < 0) {
                                     mensaje = `⚠️ ¡VENCIDO! El ${alerta.vehiculo} (${alerta.placa}) tiene un ${alerta.tipoServicio} vencido desde hace ${Math.abs(alerta.diasRestantes)} días${estadoTexto}. Fecha: ${formatearFechaAlerta(alerta.fecha)}.`;
                                 } else if (alerta.diasRestantes === 0) {
@@ -479,8 +703,39 @@ const MantenimientoTransporte = () => {
                         <Column field="vehiculo" header="Vehículo" />
                         <Column field="placa" header="Placa" />
                         <Column field="tipoServicio" header="Tipo de Servicio" />
-                        <Column header="Estado" body={(rowData) => getEstadoBadge(rowData.estado)} />
-                        <Column header="Fecha" body={(rowData) => formatearFechaHora(rowData.fecha)} />
+                        <Column
+                            header="Estado"
+                            body={(rowData) => {
+                                const estado = rowData.estado?.toUpperCase() || 'PENDIENTE';
+                                let color = '';
+
+                                switch (estado) {
+                                    case 'PROGRAMADO':
+                                        color = 'bg-blue-100 text-blue-800';
+                                        break;
+                                    case 'EN_PROCESO':
+                                        color = 'bg-yellow-100 text-yellow-800';
+                                        break;
+                                    case 'COMPLETADO':
+                                        color = 'bg-green-100 text-green-800';
+                                        break;
+                                    case 'CANCELADO':
+                                        color = 'bg-red-100 text-red-800';
+                                        break;
+                                    default:
+                                        color = 'bg-gray-200 text-gray-700';
+                                }
+
+                                return (
+                                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${color}`}>
+                                        {estado}
+                                    </span>
+                                );
+                            }}
+                        />
+                        <Column field="fecha" header="Fecha Programada" sortable />
+                        <Column field="fechaRealizada" header="Fecha Realizada" sortable />
+                        <Column field="proximoMantenimiento" header="Próximo Mantenimiento" sortable />
                         <Column field="kilometraje" header="Kilometraje" />
                         <Column field="taller" header="Taller" />
                         <Column field="descripcion" header="Descripción" />
@@ -546,109 +801,210 @@ const MantenimientoTransporte = () => {
             </div>
 
             {/* DIALOGO FORMULARIO */}
-            <Dialog visible={servicioDialog} style={{ width: '600px' }} header="Registro de Servicio" modal className="p-fluid" onHide={hideDialog}
-                footer={<><Button label="Cancelar" icon="pi pi-times" text onClick={hideDialog} /><Button label="Guardar" icon="pi pi-check" text onClick={saveServicio} /></>}>
+            <Dialog
+                visible={servicioDialog}
+                style={{ width: '50rem' }}
+                header={servicio.id ? 'Editar Mantenimiento' : 'Nuevo Mantenimiento'}
+                modal
+                className="p-fluid"
+                footer={servicioDialogFooter}
+                onHide={hideDialog}
+            >
+                {/* 🚍 Unidad / Vehículo */}
                 <div className="field">
-                    <label htmlFor="vehiculo">Vehículo</label>
-                    <InputText id="vehiculo" value={servicio.vehiculo} onChange={(e) => onInputChange(e, 'vehiculo')} required autoFocus />
+                    <label htmlFor="vehiculo">Unidad / Vehículo</label>
+                    <Dropdown
+                        id="vehiculo"
+                        value={servicio.Id_Unidad_FK}
+                        options={unidades.map((u) => ({
+                            label: `${u.Numero_Placa} – ${u.Marca_Unidad} ${u.Modelo} (${u.Año})`,
+                            value: u.Id_Unidad_PK,
+                        }))}
+                        onChange={(e) => {
+                            const unidadSeleccionada = unidades.find(
+                                (u) => u.Id_Unidad_PK === e.value
+                            );
+                            setServicio({
+                                ...servicio,
+                                Id_Unidad_FK: e.value,
+                                vehiculo: unidadSeleccionada
+                                    ? `${unidadSeleccionada.Numero_Placa} – ${unidadSeleccionada.Marca_Unidad} ${unidadSeleccionada.Modelo} (${unidadSeleccionada.Año})`
+                                    : '',
+                            });
+                        }}
+                        placeholder="Selecciona una unidad"
+                        className="w-full"
+                    />
                 </div>
 
+                {/* 🔧 Tipo de Mantenimiento */}
                 <div className="field">
-                    <label htmlFor="placa">Número de Placa</label>
-                    <InputText id="placa" value={servicio.placa} onChange={(e) => onInputChange(e, 'placa')} required />
+                    <label htmlFor="tipoServicio">Tipo de mantenimiento</label>
+                    <Dropdown
+                        id="tipoServicio"
+                        value={servicio.Id_TipoManto_FK}
+                        options={tiposMantenimiento.map((t) => ({
+                            label: `${t.Servicio} – ${t.Descripcion}`,
+                            value: t.Id,
+                        }))}
+                        onChange={(e) =>
+                            setServicio({ ...servicio, Id_TipoManto_FK: e.value })
+                        }
+                        placeholder="Selecciona tipo"
+                        className="w-full"
+                    />
                 </div>
 
+                {/* 📅 Fecha Programada */}
                 <div className="field">
-                    <label>Tipo de Servicio</label>
-                    <div className="formgrid grid">
-                        <div className="field-radiobutton col-4">
-                            <RadioButton inputId="preventivo" name="tipoServicio" value="Preventivo" onChange={onCategoryChange} checked={servicio.tipoServicio === 'Preventivo'} />
-                            <label htmlFor="preventivo">Preventivo</label>
-                        </div>
-                        <div className="field-radiobutton col-4">
-                            <RadioButton inputId="correctivo" name="tipoServicio" value="Correctivo" onChange={onCategoryChange} checked={servicio.tipoServicio === 'Correctivo'} />
-                            <label htmlFor="correctivo">Correctivo</label>
-                        </div>
-                        <div className="field-radiobutton col-4">
-                            <RadioButton inputId="inspeccion" name="tipoServicio" value="Inspección técnica" onChange={onCategoryChange} checked={servicio.tipoServicio === 'Inspección técnica'} />
-                            <label htmlFor="inspeccion">Inspección técnica</label>
-                        </div>
-                    </div>
+                    <label htmlFor="fecha">Fecha Programada</label>
+                    <Calendar
+                        id="fecha"
+                        value={servicio.fecha}
+                        onChange={(e) => setServicio({ ...servicio, fecha: e.value })}
+                        dateFormat="yy-mm-dd"
+                        showIcon
+                        className="w-full"
+                    />
                 </div>
 
+                {/* 📅 Fecha Realizada (opcional) */}
                 <div className="field">
-                    <label>Estado</label>
-                    <div className="formgrid grid">
-                        <div className="field-radiobutton col-6">
-                            <RadioButton inputId="completado" name="estado" value="Completado" onChange={onEstadoChange} checked={servicio.estado === 'Completado'} />
-                            <label htmlFor="completado">Completado</label>
-                        </div>
-                        <div className="field-radiobutton col-6">
-                            <RadioButton inputId="pendiente" name="estado" value="Pendiente" onChange={onEstadoChange} checked={servicio.estado === 'Pendiente'} />
-                            <label htmlFor="pendiente">Pendiente</label>
-                        </div>
-                    </div>
+                    <label htmlFor="fechaRealizada">Fecha Realizada</label>
+                    <Calendar
+                        id="fechaRealizada"
+                        value={servicio.fechaRealizada}
+                        onChange={(e) => setServicio({ ...servicio, fechaRealizada: e.value })}
+                        dateFormat="yy-mm-dd"
+                        showIcon
+                        className="w-full"
+                        placeholder="Opcional"
+                    />
                 </div>
 
-                <div className="formgrid grid">
-                    <div className="field col">
-                        <label htmlFor="fecha">Fecha</label>
-                        <Calendar
-                            id="fecha"
-                            value={servicio.fecha ? new Date(servicio.fecha) : null}
-                            onChange={(e) => {
-                                const val = e.value;
-                                let _servicio = { ...servicio };
-                                _servicio.fecha = val ? val.toISOString() : '';
-                                setServicio(_servicio);
-                            }}
-                            dateFormat="yy-mm-dd"
-                            locale="es"
-                            showIcon
-                            showTime
-                            hourFormat="24"
-                            showButtonBar
-                        />
-                    </div>
-
-                    <div className="field col">
-                        <label htmlFor="kilometraje">Kilometraje</label>
-                        <InputNumber id="kilometraje" value={servicio.kilometraje} onValueChange={(e) => onInputNumberChange(e, 'kilometraje')} />
-                    </div>
-                </div>
-
+                {/* 📅 Próximo Mantenimiento (obligatorio y > fecha programada) */}
                 <div className="field">
-                    <label htmlFor="taller">Taller</label>
-                    <InputText id="taller" value={servicio.taller} onChange={(e) => onInputChange(e, 'taller')} />
+                    <label htmlFor="proximoMantenimiento">Próximo Mantenimiento</label>
+                    <Calendar
+                        id="proximoMantenimiento"
+                        value={servicio.proximoMantenimiento}
+                        onChange={(e) => {
+                            const seleccionada = e.value;
+                            const fechaProgramada = servicio.fecha;
+
+                            if (fechaProgramada && seleccionada && seleccionada <= fechaProgramada) {
+                                toast.current?.show({
+                                    severity: 'warn',
+                                    summary: 'Fecha inválida',
+                                    detail: 'La fecha del próximo mantenimiento debe ser mayor a la programada.',
+                                    life: 4000,
+                                });
+                                return;
+                            }
+
+                            setServicio({ ...servicio, proximoMantenimiento: seleccionada });
+                        }}
+                        dateFormat="yy-mm-dd"
+                        showIcon
+                        className="w-full"
+                        required
+                    />
                 </div>
 
+                {/* 🧭 Kilometraje */}
+                <div className="field">
+                    <label htmlFor="kilometraje">Kilometraje</label>
+                    <InputNumber
+                        id="kilometraje"
+                        value={servicio.kilometraje}
+                        onValueChange={(e) =>
+                            setServicio({ ...servicio, kilometraje: e.value || 0 })
+                        }
+                        min={0}
+                        placeholder="Ej. 150000"
+                        className="w-full"
+                    />
+                </div>
+
+                {/* 🏷️ Estado del mantenimiento */}
+                <div className="field">
+                    <label htmlFor="estado">Estado del mantenimiento</label>
+                    <Dropdown
+                        id="estado"
+                        value={servicio.Id_EstadoManto_FK}
+                        options={estadosMantenimiento.map((e) => ({
+                            label: `${e.Estado} – ${e.Descripcion}`,
+                            value: e.Id,
+                        }))}
+                        onChange={(e) =>
+                            setServicio({ ...servicio, Id_EstadoManto_FK: e.value })
+                        }
+                        placeholder="Selecciona estado"
+                        className="w-full"
+                    />
+                </div>
+
+                {/* 💬 Descripción */}
                 <div className="field">
                     <label htmlFor="descripcion">Descripción</label>
-                    <InputTextarea id="descripcion" value={servicio.descripcion} onChange={(e) => onInputChange(e, 'descripcion')} rows={3} />
+                    <InputTextarea
+                        id="descripcion"
+                        value={servicio.descripcion}
+                        onChange={(e) =>
+                            setServicio({ ...servicio, descripcion: e.target.value })
+                        }
+                        rows={3}
+                        placeholder="Detalle del mantenimiento realizado o planificado"
+                    />
                 </div>
 
+                {/* 💰 Costo total */}
                 <div className="field">
-                    <label htmlFor="repuestos">Repuestos</label>
-                    <InputTextarea id="repuestos" value={servicio.repuestos} onChange={(e) => onInputChange(e, 'repuestos')} rows={2} />
+                    <label htmlFor="costo">Costo Total (L)</label>
+                    <InputNumber
+                        id="costo"
+                        value={servicio.costo}
+                        onValueChange={(e) =>
+                            setServicio({ ...servicio, costo: e.value || 0 })
+                        }
+                        mode="currency"
+                        currency="HNL"
+                        locale="es-HN"
+                        className="w-full"
+                    />
                 </div>
 
+                {/* 🧰 Taller */}
                 <div className="field">
-                    <label htmlFor="costo">Costo</label>
-                    <InputNumber id="costo" value={servicio.costo} onValueChange={(e) => onInputNumberChange(e, 'costo')} mode="currency" currency="HNL" locale="es-HN" />
+                    <label htmlFor="taller">Taller</label>
+                    <InputText
+                        id="taller"
+                        value={servicio.taller}
+                        onChange={(e) => setServicio({ ...servicio, taller: e.target.value })}
+                        placeholder="Ej. Taller El Motorista"
+                    />
                 </div>
 
+                {/* 🔩 Repuestos */}
                 <div className="field">
-                    <label htmlFor="documentos">Documentos Adjuntos</label>
-                    <FileUpload mode="basic" name="documentos" accept=".pdf,image/*" maxFileSize={1000000} />
+                    <label htmlFor="repuestos">Repuestos utilizados</label>
+                    <InputText
+                        id="repuestos"
+                        value={servicio.repuestos}
+                        onChange={(e) =>
+                            setServicio({ ...servicio, repuestos: e.target.value })
+                        }
+                        placeholder="Ej. Aceite, Filtro de aire"
+                    />
                 </div>
             </Dialog>
 
             {/* DIALOGO DETALLE DE SERVICIO INDIVIDUAL */}
-            <Dialog 
-                visible={detalleServicioDialog} 
-                style={{ width: '600px' }} 
+            <Dialog
+                visible={detalleServicioDialog}
+                style={{ width: '600px' }}
                 header={`Detalles del Servicio: ${servicioSeleccionado?.vehiculo || ''}`}
-                modal 
+                modal
                 onHide={hideDetalleServicioDialog}
                 footer={<Button label="Cerrar" icon="pi pi-times" onClick={hideDetalleServicioDialog} />}
             >
@@ -666,7 +1022,7 @@ const MantenimientoTransporte = () => {
                                 <p className="m-0 mt-1 text-700">{servicioSeleccionado.vehiculo}</p>
                             </div>
                         </div>
-                        
+
                         <div className="col-12 md:col-6">
                             <div className="field">
                                 <label className="font-semibold text-900">Placa:</label>
@@ -679,7 +1035,7 @@ const MantenimientoTransporte = () => {
                                 <p className="m-0 mt-1">{getTipoServicioBadge(servicioSeleccionado.tipoServicio)}</p>
                             </div>
                         </div>
-                        
+
                         <div className="col-12 md:col-6">
                             <div className="field">
                                 <label className="font-semibold text-900">Fecha del Servicio:</label>
@@ -704,9 +1060,9 @@ const MantenimientoTransporte = () => {
                             <div className="field">
                                 <label className="font-semibold text-900">Costo del Servicio:</label>
                                 <p className="m-0 mt-1 text-700 font-bold text-lg">
-                                    {servicioSeleccionado.costo?.toLocaleString('es-HN', { 
-                                        style: 'currency', 
-                                        currency: 'HNL' 
+                                    {servicioSeleccionado.costo?.toLocaleString('es-HN', {
+                                        style: 'currency',
+                                        currency: 'HNL'
                                     }) || 'L. 0.00'}
                                 </p>
                             </div>
@@ -754,11 +1110,11 @@ const MantenimientoTransporte = () => {
             </Dialog>
 
             {/* DIALOGO DETALLE POR VEHÍCULO */}
-            <Dialog 
-                visible={detalleDialog} 
-                style={{ width: '90vw', maxWidth: '1200px' }} 
-                header="Detalle de Mantenimientos por Vehículo" 
-                modal 
+            <Dialog
+                visible={detalleDialog}
+                style={{ width: '90vw', maxWidth: '1200px' }}
+                header="Detalle de Mantenimientos por Vehículo"
+                modal
                 onHide={hideDetalleDialog}
                 footer={<Button label="Cerrar" icon="pi pi-times" onClick={hideDetalleDialog} />}
             >
@@ -787,9 +1143,9 @@ const MantenimientoTransporte = () => {
                                             </div>
                                             <div className="text-center">
                                                 <span className="text-lg font-bold text-primary">
-                                                    {vehiculoData.costoTotal.toLocaleString('es-HN', { 
-                                                        style: 'currency', 
-                                                        currency: 'HNL' 
+                                                    {vehiculoData.costoTotal.toLocaleString('es-HN', {
+                                                        style: 'currency',
+                                                        currency: 'HNL'
                                                     })}
                                                 </span>
                                                 <p className="m-0 text-xs text-500 mt-1">Total</p>
@@ -821,7 +1177,7 @@ const MantenimientoTransporte = () => {
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     {/* Historial de servicios */}
                                     <div className="col-12">
                                         <h6 className="mb-3">Historial de Servicios</h6>
@@ -834,27 +1190,27 @@ const MantenimientoTransporte = () => {
                                             responsiveLayout="scroll"
                                             emptyMessage="No hay servicios para este vehículo."
                                         >
-                                            <Column 
-                                                field="tipoServicio" 
-                                                header="Tipo" 
+                                            <Column
+                                                field="tipoServicio"
+                                                header="Tipo"
                                                 body={(rowData) => getTipoServicioBadge(rowData.tipoServicio)}
                                                 style={{ width: '120px' }}
                                             />
-                                            <Column 
-                                                field="estado" 
-                                                header="Estado" 
+                                            <Column
+                                                field="estado"
+                                                header="Estado"
                                                 body={(rowData) => getEstadoBadge(rowData.estado || 'Pendiente')}
                                                 style={{ width: '100px' }}
                                             />
-                                            <Column 
-                                                header="Fecha" 
+                                            <Column
+                                                header="Fecha"
                                                 body={(rowData) => formatearFechaHora(rowData.fecha)}
                                                 style={{ width: '150px' }}
                                             />
                                             <Column field="kilometraje" header="Km" style={{ width: '80px' }} />
                                             <Column field="taller" header="Taller" style={{ width: '120px' }} />
-                                            <Column 
-                                                field="descripcion" 
+                                            <Column
+                                                field="descripcion"
                                                 header="Descripción"
                                                 body={(rowData) => (
                                                     <div style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -862,8 +1218,8 @@ const MantenimientoTransporte = () => {
                                                     </div>
                                                 )}
                                             />
-                                            <Column 
-                                                field="repuestos" 
+                                            <Column
+                                                field="repuestos"
                                                 header="Repuestos"
                                                 body={(rowData) => (
                                                     <div style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -871,15 +1227,15 @@ const MantenimientoTransporte = () => {
                                                     </div>
                                                 )}
                                             />
-                                            <Column 
-                                                field="costo" header="Costo"  body={(rowData) => rowData.costo?.toLocaleString('es-HN', { style: 'currency', currency: 'HNL', minimumFractionDigits: 2 })} style={{ width: '100px' }}
+                                            <Column
+                                                field="costo" header="Costo" body={(rowData) => rowData.costo?.toLocaleString('es-HN', { style: 'currency', currency: 'HNL', minimumFractionDigits: 2 })} style={{ width: '100px' }}
                                             />
-                                            <Column 
+                                            <Column
                                                 body={(rowData) => (
                                                     <div className="flex gap-1">
-                                                        <Button icon="pi pi-pencil"  rounded  text  size="small"severity="warning" aria-label="Editar" onClick={() => editServicio(rowData)} 
+                                                        <Button icon="pi pi-pencil" rounded text size="small" severity="warning" aria-label="Editar" onClick={() => editServicio(rowData)}
                                                         />
-                                                        <Button icon="pi pi-trash" rounded text size="small" severity="danger" aria-label="Eliminar" onClick={() => deleteServicio(rowData)} 
+                                                        <Button icon="pi pi-trash" rounded text size="small" severity="danger" aria-label="Eliminar" onClick={() => deleteServicio(rowData)}
                                                         />
                                                     </div>
                                                 )}
