@@ -6,7 +6,7 @@ import { db } from "../../../lib/db"; // ruta relativa desde app/api/unidades
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const placa  = searchParams.get("placa");
-  const marca  = searchParams.get("marca");
+  const marcaUnidad  = searchParams.get("marcaUnidad");
   const modelo = searchParams.get("modelo");
   const anio   = searchParams.get("anio");
   const estado = searchParams.get("estado");
@@ -17,7 +17,7 @@ export async function GET(req: Request) {
     "CALL mydb.sp_unidades_listar(?,?,?,?,?,?,?)",
     [
       placa ?? null,
-      marca ?? null,
+      marcaUnidad ?? null,
       modelo ?? null,
       anio ? Number(anio) : null,
       estado ? Number(estado) : null,
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     const b = await req.json();
     const params = [
       b.numeroPlaca,
-      b.marca ?? null,
+      b.marcaUnidad ?? null,
       b.modelo ?? null,
       b.anio ?? null,
       b.capacidadAsientos ?? null,

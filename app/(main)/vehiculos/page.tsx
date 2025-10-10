@@ -16,7 +16,7 @@ import { InputTextarea } from 'primereact/inputtextarea';
 interface Vehiculo {
   id: number
   placa: string
-  marca: string
+  marcaUnidad: string
   modelo: string
   año: number
   capacidadAsientos?: number | null;
@@ -26,16 +26,16 @@ interface Vehiculo {
 const fromDB = (row: any): Vehiculo => ({
   id: row.Id_Unidad_PK,
   placa: row.Numero_Placa,
-  marca: row.Marca_Unidad ?? '',
+  marcaUnidad: row.Marca_Unidad ?? '',
   modelo: row.Modelo ?? '',
   año: row['Año'] ?? 0,              
   capacidadAsientos: row.Capacidad_Asientos ?? null,
   descripcion: row.Descripcion ?? '',
 });
-
+  
 const toPayload = (v: Vehiculo) => ({
   numeroPlaca: v.placa,
-  marca: v.marca || null,
+  marcaUnidad: v.marcaUnidad   || null,
   modelo: v.modelo || null,
   anio: v.año || null,
   capacidadAsientos: v.capacidadAsientos ?? null,
@@ -46,11 +46,11 @@ const toPayload = (v: Vehiculo) => ({
 
 const vehiculoService = {
   guardar: (vehiculos: Vehiculo[], vehiculoActual: Vehiculo) => {
+    // Ya no generamos IDs locales, los IDs vienen de la BD
     if (vehiculoActual.id === 0) {
-      const nuevo = { ...vehiculoActual, id: new Date().getTime() }
-      return [...vehiculos, nuevo]
+      return [...vehiculos];
     } else {
-      return vehiculos.map(v => (v.id === vehiculoActual.id ? vehiculoActual : v))
+      return vehiculos.map(v => (v.id === vehiculoActual.id ? vehiculoActual : v));
     }
   },
   eliminar: (vehiculos: Vehiculo[], id: number) => {
@@ -111,11 +111,11 @@ const VehiculosPage = () => {
     const [mantoFecha, setMantoFecha] = useState<string>('');  // "YYYY-MM-DD"
     const [mantoTaller, setMantoTaller] = useState<string>('');
     const [mantoDesc, setMantoDesc] = useState<string>('');
-const toast = useRef<Toast>(null)
+      const toast = useRef<Toast>(null)
 
 
   const abrirNuevo = () => {
-    setVehiculoActual({ id: 0, placa: '', marca: '', modelo: '', año: new Date().getFullYear(),capacidadAsientos: null,
+    setVehiculoActual({ id: 0, placa: '', marcaUnidad: '', modelo: '', año: new Date().getFullYear(),capacidadAsientos: null,
       descripcion: '', })
     setDialogVisible(true)
   }
@@ -141,9 +141,6 @@ const toast = useRef<Toast>(null)
       setLoading?.(true);
     
       await api.borrar(vehiculoAEliminar.id);       // elimina en la API
-      const data = await api.listar();              // recarga lista desde la BD
-      setVehiculos(data);
-    
       toast.current?.show({ severity: 'success', summary: 'Eliminado', detail: 'Vehículo eliminado' });
     } catch (e: any) {
       toast.current?.show({ severity: 'error', summary: 'Error', detail: e?.message || 'No se pudo eliminar' });
@@ -152,6 +149,9 @@ const toast = useRef<Toast>(null)
       setVehiculoAEliminar(null);
       setLoading?.(false);
     }
+          const data = await api.listar();
+         setVehiculos(data);
+
   }
 
   const guardarVehiculo = async () => {
@@ -169,21 +169,26 @@ const toast = useRef<Toast>(null)
     }
 
     try {
-      setLoading?.(true); // si tienes el estado loading, úsalo
+      setLoading?.(true);
     
       // crea o actualiza en la API
       if (vehiculoActual.id === 0) {
-        await api.crear(vehiculoActual);
+        // Crear
+        const nuevoVehiculo = await api.crear(vehiculoActual);
+        setVehiculos([...vehiculos, nuevoVehiculo]);
         toast.current?.show({ severity: 'success', summary: 'Creado', detail: 'Vehículo creado' });
       } else {
-        await api.actualizar(vehiculoActual);
+        // Actualizar
+        const actualizado = await api.actualizar(vehiculoActual); // ✅ recibe objeto actualizado
+        setVehiculos((prev) =>
+          prev.map((v) => (v.id === actualizado.id ? actualizado : v))
+        );
         toast.current?.show({ severity: 'success', summary: 'Actualizado', detail: 'Vehículo actualizado' });
-      }
-    
-      // recarga lista desde la BD
+      }   
+
       const data = await api.listar();
       setVehiculos(data);
-    
+      
       // cierra tu modal/dialog
       setDialogVisible(false);
     } catch (e: any) {
@@ -192,15 +197,6 @@ const toast = useRef<Toast>(null)
       setLoading?.(false);
     }
 
-    const updatedVehiculos = vehiculoService.guardar(vehiculos, vehiculoActual)
-    setVehiculos(updatedVehiculos)
-    setDialogVisible(false)
-    setMessage({
-      severity: 'success',
-      summary: vehiculoActual.id === 0 ? 'Nuevo Vehículo Agregado' : 'Vehículo Actualizado',
-      detail: 'El vehículo se guardó correctamente',
-    })
-    toast.current?.show({ severity: 'success', summary: 'Éxito', detail: 'El vehículo se guardó correctamente' })
   }
 
   const vehiculosFiltrados = vehiculos.filter((vehiculo) =>
@@ -252,8 +248,6 @@ const toast = useRef<Toast>(null)
       setLoading?.(false);
     }
   };
-  
-  
 
   const descripcionTemplate = (row: Vehiculo) => (
     <span
@@ -321,7 +315,6 @@ const toast = useRef<Toast>(null)
     run();
   }, []);
   
-
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold mb-4">Gestión de Unidades</h2>
@@ -332,7 +325,7 @@ const toast = useRef<Toast>(null)
 
       <DataTable value={vehiculosFiltrados} tableStyle={{ minWidth: '50rem' }} loading={loading} stripedRows responsiveLayout="scroll">
         <Column field="placa" header="Placa" sortable />
-        <Column field="marca" header="Marca" sortable />
+        <Column field="marcaUnidad" header="Marca" sortable />
         <Column field="modelo" header="Modelo" sortable />
         <Column field="año" header="Año" sortable />
         <Column field="capacidadAsientos" header="Asientos" sortable style={{ width: 110 }} />
@@ -367,8 +360,8 @@ const toast = useRef<Toast>(null)
           <div className="p-float-label w-full">
             <InputText
               id="marca"
-              value={vehiculoActual?.marca || ''}
-              onChange={(e) => setVehiculoActual({ ...vehiculoActual!, marca: e.target.value })}
+              value={vehiculoActual?.marcaUnidad || ''}
+              onChange={(e) => setVehiculoActual({ ...vehiculoActual!, marcaUnidad: e.target.value })}
               className="w-full"
             />
             <label htmlFor="marca">Marca</label>
@@ -441,7 +434,7 @@ const toast = useRef<Toast>(null)
 
             <div className="detalle-vehiculo space-y-2">
               <p><strong>Placa:</strong> {vehiculoDetalle?.placa}</p>
-              <p><strong>Marca:</strong> {vehiculoDetalle?.marca}</p>
+              <p><strong>Marca:</strong> {vehiculoDetalle?.marcaUnidad}</p>
               <p><strong>Modelo:</strong> {vehiculoDetalle?.modelo}</p>
               <p><strong>Año:</strong> {vehiculoDetalle?.año}</p>
               <p><strong>Asientos:</strong> {vehiculoDetalle?.capacidadAsientos ?? '—'}</p> {vehiculoDetalle?.descripcion ? (
@@ -487,7 +480,7 @@ const toast = useRef<Toast>(null)
             <div className="grid grid-cols-1 gap-3">
               <div>
                 <label className="block text-sm font-medium mb-1">Unidad</label>
-                <div>{mantoUnidad?.placa} — {mantoUnidad?.marca} {mantoUnidad?.modelo}</div>
+                <div>{mantoUnidad?.placa} — {mantoUnidad?.marcaUnidad} {mantoUnidad?.modelo}</div>
               </div>
 
               {/* Aquí de momento usamos inputs simples; luego podemos cambiarlos por Dropdown/Calendar */}
