@@ -1,52 +1,81 @@
-'use client';
+"use client";
 
-import React, { useEffect, useRef, useState } from 'react';
-import { Button } from 'primereact/button';
-import { Card } from 'primereact/card';
-import { Dialog } from 'primereact/dialog';
-import { Toast } from 'primereact/toast';
-import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
+import React, { useEffect, useRef, useState } from "react";
+import { Button } from "primereact/button";
+import { Card } from "primereact/card";
+import { Dialog } from "primereact/dialog";
+import { Toast } from "primereact/toast";
+import { ConfirmDialog } from "primereact/confirmdialog";
+import dynamic from "next/dynamic";
 
-import RutasAdminTable, { RutaUI } from './components/RutasAdminTable';
-import FormularioRuta from './components/FormularioRuta';
-import MapaInteractivo from '@/app/(main)/cliente/rutas/components/MapaInteractivo';
+import RutasAdminTable, { RutaUI } from "./components/RutasAdminTable";
+import FormularioRuta from "./components/FormularioRuta";
 
-import {
-  getRutas as apiGetRutas,
-  crearRuta as apiCrearRuta,
-  actualizarRuta as apiActualizarRuta,
-  cambiarEstadoRuta as apiCambiarEstadoRuta
-} from '@/lib/rutas';
+// ✅ Carga dinámica del mapa (evita errores SSR)
+const MapaInteractivo = dynamic(
+  () => import("@/app/(main)/cliente/rutas/components/MapaInteractivo"),
+  { ssr: false }
+);
 
-const PageAdminRutas: React.FC = () => {
+export default function PageAdminRutas() {
   const [rutas, setRutas] = useState<RutaUI[]>([]);
   const [rutaSeleccionada, setRutaSeleccionada] = useState<RutaUI | null>(null);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const toast = useRef<Toast>(null);
 
+  // 🔹 Notificaciones
   const showOk = (detail: string) =>
-    toast.current?.show({ severity: 'success', summary: 'Éxito', detail, life: 3000 });
+    toast.current?.show({ severity: "success", summary: "Éxito", detail, life: 3000 });
   const showErr = (detail: string) =>
-    toast.current?.show({ severity: 'error', summary: 'Error', detail, life: 4000 });
+    toast.current?.show({ severity: "error", summary: "Error", detail, life: 4000 });
 
-  const apiToUi = (r: any): RutaUI => ({
-    id: r.Id_Ruta_PK,
-    origen: r.Origen,
-    destino: r.Destino,
-    estado: r.Estado === 'ACTIVA' ? 'activo' : 'inactivo',
-    tiempoEstimado: r.Tiempo_Estimado ?? null,
-    distancia: r.Distancia ?? null,
-    descripcion: r.Descripcion ?? null
-  });
-
+  // 🔹 Cargar rutas desde la API
   const cargarRutas = async () => {
     try {
       setLoading(true);
-      const data = await apiGetRutas(); // devuelve RutaApi[]
-      setRutas(data.map(apiToUi));
+      const res = await fetch("/api/rutas");
+      const data = await res.json();
+
+      if (!data.ok) throw new Error(data.error || "Error al cargar rutas");
+
+      // ✅ Transformar datos y evitar errores en JSON
+      setRutas(
+        (data.items ?? []).map((r: any) => ({
+          id: r.id,
+          origen: r.origen,
+          destino: r.destino,
+          estado: r.estado === "ACTIVA" ? "activo" : "inactivo",
+          tiempoEstimado: r.tiempoEstimado,
+          distancia: r.distancia,
+          descripcion: r.descripcion ?? "",
+          precio: Number(r.precio ?? 0),
+          horarios: Array.isArray(r.horarios)
+            ? r.horarios
+            : typeof r.horarios === "string"
+            ? (() => {
+                try {
+                  return JSON.parse(r.horarios);
+                } catch {
+                  return [];
+                }
+              })()
+            : [],
+          coordenadas: Array.isArray(r.coordenadas)
+            ? r.coordenadas
+            : typeof r.coordenadas === "string"
+            ? (() => {
+                try {
+                  return JSON.parse(r.coordenadas);
+                } catch {
+                  return [];
+                }
+              })()
+            : [],
+        }))
+      );
     } catch (e: any) {
-      showErr(e?.message || 'No se pudo cargar rutas');
+      showErr(e.message || "No se pudieron cargar las rutas");
     } finally {
       setLoading(false);
     }
@@ -56,97 +85,55 @@ const PageAdminRutas: React.FC = () => {
     cargarRutas();
   }, []);
 
+  // 🔹 Abrir modal de creación
   const abrirCrear = () => {
     setRutaSeleccionada({
       id: 0,
-      origen: '',
-      destino: '',
-      estado: 'activo',
-      tiempoEstimado: '03:40:00',
+      origen: "",
+      destino: "",
+      estado: "activo",
+      tiempoEstimado: "00:00:00",
       distancia: null,
-      descripcion: null
+      descripcion: "",
+      precio: null,
+      horarios: [],
+      coordenadas: [],
     });
     setMostrarModal(true);
   };
 
-  const abrirEditar = (r: RutaUI) => {
-    setRutaSeleccionada(r);
-    setMostrarModal(true);
-  };
-
+  // 🔹 Guardar ruta (crear o actualizar)
   const onGuardar = async (val: RutaUI) => {
-  try {
-    setLoading(true);
-    if (!val.origen || !val.destino) {
-      showErr('Origen y destino son obligatorios');
-      return;
-    }
-
-    if (!rutaSeleccionada || rutaSeleccionada.id === 0) {
-      // CREAR
-      await apiCrearRuta({
-        origen: val.origen.trim(),
-        destino: val.destino.trim(),
-        estado: val.estado === 'activo' ? 'ACTIVA' as const : 'INACTIVA' as const,
-        tiempo_estimado: val.tiempoEstimado ?? null,
-        distancia: val.distancia ?? null,
-        descripcion: val.descripcion ?? null,
-      });
-      showOk('Ruta creada');
-    } else {
-      // ACTUALIZAR
-      await apiActualizarRuta(rutaSeleccionada.id, {
-        origen: val.origen.trim(),
-        destino: val.destino.trim(),
-        estado: val.estado === 'activo' ? 'ACTIVA' as const : 'INACTIVA' as const,
-        tiempo_estimado: val.tiempoEstimado ?? null,
-        distancia: val.distancia ?? null,
-        descripcion: val.descripcion ?? null,
-      });
-      showOk('Ruta actualizada');
-    }
-
-    setMostrarModal(false);
-    setRutaSeleccionada(null);
-    await cargarRutas();
-  } catch (e: any) {
-    showErr(e?.message || 'No se pudo guardar');
-  } finally {
-    setLoading(false);
-  }
-};
-
-
-  const eliminarRuta = (id: number) => {
-    confirmDialog({
-      message: '¿Deseas inactivar esta ruta? (no se elimina físicamente)',
-      header: 'Confirmación',
-      icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Sí',
-      rejectLabel: 'No',
-      accept: async () => {
-        try {
-          setLoading(true);
-          await apiCambiarEstadoRuta(id, 'INACTIVA');
-          showOk('Ruta inactivada');
-          await cargarRutas();
-        } catch (e: any) {
-          showErr(e?.message || 'No se pudo inactivar');
-        } finally {
-          setLoading(false);
-        }
-      }
-    });
-  };
-
-  const cambiarEstado = async (id: number, nuevoEstado: 'activo' | 'inactivo') => {
     try {
       setLoading(true);
-      await apiCambiarEstadoRuta(id, nuevoEstado === 'activo' ? 'ACTIVA' : 'INACTIVA');
-      showOk('Estado actualizado');
+
+      const payload = {
+        origen: val.origen,
+        destino: val.destino,
+        estado: val.estado === "activo" ? "ACTIVA" : "INACTIVA",
+        tiempoEstimado: val.tiempoEstimado ?? "00:00:00",
+        distancia: val.distancia ?? 0,
+        descripcion: val.descripcion ?? null,
+        precio: val.precio ?? 0,
+        horarios: val.horarios ?? [],
+        coordenadas: val.coordenadas ?? [],
+      };
+
+      const res = await fetch("/api/rutas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (!data.ok) throw new Error(data.error || "Error al guardar ruta");
+      showOk("Ruta creada correctamente");
+
+      setMostrarModal(false);
       await cargarRutas();
     } catch (e: any) {
-      showErr(e?.message || 'No se pudo cambiar el estado');
+      showErr(e.message || "Error al guardar la ruta");
     } finally {
       setLoading(false);
     }
@@ -157,6 +144,7 @@ const PageAdminRutas: React.FC = () => {
     setRutaSeleccionada(null);
   };
 
+  // === Render principal ===
   return (
     <div className="p-4 space-y-6">
       <Toast ref={toast} />
@@ -164,25 +152,25 @@ const PageAdminRutas: React.FC = () => {
 
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
         <h2 className="text-3xl font-bold text-gray-800">Gestión de Rutas</h2>
-        <Button label="Nueva Ruta" icon="pi pi-plus" className="btn-verde" onClick={abrirCrear} />
+        <Button
+          label="Nueva Ruta"
+          icon="pi pi-plus"
+          className="p-button-success"
+          onClick={abrirCrear}
+        />
       </div>
 
       <Card>
-        <RutasAdminTable
-          rutas={rutas}
-          loading={loading}
-          onEditarRuta={abrirEditar}
-          onEliminarRuta={eliminarRuta}
-          onCambiarEstado={cambiarEstado}
-        />
+        <RutasAdminTable rutas={rutas} loading={loading} />
       </Card>
 
+      {/* 🧭 Modal de creación / edición */}
       <Dialog
-        header={rutaSeleccionada && rutaSeleccionada.id !== 0 ? 'Editar Ruta' : 'Nueva Ruta'}
+        header={rutaSeleccionada && rutaSeleccionada.id !== 0 ? "Editar Ruta" : "Nueva Ruta"}
         visible={mostrarModal}
         onHide={cerrarFormulario}
-        style={{ width: '50vw' }}
-        breakpoints={{ '960px': '75vw', '640px': '100vw' }}
+        style={{ width: "50vw" }}
+        breakpoints={{ "960px": "75vw", "640px": "100vw" }}
         modal
       >
         <FormularioRuta
@@ -192,16 +180,25 @@ const PageAdminRutas: React.FC = () => {
           loading={loading}
         />
 
+        {/* ✅ Vista previa solo al editar */}
         {rutaSeleccionada && rutaSeleccionada.id !== 0 && (
           <div className="mt-4">
             <h3 className="text-lg font-semibold mb-2">Vista previa en el mapa</h3>
-            {/* Si MapaInteractivo espera otra forma, adapta aquí */}
-            <MapaInteractivo key={`map-${rutaSeleccionada.id}`} ruta={rutaSeleccionada as any} />
+            <MapaInteractivo
+              ruta={{
+                id: rutaSeleccionada.id,
+                nombre: `${rutaSeleccionada.origen} → ${rutaSeleccionada.destino}`,
+                origen: rutaSeleccionada.origen,
+                destino: rutaSeleccionada.destino,
+                estado: "activo",
+                tiempoEstimado: rutaSeleccionada.tiempoEstimado ?? "",
+                coordenadas: rutaSeleccionada.coordenadas ?? [],
+                paradas: [],
+              }}
+            />
           </div>
         )}
       </Dialog>
     </div>
   );
-};
-
-export default PageAdminRutas;
+}

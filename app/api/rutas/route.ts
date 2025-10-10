@@ -1,63 +1,102 @@
-// app/api/rutas/route.ts
-export const runtime = 'nodejs';
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
 
-import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-
-
+/* =======================================
+   🔹 GET: listar todas las rutas
+   ======================================= */
 export async function GET() {
   const conn = await db.getConnection();
   try {
     const [rows]: any = await conn.query(`
-      SELECT Id_Ruta_PK, Distancia, Tiempo_Estimado, Origen, Destino, Descripcion, Estado
+      SELECT 
+        Id_Ruta_PK,
+        Origen,
+        Destino,
+        Tiempo_Estimado,
+        Distancia,
+        Descripcion,
+        Estado,
+        Precio,
+        Horarios,
+        Coordenadas
       FROM mydb.TBL_RUTAS
-      ORDER BY Id_Ruta_PK DESC
+      ORDER BY Id_Ruta_PK DESC;
     `);
-    return NextResponse.json({ items: rows ?? [] }, { status: 200 });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.sqlMessage || e?.message || 'Error' }, { status: 500 });
+
+    const items = (rows ?? []).map((r: any) => ({
+      id: r.Id_Ruta_PK,
+      origen: r.Origen,
+      destino: r.Destino,
+      tiempoEstimado: r.Tiempo_Estimado,
+      distancia: r.Distancia,
+      descripcion: r.Descripcion,
+      estado: r.Estado,
+      precio: Number(r.Precio ?? 0),
+      horarios:
+        typeof r.Horarios === "string"
+          ? (() => { try { return JSON.parse(r.Horarios); } catch { return []; } })()
+          : r.Horarios ?? [],
+      coordenadas:
+        typeof r.Coordenadas === "string"
+          ? (() => { try { return JSON.parse(r.Coordenadas); } catch { return []; } })()
+          : r.Coordenadas ?? [],
+    }));
+
+    return NextResponse.json({ ok: true, items });
+  } catch (err: any) {
+    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   } finally {
     conn.release();
   }
 }
 
+
+/* =======================================
+   🔹 POST: crear ruta (usa SP actualizado)
+   ======================================= */
 export async function POST(req: Request) {
-  const pool = db;
-  const conn = await pool.getConnection();
+  const conn = await db.getConnection();
+
   try {
     const {
-      distancia = null,          // number | null
-      tiempo_estimado = null,    // string 'HH:mm:ss' | null
+      distancia,
+      tiempoEstimado,
       origen,
       destino,
-      descripcion = null,        // string | null
-      estado = 'ACTIVA',         // 'ACTIVA' | 'INACTIVA'
-    } = await req.json().catch(() => ({}));
+      descripcion,
+      estado,
+      precio,
+      horarios,
+      coordenadas,
+    } = await req.json();
 
-    // Validaciones mínimas
-    if (!origen || !destino) {
-      return NextResponse.json({ error: 'Origen y Destino son obligatorios.' }, { status: 400 });
-    }
-
-    // 1) Llamar SP con OUT param (@p_id)
+    // 🔹 Ejecutar SP (sin SELECT extra)
     await conn.query(
-      'CALL mydb.sp_rutas_crear_max5(?,?,?,?,?,?, @p_id)',
-      [distancia, tiempo_estimado, String(origen).trim(), String(destino).trim(), descripcion, String(estado).toUpperCase()]
+      `CALL sp_rutas_crear_max5(?, ?, ?, ?, ?, ?, ?, ?, ?, @id_nuevo);`,
+      [
+        distancia || 0,
+        tiempoEstimado || "00:00:00",
+        origen,
+        destino,
+        descripcion || null,
+        estado || "ACTIVA",
+        precio || 0,
+        JSON.stringify(horarios || []),
+        JSON.stringify(coordenadas || []),
+      ]
     );
 
-    // 2) Leer el OUT param
-    const [rows2]: any = await conn.query('SELECT @p_id AS id');
-    const newId = rows2?.[0]?.id ?? null;
-
-    return NextResponse.json({ ok: true, id: newId }, { status: 201 });
-  } catch (e: any) {
-    // El SP usa SIGNAL SQLSTATE '45000' para errores de negocio (tope 5 activas, duplicados, estado inválido)
-    const msg = (e?.sqlMessage || e?.message || 'Error').toString();
-    const isBusiness = /Límite|inválido|existe|no existe/i.test(msg);
-    return NextResponse.json({ ok: false, error: msg }, { status: isBusiness ? 400 : 500 });
+    return NextResponse.json({
+      ok: true,
+      message: "Ruta creada correctamente",
+    });
+  } catch (err: any) {
+    console.error("❌ Error al crear ruta:", err);
+    return NextResponse.json(
+      { ok: false, error: err.sqlMessage || err.message },
+      { status: 500 }
+    );
   } finally {
     conn.release();
   }
-
-  
 }
