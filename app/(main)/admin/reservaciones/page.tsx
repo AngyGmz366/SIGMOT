@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react"; // 🆕 (agregado useEffect + unificación de imports)
+import { useEffect, useRef, useState } from "react";
 import TablaReservaciones from "./components/TablaReservaciones";
 import FormReservacion from "./components/FormReservacion";
 import { Dialog } from "primereact/dialog";
@@ -11,34 +11,52 @@ import "primeicons/primeicons.css";
 import "primeflex/primeflex.css";
 
 /* =======================
-   🆕 Helpers mínimos HTTP
-   - No rompen tu UI actual.
-   - Sirven para llamar a tus endpoints sin cambiar componentes.
+   🔗 Helpers HTTP
 ======================= */
 async function apiGet<T>(url: string): Promise<T> {
-  const res = await fetch(url, { cache: "no-store" }); // 🆕 evita cache para ver datos recién insertados
+  const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
+
 async function apiDelete(url: string): Promise<void> {
   const res = await fetch(url, { method: "DELETE" });
   if (!res.ok) throw new Error(await res.text());
 }
 
+async function apiPost<T>(url: string, body: any): Promise<T> {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function apiPut<T>(url: string, body: any): Promise<T> {
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+/* =======================
+   🌐 Componente principal
+======================= */
 export default function ReservacionesPage() {
   const [reservaciones, setReservaciones] = useState<ReservacionBase[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const toast = useRef<Toast>(null);
 
-  /* =======================
-     🆕 Carga inicial desde /api/reservas
-     - Solo añade el fetching; si falla, tu tabla queda como antes (vacía) y tu UI actual no se rompe.
-  ======================= */
+  /* 🟢 Carga inicial */
   useEffect(() => {
     (async () => {
       try {
-        // El endpoint devuelve { items: ReservacionBase[] }
         const data = await apiGet<{ items: ReservacionBase[] }>("/api/reservas?limit=50");
         setReservaciones(Array.isArray(data?.items) ? data.items : []);
       } catch (err) {
@@ -53,44 +71,49 @@ export default function ReservacionesPage() {
     })();
   }, []);
 
-  const handleSave = (data: ReservacionBase) => {
-    // ✅ Se deja igual para NO afectar lo que ya funciona en tu frontend.
-    if (editingId) {
-      // Actualizar reservación existente (solo en memoria por ahora)
-      setReservaciones((prev) => prev.map((r) => (r.id === editingId ? data : r)));
-      showSuccess("Reservación actualizada correctamente");
-    } else {
-      // Crear nueva reservación (solo en memoria por ahora)
-      const newReservation = {
-        ...data,
-        id: Date.now().toString(),
-      };
-      setReservaciones((prev) => [...prev, newReservation]);
-      showSuccess("Reservación creada correctamente");
+  /* 🟡 Crear o editar */
+  const handleSave = async (data: ReservacionBase) => {
+    try {
+      if (editingId) {
+        // 🔁 Actualizar
+        await apiPut(`/api/reservas/${encodeURIComponent(editingId)}`, data);
+        setReservaciones((prev) => prev.map((r) => (r.id === editingId ? data : r)));
+        showSuccess("Reservación actualizada correctamente");
+      } else {
+        // 🆕 Crear
+        const res = await apiPost<{ id: string }>("/api/reservas", data);
+        const nueva = { ...data, id: res.id || Date.now().toString() };
+        setReservaciones((prev) => [...prev, nueva]);
+        showSuccess("Reservación creada correctamente");
+      }
+    } catch (err) {
+      console.error("Error guardando reservación:", err);
+      toast.current?.show({
+        severity: "error",
+        summary: "Error",
+        detail: "No se pudo guardar la reservación. Verifique los datos.",
+        life: 3000,
+      });
+    } finally {
+      setShowForm(false);
     }
-    setShowForm(false);
   };
 
-  /* =======================
-     🆕 Eliminar contra API con fallback local
-     - Intenta DELETE /api/reservas/:id
-     - Si algo falla, elimina en memoria como ya lo hacías (no rompe tu flujo actual)
-  ======================= */
+  /* 🔴 Eliminar */
   const handleDelete = async (id: string) => {
     try {
-      await apiDelete(`/api/reservas/${encodeURIComponent(id)}`); // 🆕 llamada real a la API
+      await apiDelete(`/api/reservas/${encodeURIComponent(id)}`);
       setReservaciones((prev) => prev.filter((r) => r.id !== id));
       showSuccess("Reservación eliminada correctamente");
     } catch (err) {
-      console.error("Error eliminando en API, aplicando fallback local:", err);
-      // 🔁 Fallback: mantiene tu comportamiento previo para no bloquear la UI
-      setReservaciones((prev) => prev.filter((r) => r.id !== id));
+      console.error("Error eliminando en API:", err);
       toast.current?.show({
         severity: "warn",
         summary: "Aviso",
-        detail: "No se pudo eliminar en el servidor. Se aplicó eliminación local.",
+        detail: "No se pudo eliminar en el servidor. Se eliminó localmente.",
         life: 3000,
       });
+      setReservaciones((prev) => prev.filter((r) => r.id !== id));
     }
   };
 
@@ -108,11 +131,7 @@ export default function ReservacionesPage() {
       <Toast ref={toast} />
       <TablaReservaciones
         reservaciones={reservaciones}
-        onEdit={(id) => {
-          setEditingId(id);
-          setShowForm(true);
-        }}
-        onDelete={handleDelete} // 🆕 ahora intenta eliminar en API y mantiene fallback local
+        onDelete={handleDelete}
         onAdd={() => {
           setEditingId(null);
           setShowForm(true);
@@ -128,7 +147,7 @@ export default function ReservacionesPage() {
       >
         <FormReservacion
           initialData={editingId ? reservaciones.find((r) => r.id === editingId) : undefined}
-          onSave={handleSave} // ✅ sin cambios: conserva tu flujo actual
+          onSave={handleSave}
           onCancel={() => setShowForm(false)}
         />
       </Dialog>

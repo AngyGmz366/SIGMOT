@@ -1,14 +1,14 @@
-// FormReservacion.tsx
+'use client';
+
 import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
 import { Calendar } from 'primereact/calendar';
-import { ReservacionBase } from './types';
-import { ReservacionViaje, ReservacionEncomienda } from './types';
+import { ReservacionBase, ReservacionViaje, ReservacionEncomienda } from './types';
 import { useEffect, useState } from 'react';
 import './FormReservacion.css';
 
-/* 🆕 Helpers HTTP para consumir tus APIs existentes (rutas y unidades) */
+/* Helper para consumir tus APIs */
 async function apiGet<T>(url: string): Promise<T> {
   const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) throw new Error(await res.text());
@@ -23,35 +23,25 @@ type FormProps = {
   onCancel: () => void;
 };
 
-/* 🗑️ Eliminado: lista de unidades de ejemplo (ya no se usa) */
-/*
-const unidades = [
-  { label: 'BUS-001 - Mercedes Benz', value: 'BUS-001' },
-  { label: 'BUS-002 - Volvo', value: 'BUS-002' },
-  { label: 'BUS-003 - Scania', value: 'BUS-003' }
-];
-*/
-
 export default function FormReservacion({ initialData, onSave, onCancel }: FormProps) {
   const [formData, setFormData] = useState<ReservacionFormData>(
     initialData || { tipo: 'viaje', estado: 'pendiente', fecha: new Date() }
   );
 
-  /* 🆕 Estado para opciones dinámicas de rutas y unidades (viajes) */
   const [rutasOptions, setRutasOptions] = useState<{ label: string; value: number }[]>([]);
   const [rutaSeleccionadaId, setRutaSeleccionadaId] = useState<number | null>(null);
 
-  const [unidadesOptions, setUnidadesOptions] = useState<{ label: string; value: number }[]>([]);
+  const [viajesOptions, setViajesOptions] = useState<{ label: string; value: number }[]>([]);
   const [viajeSeleccionadoId, setViajeSeleccionadoId] = useState<number | null>(null);
 
-  /* 🆕 Cargar rutas activas desde /api/rutas-activas al montar */
+  const [asientosOptions, setAsientosOptions] = useState<{ label: string; value: number }[]>([]);
+  const [asientoSeleccionadoId, setAsientoSeleccionadoId] = useState<number | null>(null);
+
+  /* 🟩 Cargar rutas activas */
   useEffect(() => {
     (async () => {
       try {
-        // Esperado desde tu API: { items: [{ id, label, value, ... }] }
-        const data = await apiGet<{ items: { id: number; label: string; value: number }[] }>(
-          '/api/rutas-activas'
-        );
+        const data = await apiGet<{ items: { id: number; label: string; value: number }[] }>('/api/rutas-activas');
         const opts = (data.items || []).map((r) => ({ label: r.label, value: r.id ?? r.value }));
         setRutasOptions(opts);
       } catch (err) {
@@ -61,55 +51,94 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
     })();
   }, []);
 
-  /* 🆕 Cargar unidades disponibles (viajes) cuando cambia la ruta seleccionada */
+  /* 🟨 Cargar viajes/unidades según la ruta */
   useEffect(() => {
     (async () => {
       if (!rutaSeleccionadaId) {
-        setUnidadesOptions([]);
+        setViajesOptions([]);
         setViajeSeleccionadoId(null);
         return;
       }
       try {
-        // Esperado desde tu API: { items: [{ idViaje, idUnidad, unidad, fecha, horaSalida, horaLlegada }] }
         const data = await apiGet<{
-          items: { idViaje: number; idUnidad: number; unidad: string; fecha: string; horaSalida: string }[];
-        }>(`/api/unidades-por-ruta/${encodeURIComponent(String(rutaSeleccionadaId))}`);
+          items: { idViaje: number; unidad: string; fecha: string; horaSalida: string }[];
+        }>(`/api/unidades-por-rutas/${encodeURIComponent(String(rutaSeleccionadaId))}`);
 
         const opts = (data.items || []).map((u) => ({
           label: `${u.unidad} · salida ${String(u.horaSalida).slice(0, 5)}`,
-          value: u.idViaje, // usamos el Id_Viaje_PK para identificar el viaje seleccionado
+          value: u.idViaje,
         }));
-        setUnidadesOptions(opts);
-        setViajeSeleccionadoId(null); // forzar selección explícita tras cambiar ruta
+        setViajesOptions(opts);
+        setViajeSeleccionadoId(null);
       } catch (err) {
         console.error('No se pudieron cargar las unidades por ruta:', err);
-        setUnidadesOptions([]);
+        setViajesOptions([]);
         setViajeSeleccionadoId(null);
       }
     })();
   }, [rutaSeleccionadaId]);
 
-  /* ⬇️ Tu submit se queda igual (NO conectamos aquí a POST todavía, solo validamos que haya unidad) */
+  /* 🟦 Cargar asientos según el viaje */
+  useEffect(() => {
+    (async () => {
+      if (!viajeSeleccionadoId || formData.tipo !== 'viaje') {
+        setAsientosOptions([]);
+        setAsientoSeleccionadoId(null);
+        return;
+      }
+      try {
+        const data = await apiGet<{ items: { id: number; numero: number }[] }>(
+          `/api/asientos-por-viaje/${encodeURIComponent(String(viajeSeleccionadoId))}`
+        );
+        const opts = (data.items || []).map((a) => ({
+          label: `Asiento ${a.numero}`,
+          value: a.id,
+        }));
+        setAsientosOptions(opts);
+      } catch (err) {
+        console.error('No se pudieron cargar los asientos disponibles:', err);
+        setAsientosOptions([]);
+      }
+    })();
+  }, [viajeSeleccionadoId, formData.tipo]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.unidad) {
-      alert('Debe seleccionar una unidad');
+    if (formData.tipo === 'viaje' && !asientoSeleccionadoId) {
+      alert('Debe seleccionar un asiento disponible.');
       return;
     }
-    onSave(formData as ReservacionBase);
+    if (formData.tipo === 'encomienda' && !(formData as ReservacionEncomienda).costo) {
+      alert('Debe ingresar el costo de la encomienda.');
+      return;
+    }
+
+    const payload = {
+      ...formData,
+      id_viaje: viajeSeleccionadoId,
+      id_asiento: asientoSeleccionadoId,
+      id_ruta: rutaSeleccionadaId,
+      fecha: formData.fecha,
+    };
+    onSave(payload as ReservacionBase);
   };
 
   return (
     <form onSubmit={handleSubmit} className="p-fluid grid gap-3">
-      <div className="col-12">
+      <div className="col-12 md:col-6">
         <Dropdown
           value={formData.tipo}
           options={[
             { label: 'Viaje', value: 'viaje' },
-            { label: 'Encomienda', value: 'encomienda' }
+            { label: 'Encomienda', value: 'encomienda' },
           ]}
-          onChange={(e) => setFormData({ ...formData, tipo: e.value })}
-          placeholder="Tipo"
+          onChange={(e) => {
+            setFormData({ ...formData, tipo: e.value });
+            // limpiar dependencias
+            setAsientosOptions([]);
+            setAsientoSeleccionadoId(null);
+          }}
+          placeholder="Tipo de reservación"
           className="w-full"
         />
       </div>
@@ -119,27 +148,19 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
           value={formData.cliente || ''}
           onChange={(e) => setFormData({ ...formData, cliente: e.target.value })}
           placeholder="Cliente"
-          className="w-full"
           required
+          className="w-full"
         />
       </div>
 
-      {/* 🗑️ Reemplazado: rutas de ejemplo → rutas desde API */}
       <div className="col-12 md:col-6">
         <Dropdown
-          value={
-            // encontramos el option cuyo label coincide con lo guardado en formData.ruta (para no romper tu UI)
-            rutasOptions.find((o) => o.label === formData.ruta)?.value ?? null
-          }
+          value={rutaSeleccionadaId ?? null}
           options={rutasOptions}
           onChange={(e) => {
-            const opt = rutasOptions.find((o) => o.value === e.value);
             setRutaSeleccionadaId(e.value as number);
-            // guardamos el label en formData.ruta para mantener tu representación textual actual
-            setFormData({ ...formData, ruta: opt?.label || '' });
-            // al cambiar ruta, limpiamos la unidad elegida previamente
-            setFormData((fd) => ({ ...fd, unidad: '' }));
             setViajeSeleccionadoId(null);
+            setAsientoSeleccionadoId(null);
           }}
           placeholder="Ruta"
           className="w-full"
@@ -147,23 +168,58 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
         />
       </div>
 
-      {/* 🗑️ Reemplazado: unidades de ejemplo → unidades por ruta desde API */}
       <div className="col-12 md:col-6">
         <Dropdown
           value={viajeSeleccionadoId ?? undefined}
-          options={unidadesOptions}
+          options={viajesOptions}
           onChange={(e) => {
-            const opt = unidadesOptions.find((o) => o.value === e.value);
             setViajeSeleccionadoId(e.value as number);
-            // igual que con ruta, guardamos el label legible en formData.unidad (tu UI lo muestra como texto)
-            setFormData({ ...formData, unidad: opt?.label || '' });
+            setAsientoSeleccionadoId(null);
           }}
-          placeholder="Seleccione la unidad"
+          placeholder="Unidad / viaje"
           className="w-full"
           required
-          disabled={!rutaSeleccionadaId || unidadesOptions.length === 0}
+          disabled={!rutaSeleccionadaId}
         />
       </div>
+
+      {formData.tipo === 'viaje' && (
+        <div className="col-12 md:col-6">
+          <Dropdown
+            value={asientoSeleccionadoId ?? null}
+            options={asientosOptions}
+            onChange={(e) => setAsientoSeleccionadoId(e.value as number)}
+            placeholder="Asiento disponible"
+            className="w-full"
+            required
+            disabled={!viajeSeleccionadoId}
+          />
+        </div>
+      )}
+
+      {formData.tipo === 'encomienda' && (
+        <div className="col-12 md:col-6">
+          <InputText
+            value={
+              (formData as ReservacionEncomienda).costo
+                ? String((formData as ReservacionEncomienda).costo)
+                : ''
+            }
+            onChange={(e) =>
+              setFormData({
+                ...(formData as ReservacionEncomienda),
+                costo: Number(e.target.value),
+              })
+            }
+            placeholder="Costo (Lps)"
+            className="w-full"
+            type="number"
+            min="0"
+            step="0.01"
+            required
+          />
+        </div>
+      )}
 
       <div className="col-12 md:col-6">
         <Calendar
@@ -175,37 +231,6 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
           required
         />
       </div>
-
-      {formData.tipo === 'viaje' ? (
-        <div className="col-12">
-          <InputText
-            value={(formData as any).asiento || ''}
-            onChange={(e) => setFormData({ ...formData, asiento: e.target.value })}
-            placeholder="Asiento"
-            className="w-full"
-          />
-        </div>
-      ) : (
-        <div className="col-12">
-          <InputText
-            value={
-              ((formData as ReservacionEncomienda).peso !== undefined &&
-                (formData as ReservacionEncomienda).peso !== null)
-                ? String((formData as ReservacionEncomienda).peso)
-                : ''
-            }
-            onChange={(e) =>
-              setFormData({
-                ...(formData as ReservacionEncomienda),
-                peso: Number(e.target.value),
-              })
-            }
-            placeholder="Peso (kg)"
-            className="w-full"
-            type="number"
-          />
-        </div>
-      )}
 
       <div className="col-12 flex justify-content-end gap-2">
         <Button
@@ -225,13 +250,3 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
     </form>
   );
 }
-
-/* ─────────────────────────────────────────────────────────────
-   CAMBIOS HECHOS (sin romper lo que ya funciona):
-   ✅ Quitadas las opciones de ejemplo de Rutas y Unidades.
-   ✅ Añadida carga de RUTAS desde /api/rutas-activas y mapeo al Dropdown.
-   ✅ Al seleccionar una ruta, se setea su ID interno para pedir UNIDADES a /api/unidades-por-ruta/:id.
-   ✅ Unidades (viajes) se cargan dinámicamente; el value es el Id_Viaje_PK, 
-      pero el texto legible se guarda en formData.unidad para mantener tu UI como estaba.
-   ✅ No se modificó tu handleSubmit más allá de la validación ya existente.
-   ───────────────────────────────────────────────────────────── */

@@ -14,15 +14,31 @@ function normalizeCallResult(rows: any): any[] {
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const idViaje = Number(params.id);
-  if (!Number.isFinite(idViaje)) return NextResponse.json({ error: 'id inválido' }, { status: 400 });
+  if (!Number.isFinite(idViaje)) {
+    return NextResponse.json({ error: 'ID de viaje inválido' }, { status: 400 });
+  }
 
   const conn = await db.getConnection();
   try {
     const [rows]: any = await conn.query('CALL sp_asientos_disponibles_por_viaje(?)', [idViaje]);
-    const items = normalizeCallResult(rows).map((r: any) => ({ id: r.Id_Asiento_PK, numero: r.Numero_Asiento }));
+    const data = normalizeCallResult(rows);
+
+    const items = data.map((r: any) => ({
+      id: r.idAsiento ?? r.Id_Asiento_PK,
+      numero: r.numeroAsiento ?? r.Numero_Asiento,
+    }));
+
+    if (!items.length) {
+      return NextResponse.json({ error: 'No hay asientos disponibles para este viaje' }, { status: 404 });
+    }
+
     return NextResponse.json({ items }, { status: 200 });
   } catch (e: any) {
-    return NextResponse.json({ error: e?.sqlMessage || e?.message || 'Error' }, { status: 500 });
+    console.error('❌ Error en asientos-por-viaje:', e);
+    return NextResponse.json(
+      { error: e?.sqlMessage || e?.message || 'Error al obtener asientos disponibles' },
+      { status: 500 }
+    );
   } finally {
     conn.release();
   }
