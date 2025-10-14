@@ -20,6 +20,7 @@ export type RutaUI = {
   precio?: number | null;
   horarios?: string[] | string;
   coordenadas?: { lat: number; lng: number }[] | string;
+  unidades?: number[]; // Campo para las unidades
 };
 
 interface FormularioRutaProps {
@@ -46,9 +47,9 @@ const FormularioRuta: React.FC<FormularioRutaProps> = ({
     precio: 0,
     horarios: [],
     coordenadas: [],
+    unidades: [], // Inicializamos las unidades como array vacío
   });
 
-  /* Cargar datos en modo edición */
   useEffect(() => {
     if (ruta) {
       // Si viene con JSON stringificados los parsea
@@ -62,6 +63,7 @@ const FormularioRuta: React.FC<FormularioRutaProps> = ({
           typeof ruta.coordenadas === "string"
             ? JSON.parse(ruta.coordenadas)
             : ruta.coordenadas ?? [],
+        unidades: ruta.unidades ?? [], // Asignamos las unidades
       };
       setFormData(parsed);
     }
@@ -295,6 +297,21 @@ const FormularioRuta: React.FC<FormularioRutaProps> = ({
             }
             onChange={handleChange}
             placeholder='Ej: [{"lat":14.07,"lng":-87.19},{"lat":15.50,"lng":-88.02}]'
+          />
+        </div>
+
+        {/* Unidades */}
+        <div className="field col-12">
+          <label htmlFor="unidades" className="font-medium">
+            Unidades (IDs JSON)
+          </label>
+          <InputTextarea
+            id="unidades"
+            name="unidades"
+            rows={3}
+            value={JSON.stringify(formData.unidades ?? [])}
+            onChange={handleChange}
+            placeholder='Ej: [1,2,3]'
           />
         </div>
 

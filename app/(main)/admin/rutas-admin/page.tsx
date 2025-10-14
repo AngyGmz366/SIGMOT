@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Button } from "primereact/button";
 import { Card } from "primereact/card";
 import { Dialog } from "primereact/dialog";
@@ -85,6 +85,35 @@ export default function PageAdminRutas() {
     cargarRutas();
   }, []);
 
+  // 🔹 Función para cambiar el estado de una ruta
+  const cambiarEstado = async (id: number, nuevoEstado: "activo" | "inactivo") => {
+    try {
+      setLoading(true);
+
+      // Convertir 'activo' a 'ACTIVA' y 'inactivo' a 'INACTIVA'
+      const estadoEnMayusculas = nuevoEstado === "activo" ? "ACTIVA" : "INACTIVA";
+
+      const res = await fetch(`/api/rutas/${id}/estado`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ estado: estadoEnMayusculas }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        showOk("Estado actualizado correctamente");
+        cargarRutas(); // Recargar rutas después de la actualización
+      } else {
+        showErr(data.error || "Error al cambiar el estado");
+      }
+    } catch (error) {
+      showErr("Error al cambiar el estado");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // 🔹 Abrir modal de creación
   const abrirCrear = () => {
     setRutaSeleccionada({
@@ -139,6 +168,12 @@ export default function PageAdminRutas() {
     }
   };
 
+  // 🔹 Editar ruta (pasar datos al formulario)
+  const onEditarRuta = (ruta: RutaUI) => {
+    setRutaSeleccionada(ruta); // Cargar los datos de la ruta seleccionada
+    setMostrarModal(true); // Mostrar el formulario para editar
+  };
+
   const cerrarFormulario = () => {
     setMostrarModal(false);
     setRutaSeleccionada(null);
@@ -161,7 +196,12 @@ export default function PageAdminRutas() {
       </div>
 
       <Card>
-        <RutasAdminTable rutas={rutas} loading={loading} />
+        <RutasAdminTable
+          rutas={rutas}
+          loading={loading}
+          onCambiarEstado={cambiarEstado} // Pasa la función de cambio de estado
+          onEditarRuta={onEditarRuta} // Pasa la función para editar rutas
+        />
       </Card>
 
       {/* 🧭 Modal de creación / edición */}
@@ -179,25 +219,6 @@ export default function PageAdminRutas() {
           onGuardar={onGuardar}
           loading={loading}
         />
-
-        {/* ✅ Vista previa solo al editar */}
-        {rutaSeleccionada && rutaSeleccionada.id !== 0 && (
-          <div className="mt-4">
-            <h3 className="text-lg font-semibold mb-2">Vista previa en el mapa</h3>
-            <MapaInteractivo
-              ruta={{
-                id: rutaSeleccionada.id,
-                nombre: `${rutaSeleccionada.origen} → ${rutaSeleccionada.destino}`,
-                origen: rutaSeleccionada.origen,
-                destino: rutaSeleccionada.destino,
-                estado: "activo",
-                tiempoEstimado: rutaSeleccionada.tiempoEstimado ?? "",
-                coordenadas: rutaSeleccionada.coordenadas ?? [],
-                paradas: [],
-              }}
-            />
-          </div>
-        )}
       </Dialog>
     </div>
   );

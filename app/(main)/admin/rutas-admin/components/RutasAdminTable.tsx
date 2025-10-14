@@ -16,13 +16,13 @@ export interface RutaUI {
   precio?: number | null;
   horarios?: string[] | null;
   coordenadas?: { lat: number; lng: number }[] | null;
+  unidades?: number[]; // Campo para las unidades
 }
 
 interface Props {
   rutas: RutaUI[];
   loading?: boolean;
   onEditarRuta?: (ruta: RutaUI) => void;
-  onEliminarRuta?: (id: number) => void;
   onCambiarEstado?: (id: number, nuevoEstado: "activo" | "inactivo") => void;
 }
 
@@ -30,7 +30,6 @@ const RutasAdminTable: React.FC<Props> = ({
   rutas,
   loading = false,
   onEditarRuta,
-  onEliminarRuta,
   onCambiarEstado,
 }) => {
   if (loading)
@@ -126,12 +125,6 @@ const RutasAdminTable: React.FC<Props> = ({
                   className="p-button-sm p-button-warning"
                   tooltip="Editar"
                   onClick={() => onEditarRuta?.(r)}
-                />
-                <Button
-                  icon="pi pi-trash"
-                  className="p-button-sm p-button-danger"
-                  tooltip="Inactivar"
-                  onClick={() => onEliminarRuta?.(r.id)}
                 />
               </td>
             </tr>

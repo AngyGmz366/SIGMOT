@@ -50,7 +50,6 @@ export async function GET() {
   }
 }
 
-
 /* =======================================
    🔹 POST: crear ruta (usa SP actualizado)
    ======================================= */
@@ -92,6 +91,66 @@ export async function POST(req: Request) {
     });
   } catch (err: any) {
     console.error("❌ Error al crear ruta:", err);
+    return NextResponse.json(
+      { ok: false, error: err.sqlMessage || err.message },
+      { status: 500 }
+    );
+  } finally {
+    conn.release();
+  }
+}
+
+/* =======================================
+   🔹 PATCH: actualizar ruta (usa SP actualizado)
+   ======================================= */
+export async function PATCH(req: Request) {
+  const conn = await db.getConnection();
+  try {
+    // Obtener el cuerpo de la solicitud (estado, unidades, etc.)
+    const {
+      id,
+      distancia,
+      tiempoEstimado,
+      origen,
+      destino,
+      descripcion,
+      estado,
+      precio,
+      horarios,
+      coordenadas,
+      unidades,
+    } = await req.json();
+
+    // Validar que se haya proporcionado un ID válido
+    if (!id || isNaN(id)) {
+      return NextResponse.json({ error: "ID inválido" }, { status: 400 });
+    }
+
+    // 🔹 Ejecutar SP para actualizar la ruta
+    await conn.query(
+  `CALL sp_rutas_actualizar(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  [
+    id,                          // p_id
+    distancia,                   // p_distancia
+    tiempoEstimado,              // p_tiempo_estimado
+    origen,                      // p_origen
+    destino,                     // p_destino
+    descripcion,                 // p_descripcion
+    estado,                      // p_estado
+    precio,                      // p_precio
+    JSON.stringify(horarios),    // p_horarios
+    JSON.stringify(coordenadas), // p_coordenadas
+    JSON.stringify(unidades)     // p_unidades
+  ]
+);
+
+
+    return NextResponse.json({
+      ok: true,
+      message: "Ruta actualizada correctamente",
+    });
+  } catch (err: any) {
+    console.error("❌ Error al actualizar ruta:", err);
     return NextResponse.json(
       { ok: false, error: err.sqlMessage || err.message },
       { status: 500 }
