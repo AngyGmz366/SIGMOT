@@ -41,7 +41,7 @@ export async function POST(req: Request) {
       b.descripcion ?? null,
       b.idEstadoFk ?? 1,
     ];
-    const [rows]: any = await db.query("CALL mydb.sp_unidades_crear(?,?,?,?,?,?,?)", params);
+    const [rows]: any = await db.query("CALL mydb.sp_unidades_crear_con_asientos(?,?,?,?,?,?,?)", params);
     const nuevoId = rows[0][0].Id_Unidad_PK;
 
     const [one]: any = await db.query("CALL mydb.sp_unidades_obtener(?)", [nuevoId]);
