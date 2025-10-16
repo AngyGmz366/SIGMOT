@@ -128,17 +128,16 @@ export async function POST(req: Request) {
         [firebaseUid]
       );
 
-      // 7️⃣ Obtener datos finales del usuario incluyendo TwoFA
+     // 7️⃣ Obtener datos finales del usuario
       const [[usuario]]: any = await conn.query(
         `SELECT 
             Id_Usuario_PK,
             Correo_Electronico AS Correo,
-            Id_Rol_FK,
-            COALESCE(TwoFA_Enabled, 0) AS TwoFA_Enabled
-         FROM mydb.TBL_MS_USUARIO
-         WHERE Firebase_UID = ? OR Correo_Electronico = ?
-         ORDER BY Id_Usuario_PK DESC
-         LIMIT 1;`,
+            Id_Rol_FK
+        FROM mydb.TBL_MS_USUARIO
+        WHERE Firebase_UID = ? OR Correo_Electronico = ?
+        ORDER BY Id_Usuario_PK DESC
+        LIMIT 1;`,
         [firebaseUid, correo]
       );
 
