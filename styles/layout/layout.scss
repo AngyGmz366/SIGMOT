@@ -9,6 +9,7 @@
 @import "./_responsive";
 @import "./_utils";
 @import "./_typography";
+@import "../demo/badges.scss";
 
 /* Botón Cancelar (fondo blanco con texto morado) */
 .btn-cancelar {
@@ -167,3 +168,125 @@
   word-break: break-word;
 }
 
+/* ============================================================
+   🔧 FIX: Menú desplegable del botón de configuración (Topbar)
+   ============================================================ */
+.p-menu {
+  background-color: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  border-radius: 12px !important;
+  padding: 0.25rem 0 !important;
+  z-index: 9999 !important;
+  overflow: hidden;
+
+  .p-menuitem {
+    padding: 0.6rem 1rem !important;
+    transition: background-color 0.2s ease-in-out;
+
+    .p-menuitem-link {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      color: #1f2937 !important; /* gris-800 */
+      font-weight: 500;
+
+      .p-menuitem-icon {
+        color: #6366f1 !important; /* morado institucional */
+        font-size: 1rem;
+      }
+
+      .p-menuitem-text {
+        font-size: 0.95rem;
+      }
+    }
+
+    &:hover {
+      background-color: #eef2ff !important; /* azul/morado claro */
+      .p-menuitem-text {
+        color: #4338ca !important; /* morado más fuerte */
+      }
+    }
+  }
+
+  .p-menuitem-separator {
+    border-top: 1px solid #f3f4f6 !important;
+    margin: 0.3rem 0 !important;
+  }
+}
+/* ============================================================
+   🔧 Cabecera de usuario en el menú del Topbar
+   ============================================================ */
+.menu-header {
+  background-color: #f9fafb !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  padding: 0.75rem 1rem !important;
+
+  img {
+    border: 2px solid #6366f1;
+  }
+
+  span {
+    font-weight: 600;
+    color: #111827; /* gris oscuro */
+  }
+
+  small {
+    color: #6b7280; /* gris medio */
+    font-size: 0.85rem;
+  }
+}
+/* ============================================================
+🎨 Icono del botón de configuración (igual al menú lateral)
+============================================================ */
+.layout-topbar-button.p-link {
+  background: transparent !important;
+  border: none !important;
+  color: #0f4ea5 !important; /* gris similar al menú lateral */
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  transition: color 0.2s ease-in-out, transform 0.2s ease-in-out;
+}
+
+.layout-topbar-button.p-link:hover {
+  color: #6366f1 !important; /* morado institucional al pasar el mouse */
+  transform: scale(1.1);
+}
+
+.layout-topbar-button .pi {
+  font-size: 1.1rem !important; /* igual al de la barra lateral */
+}
+/* Personalización del Toast - Éxito */
+.p-toast-success {
+  background-color: #c0db57 !important; /* Verde de éxito */
+  color: white !important;
+  border-radius: 8px; /* Bordes redondeados */
+  font-size: 14px; /* Tamaño de fuente */
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); /* Sombra suave */
+  padding: 10px; /* Espaciado interno */
+}
+
+/* Texto del mensaje en el Toast */
+.p-toast .p-toast-message {
+  font-weight: bold; /* Fuente en negrita */
+  padding-right: 25px; /* Espaciado para el icono */
+}
+
+/* Icono del Toast (si lo necesitas, por ejemplo, un check de éxito) */
+.p-toast .p-toast-message .p-toast-icon {
+  color: white;
+  font-size: 1.2em;
+  margin-right: 10px; /* Espaciado entre el icono y el texto */
+}
+
+/* Personalización del Toast al mostrarlo */
+.p-toast-container {
+  top: 10px; /* Colocarlo más arriba de la pantalla */
+  right: 10px; /* Colocarlo a la derecha */
+  z-index: 9999; /* Asegurarse de que se muestre por encima de otros elementos */
+}

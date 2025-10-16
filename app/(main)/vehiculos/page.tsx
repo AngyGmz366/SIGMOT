@@ -317,25 +317,30 @@ const VehiculosPage = () => {
   
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Gestión de Unidades</h2>
-
+      <div className="flex flex-col mb-3" style={{ marginTop: '-3rem' }}></div>
+      <h2 className="text-3xl font-bold text-gray-800 mb-1">Gestión de Unidades</h2>
       {message && <Toast ref={toast} />}
 
-      <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate} />
+      <div className="card bg-white shadow-md border-round-2xl p-4">
+        <div className="flex justify-between items-center mb-0 flex-wrap gap-3">
+          <h3 className="text-xl font-semibold text-gray-700"> Listado general de unidades</h3>
+        </div>
+        <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate} />
 
-      <DataTable value={vehiculosFiltrados} tableStyle={{ minWidth: '50rem' }} loading={loading} stripedRows responsiveLayout="scroll">
-        <Column field="placa" header="Placa" sortable />
-        <Column field="marcaUnidad" header="Marca" sortable />
-        <Column field="modelo" header="Modelo" sortable />
-        <Column field="año" header="Año" sortable />
-        <Column field="capacidadAsientos" header="Asientos" sortable style={{ width: 110 }} />
-        <Column body={accionesTemplate} header="Acciones" />
-            <Column field="descripcion"     
+        <DataTable value={vehiculosFiltrados} tableStyle={{ minWidth: '50rem' }} loading={loading} stripedRows responsiveLayout="scroll">
+          <Column field="placa" header="Placa" sortable />
+          <Column field="marcaUnidad" header="Marca" sortable />
+          <Column field="modelo" header="Modelo" sortable />
+          <Column field="año" header="Año" sortable />
+          <Column field="capacidadAsientos" header="Asientos" sortable style={{ width: 110 }} />
+          <Column body={accionesTemplate} header="Acciones" />
+          <Column field="descripcion"     
             header="Descripción"
             body={descripcionTemplate} 
             sortable
             style={{ width: 300 }}/>
-      </DataTable>
+        </DataTable>
+      </div>
       <Dialog
         header={vehiculoActual?.id ? 'Editar Unidad' : 'Nueva Unidad'}
         visible={dialogVisible}

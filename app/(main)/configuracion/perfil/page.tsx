@@ -116,10 +116,7 @@ const Perfil = () => {
                     <label htmlFor="genero">Género</label>
                     <Dropdown id="genero" value={perfil.genero} options={generos} onChange={(e) => setPerfil({ ...perfil, genero: e.value })} placeholder="Seleccione" />
                 </div>
-                <div className="field col-12 md:col-6">
-                    <label htmlFor="contrasena">Cambiar contraseña</label>
-                    <Password id="contrasena" value={perfil.contrasena} onChange={(e) => setPerfil({ ...perfil, contrasena: e.target.value })} toggleMask />
-                </div>
+               
             </div>
 
             <div className="mt-4">

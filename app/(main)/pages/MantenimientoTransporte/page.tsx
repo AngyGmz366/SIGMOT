@@ -73,24 +73,25 @@ const MantenimientoTransporte = () => {
             try {
                 const data = await listarMantenimientos();
 
-                // 🔧 Mapear nombres de columnas desde BD a los usados en el front
+                // ✅ usar los alias exactos del SP
                 const transformados = data.map((m: any) => ({
-                    id: m.Id_Mantenimiento_PK,
-                    vehiculo: m.Marca_Unidad || m.Vehiculo || '',
-                    placa: m.Numero_Placa || m.Placa || '',
-                    tipoServicio: m.Servicio || m.Tipo_Servicio || '',
-                    estado: m.Estado || '',
-                    fecha: m.Fecha_Programada || m.Fecha || null,
-                    fechaRealizada: m.Fecha_Realizada || m.FechaRealizada || null,
-                    proximoMantenimiento: m.Proximo_Mantenimiento || m.ProximoMantenimiento || null,
-                    kilometraje: m.Kilometraje || 0,
-                    taller: m.Taller || '',
-                    descripcion: m.Descripcion || '',
-                    repuestos: m.Repuestos || '',
-                    costo: m.Costo_Total || 0,
+                    id: m.id,
+                    vehiculo: m.vehiculo || '',
+                    placa: m.placa || '',
+                    tipoServicio: m.tipoServicio || '',
+                    estado: m.estado || '',
+                    fecha: m.fecha || null,
+                    fechaRealizada: m.fechaRealizada || null,
+                    proximoMantenimiento: m.proximoMantenimiento || null,
+                    kilometraje: m.kilometraje || 0,
+                    taller: m.taller || '',
+                    descripcion: m.descripcion || '',
+                    repuestos: m.repuestos || '',
+                    costo: m.costo || 0,
                 }));
 
                 setServicios(transformados);
+                console.log('✅ Datos cargados desde API:', transformados);
             } catch (error) {
                 console.error('❌ Error al listar mantenimientos:', error);
             }
@@ -98,6 +99,7 @@ const MantenimientoTransporte = () => {
 
         cargarMantenimientos();
     }, []);
+
 
     useEffect(() => {
         async function cargarCatalogos() {
@@ -487,20 +489,6 @@ const MantenimientoTransporte = () => {
         }).replace(',', ' a las');
     };
 
-    const estadisticas = meses.map((mes, index) => {
-        const serviciosDelMes = servicios.filter((s) => {
-            const fecha = new Date(s.fecha);
-            return fecha.getMonth() === index;
-        });
-
-        return {
-            mes,
-            preventivo: serviciosDelMes.filter(s => s.tipoServicio === 'Preventivo').length,
-            correctivo: serviciosDelMes.filter(s => s.tipoServicio === 'Correctivo').length,
-            inspeccion: serviciosDelMes.filter(s => s.tipoServicio === 'Inspección técnica').length
-        };
-    });
-
     const [filtroPlaca, setFiltroPlaca] = useState('');
 
     const serviciosFiltrados = servicios.filter(
@@ -534,10 +522,24 @@ const MantenimientoTransporte = () => {
     };
 
     const getEstadoBadge = (estado: string) => {
-        return estado === 'Completado'
-            ? <Badge value="Completado" severity="success" />
-            : <Badge value="Pendiente" severity="danger" />;
+        if (!estado) return <Badge value="Sin estado" severity="secondary" />;
+
+        const estadoUpper = estado.toUpperCase().trim();
+
+        switch (estadoUpper) {
+            case 'PROGRAMADO':
+                return <Badge value="Programado" severity="info" />;
+            case 'EN_PROCESO':
+                return <Badge value="En proceso" severity="warning" />;
+            case 'COMPLETADO':
+                return <Badge value="Completado" severity="success" />;
+            case 'CANCELADO':
+                return <Badge value="Cancelado" severity="danger" />;
+            default:
+                return <Badge value={estado} severity="secondary" />;
+        }
     };
+
 
     const servicioDialogFooter = (
         <>
@@ -564,9 +566,19 @@ const MantenimientoTransporte = () => {
                 <Toolbar
                     className="mb-4"
                     left={
-                        <div className="flex gap-2">
-                            <Button label="Nuevo Servicio" icon="pi pi-plus" severity="success" onClick={openNew} />
-                            <Button label="Ver Detalle por Vehículo" icon="pi pi-eye" severity="info" onClick={verDetalle} />
+                        <div className="flex flex-wrap gap-2">
+                            <Button
+                                label="Nuevo Servicio"
+                                icon="pi pi-plus"
+                                severity="success"
+                                onClick={openNew}
+                            />
+                            <Button
+                                label="Ver Detalle por Vehículo"
+                                icon="pi pi-eye"
+                                severity="info"
+                                onClick={verDetalle}
+                            />
                         </div>
                     }
                 />
@@ -683,65 +695,127 @@ const MantenimientoTransporte = () => {
 
                 {/* TABLA DE SERVICIOS */}
                 <div className="card mt-4">
-                    <h5>Historial de Servicios</h5>
-                    <div className="card mb-3">
-                        <InputText
-                            placeholder="Buscar por placa..."
-                            value={filtroPlaca}
-                            onChange={(e) => setFiltroPlaca(e.target.value)}
-                            className="w-full"
-                        />
+                    <div className="mb-3 flex align-items-center justify-content-between">
+                        <h4 className="m-0 text-primary font-semibold">Historial de Servicios</h4>
+                        <span className="p-input-icon-left">
+                            <i className="pi pi-search" />
+                            <InputText
+                                value={filtroPlaca}
+                                onChange={(e) => setFiltroPlaca(e.target.value)}
+                                placeholder="Buscar por placa..."
+                                className="p-inputtext-sm w-20rem"
+                            />
+                        </span>
                     </div>
+                    {/* 🔹 Tabla principal */}
                     <DataTable
                         value={serviciosFiltrados}
                         paginator
-                        rows={5}
-                        showGridlines
+                        rows={10}
+                        rowsPerPageOptions={[5, 10, 25, 50]}
+                        className="datatable-responsive shadow-2 border-round"
+                        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} servicios"
                         responsiveLayout="scroll"
+                        showGridlines
                         emptyMessage="No hay servicios registrados."
                     >
-                        <Column field="vehiculo" header="Vehículo" />
-                        <Column field="placa" header="Placa" />
-                        <Column field="tipoServicio" header="Tipo de Servicio" />
+                        <Column
+                            field="id"
+                            header="ID"
+                            sortable
+                            headerStyle={{ width: '80px', textAlign: 'center' }}
+                            bodyStyle={{ textAlign: 'center' }}
+                        />
+                        <Column field="vehiculo" header="Vehículo" sortable style={{ minWidth: '10rem' }} />
+                        <Column field="placa" header="Placa" sortable style={{ minWidth: '8rem' }} />
+                        <Column
+                            field="tipoServicio"
+                            header="Tipo de Servicio"
+                            body={(rowData) => getTipoServicioBadge(rowData.tipoServicio)}
+                            sortable
+                            style={{ minWidth: '10rem' }}
+                        />
                         <Column
                             header="Estado"
-                            body={(rowData) => {
-                                const estado = rowData.estado?.toUpperCase() || 'PENDIENTE';
-                                let color = '';
-
-                                switch (estado) {
-                                    case 'PROGRAMADO':
-                                        color = 'bg-blue-100 text-blue-800';
-                                        break;
-                                    case 'EN_PROCESO':
-                                        color = 'bg-yellow-100 text-yellow-800';
-                                        break;
-                                    case 'COMPLETADO':
-                                        color = 'bg-green-100 text-green-800';
-                                        break;
-                                    case 'CANCELADO':
-                                        color = 'bg-red-100 text-red-800';
-                                        break;
-                                    default:
-                                        color = 'bg-gray-200 text-gray-700';
-                                }
-
-                                return (
-                                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${color}`}>
-                                        {estado}
-                                    </span>
-                                );
-                            }}
+                            body={(rowData) => getEstadoBadge(rowData.estado || 'Pendiente')}
+                            sortable
+                            style={{ minWidth: '9rem' }}
                         />
-                        <Column field="fecha" header="Fecha Programada" sortable />
-                        <Column field="fechaRealizada" header="Fecha Realizada" sortable />
-                        <Column field="proximoMantenimiento" header="Próximo Mantenimiento" sortable />
-                        <Column field="kilometraje" header="Kilometraje" />
-                        <Column field="taller" header="Taller" />
-                        <Column field="descripcion" header="Descripción" />
-                        <Column field="repuestos" header="Repuestos" />
-                        <Column field="costo" header="Costo" body={(rowData) => rowData.costo?.toLocaleString('es-HN', { style: 'currency', currency: 'HNL', minimumFractionDigits: 2 })} />
-                        <Column body={accionesTemplate} header="Acciones" />
+                        <Column
+                            field="fecha"
+                            header="Fecha Programada"
+                            sortable
+                            style={{ minWidth: '9rem' }}
+                            body={(r) => (r.fecha ? new Date(r.fecha).toLocaleDateString('es-HN') : '-')}
+                        />
+                        <Column
+                            field="fechaRealizada"
+                            header="Fecha Realizada"
+                            sortable
+                            style={{ minWidth: '9rem' }}
+                            body={(r) => (r.fechaRealizada ? new Date(r.fechaRealizada).toLocaleDateString('es-HN') : '-')}
+                        />
+                        <Column
+                            field="proximoMantenimiento"
+                            header="Próximo Mantenimiento"
+                            sortable
+                            style={{ minWidth: '10rem' }}
+                            body={(r) => (r.proximoMantenimiento ? new Date(r.proximoMantenimiento).toLocaleDateString('es-HN') : '-')}
+                        />
+                        <Column
+                            field="kilometraje"
+                            header="Kilometraje"
+                            sortable
+                            body={(r) => `${r.kilometraje?.toLocaleString() || 0} km`}
+                            style={{ minWidth: '8rem' }}
+                        />
+                        <Column field="taller" header="Taller" sortable style={{ minWidth: '10rem' }} />
+                        <Column
+                            field="costo"
+                            header="Costo (L)"
+                            body={(r) =>
+                                r.costo?.toLocaleString('es-HN', {
+                                    style: 'currency',
+                                    currency: 'HNL',
+                                    minimumFractionDigits: 2,
+                                })
+                            }
+                            sortable
+                            style={{ minWidth: '8rem' }}
+                        />
+                        <Column
+                            header="Acciones"
+                            body={(rowData) => (
+                                <div className="flex gap-2 justify-content-center">
+                                    <Button
+                                        icon="pi pi-eye"
+                                        rounded
+                                        text
+                                        severity="info"
+                                        tooltip="Ver detalle"
+                                        onClick={() => verDetalleServicio(rowData)}
+                                    />
+                                    <Button
+                                        icon="pi pi-pencil"
+                                        rounded
+                                        text
+                                        severity="warning"
+                                        tooltip="Editar"
+                                        onClick={() => editServicio(rowData)}
+                                    />
+                                    <Button
+                                        icon="pi pi-trash"
+                                        rounded
+                                        text
+                                        severity="danger"
+                                        tooltip="Eliminar"
+                                        onClick={() => deleteServicio(rowData)}
+                                    />
+                                </div>
+                            )}
+                            style={{ width: '8rem' }}
+                        />
                     </DataTable>
                 </div>
 
@@ -758,12 +832,6 @@ const MantenimientoTransporte = () => {
                             id: s.id,
                             title: `${s.tipoServicio} (${s.vehiculo}) - ${s.estado}`,
                             date: s.fecha,
-                            color:
-                                s.tipoServicio === 'Preventivo'
-                                    ? '#22c55e'
-                                    : s.tipoServicio === 'Correctivo'
-                                        ? '#ef4444'
-                                        : '#3b82f6',
                             extendedProps: s
                         }))}
                         eventDidMount={(info) => {
@@ -781,23 +849,6 @@ const MantenimientoTransporte = () => {
                         }}
                     />
                 </div>
-
-                {/* GRÁFICO */}
-                <div className="card">
-                    <h5>Mantenimientos por Tipo</h5>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={estadisticas}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="mes" />
-                            <YAxis />
-                            <Tooltip />
-                            <Legend />
-                            <Bar dataKey="preventivo" stackId="a" fill="#22c55e" name="Preventivo" />
-                            <Bar dataKey="correctivo" stackId="a" fill="#ef4444" name="Correctivo" />
-                            <Bar dataKey="inspeccion" stackId="a" fill="#3b82f6" name="Inspección" />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
             </div>
 
             {/* DIALOGO FORMULARIO */}
@@ -813,30 +864,46 @@ const MantenimientoTransporte = () => {
                 {/* 🚍 Unidad / Vehículo */}
                 <div className="field">
                     <label htmlFor="vehiculo">Unidad / Vehículo</label>
-                    <Dropdown
-                        id="vehiculo"
-                        value={servicio.Id_Unidad_FK}
-                        options={unidades.map((u) => ({
-                            label: `${u.Numero_Placa} – ${u.Marca_Unidad} ${u.Modelo} (${u.Año})`,
-                            value: u.Id_Unidad_PK,
-                        }))}
-                        onChange={(e) => {
-                            const unidadSeleccionada = unidades.find(
-                                (u) => u.Id_Unidad_PK === e.value
-                            );
-                            setServicio({
-                                ...servicio,
-                                Id_Unidad_FK: e.value,
-                                vehiculo: unidadSeleccionada
-                                    ? `${unidadSeleccionada.Numero_Placa} – ${unidadSeleccionada.Marca_Unidad} ${unidadSeleccionada.Modelo} (${unidadSeleccionada.Año})`
-                                    : '',
-                            });
-                        }}
-                        placeholder="Selecciona una unidad"
-                        className="w-full"
-                    />
-                </div>
 
+                    {servicio.id ? (
+                        // 🔒 Modo edición: solo lectura
+                        <InputText
+                            id="vehiculo"
+                            value={servicio.vehiculo}
+                            className="w-full"
+                            disabled
+                            style={{
+                                backgroundColor: '#f9fafb',
+                                color: '#374151',
+                                fontWeight: '500',
+                            }}
+                        />
+                    ) : (
+                        // 🆕 Modo creación: dropdown activo
+                        <Dropdown
+                            id="vehiculo"
+                            value={servicio.Id_Unidad_FK}
+                            options={unidades.map((u) => ({
+                                label: `${u.Numero_Placa} – ${u.Marca_Unidad} ${u.Modelo} (${u.Año})`,
+                                value: u.Id_Unidad_PK,
+                            }))}
+                            onChange={(e) => {
+                                const unidadSeleccionada = unidades.find(
+                                    (u) => u.Id_Unidad_PK === e.value
+                                );
+                                setServicio({
+                                    ...servicio,
+                                    Id_Unidad_FK: e.value,
+                                    vehiculo: unidadSeleccionada
+                                        ? `${unidadSeleccionada.Numero_Placa} – ${unidadSeleccionada.Marca_Unidad} ${unidadSeleccionada.Modelo} (${unidadSeleccionada.Año})`
+                                        : '',
+                                });
+                            }}
+                            placeholder="Selecciona una unidad"
+                            className="w-full"
+                        />
+                    )}
+                </div>
                 {/* 🔧 Tipo de Mantenimiento */}
                 <div className="field">
                     <label htmlFor="tipoServicio">Tipo de mantenimiento</label>
@@ -868,19 +935,22 @@ const MantenimientoTransporte = () => {
                     />
                 </div>
 
-                {/* 📅 Fecha Realizada (opcional) */}
-                <div className="field">
-                    <label htmlFor="fechaRealizada">Fecha Realizada</label>
-                    <Calendar
-                        id="fechaRealizada"
-                        value={servicio.fechaRealizada}
-                        onChange={(e) => setServicio({ ...servicio, fechaRealizada: e.value })}
-                        dateFormat="yy-mm-dd"
-                        showIcon
-                        className="w-full"
-                        placeholder="Opcional"
-                    />
-                </div>
+                {/* 📅 Fecha Realizada (solo visible al editar) */}
+                {servicio.id && (
+                    <div className="field">
+                        <label htmlFor="fechaRealizada">Fecha Realizada</label>
+                        <Calendar
+                            id="fechaRealizada"
+                            value={servicio.fechaRealizada}
+                            onChange={(e) => setServicio({ ...servicio, fechaRealizada: e.value })}
+                            dateFormat="yy-mm-dd"
+                            showIcon
+                            className="w-full"
+                            placeholder="Selecciona la fecha de realización"
+                        />
+                    </div>
+                )}
+
 
                 {/* 📅 Próximo Mantenimiento (obligatorio y > fecha programada) */}
                 <div className="field">
@@ -1071,16 +1141,7 @@ const MantenimientoTransporte = () => {
                             <div className="field">
                                 <label className="font-semibold text-900">Estado:</label>
                                 <p className="m-0 mt-1">
-                                    {getEstadoBadge(servicioSeleccionado.estado || 'Pendiente')}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="col-12">
-                            <div className="field">
-                                <label className="font-semibold text-900">Descripción del Trabajo:</label>
-                                <p className="m-0 mt-1 text-700 line-height-3">
-                                    {servicioSeleccionado.descripcion || 'Sin descripción disponible'}
+                                    {getEstadoBadge(servicioSeleccionado.estado)}
                                 </p>
                             </div>
                         </div>
@@ -1093,18 +1154,6 @@ const MantenimientoTransporte = () => {
                                 </p>
                             </div>
                         </div>
-
-                        {servicioSeleccionado.documentos && (
-                            <div className="col-12">
-                                <div className="field">
-                                    <label className="font-semibold text-900">Documentos:</label>
-                                    <p className="m-0 mt-1 text-700">
-                                        <i className="pi pi-file-pdf mr-2"></i>
-                                        Documentos adjuntos disponibles
-                                    </p>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 )}
             </Dialog>
@@ -1143,13 +1192,19 @@ const MantenimientoTransporte = () => {
                                             </div>
                                             <div className="text-center">
                                                 <span className="text-lg font-bold text-primary">
-                                                    {vehiculoData.costoTotal.toLocaleString('es-HN', {
-                                                        style: 'currency',
-                                                        currency: 'HNL'
-                                                    })}
+                                                    {(() => {
+                                                        const costoTotalNum = parseFloat(
+                                                            String(vehiculoData.costoTotal || '0').replace(/[^\d.-]/g, '')
+                                                        ) || 0;
+
+                                                        return `L.${costoTotalNum
+                                                            .toFixed(2)
+                                                            .replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+                                                    })()}
                                                 </span>
                                                 <p className="m-0 text-xs text-500 mt-1">Total</p>
                                             </div>
+
                                         </div>
                                     </div>
                                 }
@@ -1162,19 +1217,47 @@ const MantenimientoTransporte = () => {
                                                 <div className="p-3 border-round shadow-1" style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
                                                     <h6 className="m-0 mb-2 text-primary">Último Servicio</h6>
                                                     <p className="m-0"><strong>Tipo:</strong> {getTipoServicioBadge(vehiculoData.ultimoServicio.tipoServicio)}</p>
-                                                    <p className="m-0"><strong>Estado:</strong> {getEstadoBadge(vehiculoData.ultimoServicio.estado || 'Pendiente')}</p>
+                                                    <p className="m-0"><strong>Estado:</strong> {getEstadoBadge(vehiculoData.ultimoServicio.estado)}</p>
                                                     <p className="m-0"><strong>Fecha:</strong> {formatearFechaHora(vehiculoData.ultimoServicio.fecha)}</p>
                                                     <p className="m-0"><strong>Taller:</strong> {vehiculoData.ultimoServicio.taller}</p>
                                                 </div>
                                             </div>
                                             <div className="col-12 md:col-6">
-                                                <div className="p-3 border-round shadow-1" style={{ backgroundColor: '#f0fdf4', border: '1px solid #22c55e' }}>
+                                                <div
+                                                    className="p-3 border-round shadow-1"
+                                                    style={{ backgroundColor: '#f0fdf4', border: '1px solid #22c55e' }}
+                                                >
                                                     <h6 className="m-0 mb-2" style={{ color: '#166534' }}>Estadísticas</h6>
-                                                    <p className="m-0"><strong>Total de Servicios:</strong> {vehiculoData.totalServicios}</p>
-                                                    <p className="m-0"><strong>Costo Total:</strong> {vehiculoData.costoTotal.toLocaleString('es-HN', { style: 'currency', currency: 'HNL' })}</p>
-                                                    <p className="m-0"><strong>Promedio por Servicio:</strong> {(vehiculoData.costoTotal / vehiculoData.totalServicios).toLocaleString('es-HN', { style: 'currency', currency: 'HNL' })}</p>
+                                                    <p className="m-0">
+                                                        <strong>Total de Servicios:</strong> {vehiculoData.totalServicios}
+                                                    </p>
+                                                    {(() => {
+                                                        // 🔹 Limpieza del valor: quitar letras o caracteres raros
+                                                        const costoTotalNum = parseFloat(
+                                                            String(vehiculoData.costoTotal || '0').replace(/[^\d.-]/g, '')
+                                                        ) || 0;
+
+                                                        const promedio = vehiculoData.totalServicios > 0
+                                                            ? costoTotalNum / vehiculoData.totalServicios
+                                                            : 0;
+
+                                                        const format = (n: number) =>
+                                                            `L.${n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+
+                                                        return (
+                                                            <>
+                                                                <p className="m-0">
+                                                                    <strong>Costo Total:</strong> {format(costoTotalNum)}
+                                                                </p>
+                                                                <p className="m-0">
+                                                                    <strong>Promedio por Servicio:</strong> {format(promedio)}
+                                                                </p>
+                                                            </>
+                                                        );
+                                                    })()}
                                                 </div>
                                             </div>
+
                                         </div>
                                     </div>
 

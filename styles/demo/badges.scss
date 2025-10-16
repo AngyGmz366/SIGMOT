@@ -1,81 +1,70 @@
-.customer-badge,
-.product-badge,
-.order-badge {
-    border-radius: var(--border-radius);
-    padding: .25em .5rem;
-    text-transform: uppercase;
-    font-weight: 700;
-    font-size: 12px;
-    letter-spacing: .3px;
+/* ===========================
+   🎨 BADGES DE ESTADOS (MANTENIMIENTO)
+   Compatible con tema Sakai + Dark Mode
+   =========================== */
+
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  transition: all 0.3s ease;
 }
 
-.product-badge {
-    &.status-instock {
-        background: #C8E6C9;
-        color: #256029;
-    }
-
-    &.status-outofstock {
-        background: #FFCDD2;
-        color: #C63737;
-    }
-
-    &.status-lowstock {
-        background: #FEEDAF;
-        color: #8A5340;
-    }
+/* === MODO CLARO === */
+.badge-programado {
+  background-color: #dbeafe; /* azul claro */
+  color: #1e40af;
 }
 
-.customer-badge {
-    &.status-qualified {
-        background: #C8E6C9;
-        color: #256029;
-    }
-
-    &.status-unqualified {
-        background: #FFCDD2;
-        color: #C63737;
-    }
-
-    &.status-negotiation {
-        background: #FEEDAF;
-        color: #8A5340;
-    }
-
-    &.status-new {
-        background: #B3E5FC;
-        color: #23547B;
-    }
-
-    &.status-renewal {
-        background: #ECCFFF;
-        color: #694382;
-    }
-
-    &.status-proposal {
-        background: #FFD8B2;
-        color: #805B36;
-    }
+.badge-en-proceso {
+  background-color: #fef9c3; /* amarillo claro */
+  color: #92400e;
 }
 
-.order-badge {
-    &.order-delivered {
-        background: #C8E6C9;
-        color: #256029;
-    }
+.badge-completado {
+  background-color: #dcfce7; /* verde claro */
+  color: #166534;
+}
 
-    &.order-cancelled {
-        background: #FFCDD2;
-        color: #C63737;
-    }
+.badge-cancelado {
+  background-color: #fee2e2; /* rojo claro */
+  color: #991b1b;
+}
 
-    &.order-pending {
-        background: #FEEDAF;
-        color: #8A5340;
-    }
+.badge-pendiente {
+  background-color: #e5e7eb;
+  color: #374151;
+}
 
-    &.order-returned {
-        background: #ECCFFF;
-        color: #694382;
-    }
+/* === MODO OSCURO === */
+.layout-theme-dark {
+  .badge-programado {
+    background-color: #1e3a8a;
+    color: #bfdbfe;
+  }
+
+  .badge-en-proceso {
+    background-color: #78350f;
+    color: #fde68a;
+  }
+
+  .badge-completado {
+    background-color: #065f46;
+    color: #bbf7d0;
+  }
+
+  .badge-cancelado {
+    background-color: #7f1d1d;
+    color: #fecaca;
+  }
+
+  .badge-pendiente {
+    background-color: #374151;
+    color: #d1d5db;
+  }
 }
