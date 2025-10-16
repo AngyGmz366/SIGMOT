@@ -37,7 +37,7 @@
     "nodemailer": "^7.0.7",
     "primeflex": "^4.0.0",
     "primeicons": "^7.0.0",
-    "primereact": "^10.9.6",
+    "primereact": "^10.9.7",
     "pspdfkit": "^2024.8.2",
     "qrcode": "^1.5.4",
     "qrcode.react": "^4.2.0",

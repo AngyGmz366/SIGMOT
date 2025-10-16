@@ -1,23 +1,9 @@
-"use client";
-
+// app/(main)/admin/rutas-admin/components/RutasAdminTable.tsx
 import React from "react";
 import { Button } from "primereact/button";
 import { Tag } from "primereact/tag";
 import { ProgressSpinner } from "primereact/progressspinner";
-
-export interface RutaUI {
-  id: number;
-  origen: string;
-  destino: string;
-  estado: "activo" | "inactivo";
-  tiempoEstimado?: string | null;
-  distancia?: number | null;
-  descripcion?: string | null;
-  precio?: number | null;
-  horarios?: string[] | null;
-  coordenadas?: { lat: number; lng: number }[] | null;
-  unidades?: number[]; // Campo para las unidades
-}
+import { RutaUI } from "./types";
 
 interface Props {
   rutas: RutaUI[];
@@ -49,9 +35,9 @@ const RutasAdminTable: React.FC<Props> = ({
             <th className="py-3 px-4 text-left font-medium">Destino</th>
             <th className="py-3 px-4 text-left font-medium">Estado</th>
             <th className="py-3 px-4 text-left font-medium">Tiempo Estimado</th>
-            <th className="py-3 px-4 text-left font-medium">Distancia</th>
             <th className="py-3 px-4 text-left font-medium">Precio (Lps)</th>
             <th className="py-3 px-4 text-left font-medium">Horarios</th>
+            <th className="py-3 px-4 text-left font-medium">Unidades</th>
             <th className="py-3 px-4 text-left font-medium">Descripción</th>
             <th className="py-3 px-4 text-center font-medium">Acciones</th>
           </tr>
@@ -64,8 +50,8 @@ const RutasAdminTable: React.FC<Props> = ({
               className="border-t hover:bg-purple-50 transition-colors"
             >
               <td className="py-2 px-4">{i + 1}</td>
-              <td className="py-2 px-4">{r.origen}</td>
-              <td className="py-2 px-4">{r.destino}</td>
+              <td className="py-2 px-4">{r.origen || "-"}</td>
+              <td className="py-2 px-4">{r.destino || "-"}</td>
               <td className="py-2 px-4">
                 {r.estado === "activo" ? (
                   <Tag
@@ -93,11 +79,7 @@ const RutasAdminTable: React.FC<Props> = ({
               </td>
 
               <td className="py-2 px-4 text-center">
-                {r.distancia ? `${r.distancia} km` : "-"}
-              </td>
-
-              <td className="py-2 px-4 text-center">
-                {r.precio ? r.precio.toFixed(2) : "-"}
+                {r.precio ? `L. ${r.precio.toFixed(2)}` : "-"}
               </td>
 
               <td className="py-2 px-4 text-xs text-gray-700">
@@ -107,7 +89,7 @@ const RutasAdminTable: React.FC<Props> = ({
                       key={idx}
                       className="inline-block bg-purple-200 text-purple-800 px-2 py-1 rounded-md mr-1 mb-1 text-xs"
                     >
-                      {h.replace(/^0/, "")}
+                      {h}
                     </span>
                   ))
                 ) : (
@@ -115,15 +97,31 @@ const RutasAdminTable: React.FC<Props> = ({
                 )}
               </td>
 
+              <td className="py-2 px-4 text-xs text-gray-700">
+                {r.unidades && r.unidades.length > 0 ? (
+                  r.unidades.map((unidadId, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-block bg-blue-200 text-blue-800 px-2 py-1 rounded-md mr-1 mb-1 text-xs"
+                    >
+                      Unidad {unidadId}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-gray-400">Sin unidades</span>
+                )}
+              </td>
+
               <td className="py-2 px-4 text-gray-700 max-w-[200px] truncate">
                 {r.descripcion || "-"}
               </td>
 
-              <td className="py-2 px-4 text-center space-x-2">
+              <td className="py-2 px-4 text-center">
                 <Button
                   icon="pi pi-pencil"
                   className="p-button-sm p-button-warning"
                   tooltip="Editar"
+                  tooltipOptions={{ position: 'top' }}
                   onClick={() => onEditarRuta?.(r)}
                 />
               </td>
