@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     }
 
     const idUsuario = usuario.Id_Usuario_PK;
-    const ID_OBJETO_LOGIN_SEGURIDAD = 1; // Ajusta al ID real en tu tabla de objetos
+    const ID_OBJETO_LOGIN_SEGURIDAD = 2; // Ajusta al ID real en tu tabla de objetos
 
     // 4️⃣ Llamar SP de cierre de sesión (bitácora)
     await conn.query('CALL mydb.sp_cerrar_sesion(?, ?)', [
