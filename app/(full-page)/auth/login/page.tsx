@@ -23,27 +23,24 @@ import {
 
 const ROL_DEFECTO = 1; // rol por defecto "usuario"
 
-// estructura de errores (pa guardar mensajes de error en el form)
 type ErrorState = { email?: string; password?: string; general?: string };
 
 export default function LoginPage() {
-  // cosas que controlo del form
-  const [email, setEmail] = useState(''); // input de correo
-  const [password, setPassword] = useState(''); // input de clave
-  const [checked, setChecked] = useState(false); // checkbox recordarme
-  const [errors, setErrors] = useState<ErrorState>({}); // errores que muestro en UI
-  const [touched, setTouched] = useState<{ email: boolean; password: boolean }>({ email: false, password: false }); // si ya tocó cada input
-  const [loading, setLoading] = useState(false); // cuando está cargando, desactivo botones
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [checked, setChecked] = useState(false);
+  const [errors, setErrors] = useState<ErrorState>({});
+  const [touched, setTouched] = useState<{ email: boolean; password: boolean }>({ email: false, password: false });
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { layoutConfig } = useContext(LayoutContext); // estilos del layout
+  const { layoutConfig } = useContext(LayoutContext);
 
-  // clase del contenedor (solo estilos visuales)
   const containerClassName = classNames(
     'surface-ground flex align-items-center justify-content-center min-h-screen min-w-screen overflow-hidden',
     { 'p-input-filled': layoutConfig.inputStyle === 'filled' }
   );
 
-  // validaciones básicas del form
+  // 🔹 Validaciones básicas
   const validate = (): ErrorState => {
     const errs: ErrorState = {};
     if (!email.trim()) errs.email = 'El correo es obligatorio.';
@@ -53,27 +50,40 @@ export default function LoginPage() {
     return errs;
   };
 
-  // mostrar error solo si ya tocó el input
   const showError = (field: keyof ErrorState) =>
     (field === 'email' || field === 'password') && Boolean(errors[field] && touched[field]);
 
-  // marcar un input como "tocado"
   const handleBlur = (field: 'email' | 'password') =>
     setTouched((prev) => ({ ...prev, [field]: true }));
 
-  // este pega al backend para sincronizar el usuario en mi BD
+  // 🔹 Sincroniza usuario Firebase → BD y guarda datos en localStorage
   const syncUsuarioConBD = async (idToken: string) => {
     const resp = await fetch('/api/auth/upsert', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
-      body: JSON.stringify({ rolDefecto: ROL_DEFECTO }), // mando solo el rol
+      body: JSON.stringify({ rolDefecto: ROL_DEFECTO }),
     });
+
     const data = await resp.json();
     if (!resp.ok) throw new Error(data?.detail || data?.error || 'Error al sincronizar usuario');
-    return data;
+
+    // 🔹 Detecta si viene como array o objeto
+    const usuario = Array.isArray(data.usuario) ? data.usuario[0] : data.usuario;
+
+    if (usuario) {
+      // ✅ Guardamos datos básicos para el resto del sistema
+      localStorage.setItem('idUsuario', usuario.Id_Usuario_PK?.toString() || '');
+      localStorage.setItem('nombreUsuario', usuario.Nombre_Usuario || 'Usuario');
+      localStorage.setItem('correoUsuario', usuario.Correo_Electronico || '');
+      localStorage.setItem('rolUsuario', usuario.Rol || 'Usuario');
+      localStorage.setItem('authType', 'firebase');
+    }
+
+    return usuario;
   };
 
-    // login local (no firebase, sino API propia con bcrypt)
+
+  // 🔹 Login local (respaldo)
   const loginLocal = async (email: string, password: string) => {
     const r = await fetch('/api/auth/login-local', {
       method: 'POST',
@@ -84,7 +94,6 @@ export default function LoginPage() {
     const data = await r.json().catch(() => ({}));
 
     if (r.status === 423) {
-      // Usuario bloqueado
       if (data.minutosRestantes) {
         throw new Error(`Usuario bloqueado temporalmente. Intenta en ${data.minutosRestantes} minutos.`);
       }
@@ -96,18 +105,16 @@ export default function LoginPage() {
     }
 
     if (!r.ok) {
-      throw new Error(data?.error || 'Credenciales inválidas');
+      throw new Error(data?.error || 'Correo y/o contraseña inválidos.');
     }
 
-    return data; // backend ya setea cookie httpOnly
+    return data;
   };
 
-
-  // login normal (correo y clave)
+  // 🔹 Login normal Firebase
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 1. valido inputs
     const valErrors = validate();
     setErrors(valErrors);
     setTouched({ email: true, password: true });
@@ -116,19 +123,28 @@ export default function LoginPage() {
     setLoading(true);
     setErrors({});
     try {
-      // 2. intento login en firebase
       await setPersistence(auth, checked ? browserLocalPersistence : browserSessionPersistence);
       const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
       const idToken = await cred.user.getIdToken(true);
-      await syncUsuarioConBD(idToken); // sincronizo con mi BD
-      router.push('/dashboard'); // redirijo al dashboard
+
+      const usuario = await syncUsuarioConBD(idToken);
+
+      router.push('/dashboard');
+
     } catch (err: any) {
-      // 3. si falla firebase, pruebo login local
       const code = err?.code || '';
       const canTryLocal = ['auth/invalid-credential', 'auth/user-not-found', 'auth/wrong-password'].includes(code);
       try {
         if (canTryLocal) {
-          await loginLocal(email, password);
+            // 🔹 Intenta login local como respaldo
+           const data = await loginLocal(email, password);
+           // ✅ Guarda el ID de usuario y rol en localStorage
+            if (data?.Id_Usuario_PK) {
+              localStorage.setItem('idUsuario', String(data.Id_Usuario_PK));
+              localStorage.setItem('rolUsuario', data.rol || 'Usuario');
+              localStorage.setItem('authType', 'local');
+            }
+
           router.push('/dashboard');
         } else {
           throw err;
@@ -142,24 +158,23 @@ export default function LoginPage() {
     }
   };
 
-  // login con google
+  // 🔹 Login con Google
   const handleLoginGoogle = async () => {
     setLoading(true);
     setErrors({});
     try {
       await setPersistence(auth, checked ? browserLocalPersistence : browserSessionPersistence);
       const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: 'select_account' }); // me obliga a elegir cuenta
+      provider.setCustomParameters({ prompt: 'select_account' });
 
-      const result = await signInWithPopup(auth, provider); // abre popup
+      const result = await signInWithPopup(auth, provider);
       const idToken = await result.user.getIdToken(true);
-      await syncUsuarioConBD(idToken); // sincronizo con mi BD
+      const usuario = await syncUsuarioConBD(idToken);
+
       router.push('/dashboard');
+
     } catch (err: any) {
-      if (err?.code === 'auth/popup-closed-by-user') {
-        // si cierro el popup no hago nada (no mostrar error)
-        return;
-      }
+      if (err?.code === 'auth/popup-closed-by-user') return;
       console.error(err);
       setErrors((p) => ({ ...p, general: err?.message || 'No se pudo iniciar sesión con Google.' }));
     } finally {
@@ -167,7 +182,7 @@ export default function LoginPage() {
     }
   };
 
-  // UI del login
+  // 🔹 UI del login
   return (
     <div className={containerClassName}>
       <div className="flex flex-column align-items-center justify-content-center">
@@ -187,13 +202,12 @@ export default function LoginPage() {
             <div className="text-center mb-4">
               <Image
                 src="/demo/images/login/LOGO-SIGMOT.png"
-                alt="Logo SAENZ"
+                alt="Logo SIGMOT"
                 width={120}
                 height={120}
                 priority
                 className="mx-auto mb-3"
               />
-
               <div className="text-900 text-2xl font-medium mb-2">Inicio de Sesión</div>
             </div>
 
@@ -206,8 +220,6 @@ export default function LoginPage() {
               </div>
             )}
 
-
-            {/* input correo */}
             <label htmlFor="email" className="block text-900 text-base font-medium mb-2">
               Correo electrónico
             </label>
@@ -223,7 +235,6 @@ export default function LoginPage() {
             />
             {showError('email') && <small className="text-danger">{errors.email}</small>}
 
-            {/* input clave */}
             <label htmlFor="password" className="block text-900 font-medium text-base mb-2 mt-4">
               Contraseña
             </label>
@@ -242,7 +253,6 @@ export default function LoginPage() {
             />
             {showError('password') && <small className="text-danger">{errors.password}</small>}
 
-            {/* recordar + link recuperar */}
             <div className="flex align-items-center justify-content-between mb-4 mt-3 gap-3">
               <div className="flex align-items-center">
                 <Checkbox
@@ -265,11 +275,11 @@ export default function LoginPage() {
               </a>
             </div>
 
-            {/* botones */}
             <Button
               type="submit"
               label={loading ? 'Ingresando...' : 'Iniciar sesión'}
-              icon="pi pi-sign-in" iconPos="right"
+              icon="pi pi-sign-in"
+              iconPos="right"
               className="w-full p-2 text-base"
               disabled={loading}
             />
@@ -277,7 +287,8 @@ export default function LoginPage() {
             <Button
               type="button"
               label="Iniciar con Google"
-               icon="pi pi-google"  iconPos="right"
+              icon="pi pi-google"
+              iconPos="right"
               className="w-full p-2 text-base mt-3 p-button-outlined"
               onClick={handleLoginGoogle}
               disabled={loading}
@@ -286,7 +297,8 @@ export default function LoginPage() {
             <Button
               type="button"
               label="Crear cuenta"
-                icon="pi pi-user-plus"  iconPos="right"
+              icon="pi pi-user-plus"
+              iconPos="right"
               className="w-full p-2 text-base mt-3 p-button-outlined"
               onClick={() => router.push('/auth/Register')}
               disabled={loading}

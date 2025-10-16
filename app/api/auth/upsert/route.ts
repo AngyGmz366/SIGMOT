@@ -6,9 +6,7 @@ import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { SignJWT } from 'jose';
 
-const pool = db;
-
-// 🔹 Inicializa Firebase Admin solo una vez
+// 🔹 Inicializa Firebase Admin una sola vez
 if (!getApps().length) {
   initializeApp({
     credential: cert({
@@ -19,6 +17,8 @@ if (!getApps().length) {
   });
 }
 
+const pool = db;
+
 // 🔹 Simple healthcheck
 export async function GET() {
   return NextResponse.json({ ok: true, path: '/api/auth/upsert' });
@@ -26,11 +26,11 @@ export async function GET() {
 
 /**
  * 🔐 Sincroniza usuario Firebase → MySQL
- * - Verifica token de Firebase
+ * - Verifica token Firebase
  * - Crea o actualiza correo, persona y usuario
  * - Activa usuario si estaba "NUEVO"
  * - Registra en bitácora
- * - Devuelve cookie JWT httpOnly
+ * - Devuelve cookie JWT httpOnly + info del usuario (incluyendo TwoFA)
  */
 export async function POST(req: Request) {
   try {
@@ -87,7 +87,6 @@ export async function POST(req: Request) {
         const nombres = displayName?.split(' ')?.slice(0, -1).join(' ') || 'Usuario';
         const apellidos = displayName?.split(' ')?.slice(-1).join(' ') || 'SIGMOT';
 
-        // 🔹 1. Insertar o reutilizar correo
         const [insCorreo]: any = await conn.query(
           `INSERT INTO mydb.TBL_CORREOS (Correo)
            VALUES (?) 
@@ -96,7 +95,6 @@ export async function POST(req: Request) {
         );
         const idCorreo = insCorreo.insertId;
 
-        // 🔹 2. Insertar persona con FK y valores por defecto
         const DEFAULT_GENERO_ID = 4;       // "Prefiero no decir"
         const DEFAULT_TIPO_PERSONA = 1;    // Persona natural o cliente
 
@@ -117,29 +115,32 @@ export async function POST(req: Request) {
       );
 
       // 6️⃣ Activar automáticamente el usuario si estaba "NUEVO"
-      // (estado 1 → 2)
-      await conn.query(`
-        UPDATE mydb.TBL_MS_USUARIO 
-        SET Estado_Usuario = (
-          SELECT Id_Estado_PK 
-          FROM mydb.TBL_MS_ESTADO_USUARIO 
-          WHERE Estado = 'ACTIVO' 
-          LIMIT 1
-        )
-        WHERE Firebase_UID = ? 
-          AND (Estado_Usuario IS NULL OR Estado_Usuario = 1);
-      `, [firebaseUid]);
-
-      // 7️⃣ Registrar evento en bitácora
-      const [[usuario]]: any = await conn.query(
-        `SELECT Id_Usuario_PK 
-           FROM mydb.TBL_MS_USUARIO
-          WHERE Firebase_UID = ? OR Correo_Electronico = ?
-          ORDER BY Id_Usuario_PK DESC
-          LIMIT 1`,
-        [firebaseUid, correo]
+      await conn.query(
+        `UPDATE mydb.TBL_MS_USUARIO 
+         SET Estado_Usuario = (
+           SELECT Id_Estado_PK 
+           FROM mydb.TBL_MS_ESTADO_USUARIO 
+           WHERE Estado = 'ACTIVO' 
+           LIMIT 1
+         )
+         WHERE Firebase_UID = ? 
+           AND (Estado_Usuario IS NULL OR Estado_Usuario = 1);`,
+        [firebaseUid]
       );
 
+      // 7️⃣ Obtener datos finales del usuario incluyendo TwoFA
+      const [[usuario]]: any = await conn.query(
+        `SELECT 
+            Id_Usuario_PK,
+            Correo_Electronico AS Correo,
+            Id_Rol_FK,
+            COALESCE(TwoFA_Enabled, 0) AS TwoFA_Enabled
+         FROM mydb.TBL_MS_USUARIO
+         WHERE Firebase_UID = ? OR Correo_Electronico = ?
+         ORDER BY Id_Usuario_PK DESC
+         LIMIT 1;`,
+        [firebaseUid, correo]
+      );
 
       await conn.commit();
       conn.release();
@@ -155,11 +156,11 @@ export async function POST(req: Request) {
         .setExpirationTime('1d')
         .sign(secret);
 
-      // 9️⃣ Responder con cookie segura
+      // 9️⃣ Responder con cookie y datos del usuario
       const resp = NextResponse.json({
         ok: true,
         message: 'Usuario sincronizado correctamente',
-        usuario: Array.isArray(resultSets) ? resultSets[0] : resultSets,
+        usuario,
       });
 
       resp.cookies.set('app_token', appToken, {
@@ -167,7 +168,7 @@ export async function POST(req: Request) {
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         path: '/',
-        maxAge: 60 * 60 * 24, // 1 día
+        maxAge: 60 * 60 * 24,
       });
 
       return resp;

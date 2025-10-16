@@ -133,8 +133,7 @@ const Layout = ({ children }: ChildContainerProps) => {
                     <div className="layout-main">{children}</div>
                     <AppFooter />
                 </div>
-                <AppConfig />
-                <div className="layout-mask"></div>
+                
             </div>
         </React.Fragment>
     );

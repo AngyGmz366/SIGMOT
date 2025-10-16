@@ -1,4 +1,3 @@
-// app/api/auth/login-local/route.ts
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
@@ -40,7 +39,7 @@ function checkRateLimit(req: Request): { allowed: boolean; remaining: number } {
 }
 
 /* ============================================================
-   🔐 LOGIN LOCAL (bcrypt + MySQL + JWT)
+   🔐 LOGIN LOCAL (bcrypt + MySQL + JWT + Id_Usuario_PK)
    ============================================================ */
 export async function POST(req: Request) {
   const conn = await db.getConnection();
@@ -80,7 +79,6 @@ export async function POST(req: Request) {
     const estadoBloqueado = row.Estado_Nombre === 'BLOQUEADO' || estado === 3;
 
     if (estadoBloqueado && locked) {
-      // 🔹 Leer tiempo de bloqueo real desde parámetros
       const [paramRows]: any = await conn.query(
         "SELECT CAST(Valor AS UNSIGNED) AS BloqueoTiempo FROM mydb.TBL_MS_PARAMETROS WHERE Parametro = 'BLOQUEO_TIEMPO_MIN' LIMIT 1;"
       );
@@ -99,18 +97,17 @@ export async function POST(req: Request) {
     // 5️⃣ Validar contraseña bcrypt
     const ok = await bcrypt.compare(String(password), hash);
 
-    // 6️⃣ Registrar intento de login (éxito/fallo)
+    // 6️⃣ Registrar intento de login
     await conn.query('CALL mydb.sp_login_intento_control(?, ?)', [String(email).trim(), ok ? 1 : 0]);
 
     // 7️⃣ Registrar post-login
     await conn.query('CALL mydb.sp_login_local_post_login(?, ?)', [usuarioId, ok ? 1 : 0]);
 
-    // 8️⃣ Registrar bitácora de sesión (solo si correcto)
+    // 8️⃣ Bitácora de sesión (si correcto)
     if (ok) await conn.query('CALL sp_iniciar_sesion(?, ?)', [usuarioId, 1]);
 
     // 9️⃣ Respuestas según caso
     if (!ok) return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 });
-    // ✅ Permitir usuarios con estado NUEVO (1) o ACTIVO (2)
     if (![1, 2].includes(estado)) {
       return NextResponse.json({ error: 'Usuario no activo' }, { status: 403 });
     }
@@ -122,7 +119,13 @@ export async function POST(req: Request) {
       { expiresIn: '2h' }
     );
 
-    const res = NextResponse.json({ ok: true });
+    const res = NextResponse.json({
+      ok: true,
+      Id_Usuario_PK: usuarioId,
+      rol: row.Nombre_Rol,
+    });
+
+    // Guarda cookie si quieres validar desde backend
     res.cookies.set('app_token', token, {
       httpOnly: true,
       secure: true,
