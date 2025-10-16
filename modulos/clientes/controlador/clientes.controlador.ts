@@ -1,18 +1,48 @@
-import { listarClientes, crearCliente, actualizarCliente, eliminarCliente } from '../servicios/clientes.servicios';
+// controlador/clientes.controlador.ts
 import type { Cliente } from '@/types/persona';
+import * as servicios from '@/modulos/clientes/servicios/clientes.servicios';
 
+/* =========================
+   🔹 Cargar clientes
+========================= */
 export async function cargarClientes(): Promise<Cliente[]> {
-  return await listarClientes();
-}
-
-export async function guardarCliente(cliente: Cliente) {
-  if (cliente.id) {
-    return await actualizarCliente(Number(cliente.id), Number(cliente.idPersona));
-  } else {
-    return await crearCliente(Number(cliente.idPersona));
+  try {
+    const data = await servicios.listarClientes();
+    return data;
+  } catch (err: any) {
+    console.error('❌ Error en cargarClientes:', err);
+    throw new Error(err.message || 'Error al listar clientes');
   }
 }
 
-export async function borrarCliente(id: string) {
-  return await eliminarCliente(Number(id));
+/* =========================
+   🔹 Guardar cliente
+========================= */
+export async function guardarCliente(cliente: Cliente): Promise<void> {
+  try {
+    if (cliente.id && Number(cliente.id) > 0) {
+      await servicios.actualizarCliente(Number(cliente.id), {
+        estado: cliente.estado,
+      });
+    } else {
+      await servicios.crearCliente({
+        idPersona: Number(cliente.idPersona),
+        estado: cliente.estado,
+      });
+    }
+  } catch (err: any) {
+    console.error('❌ Error en guardarCliente:', err);
+    throw new Error(err.message || 'Error al guardar cliente');
+  }
+}
+/* =========================
+   🔹 BORRAR CLIENTE (soft delete)
+========================= */
+export async function borrarCliente(id: number): Promise<void> {
+  try {
+    await servicios.eliminarCliente(id);
+  } catch (err: any) {
+    console.error('❌ Error en borrarCliente:', err);
+    throw new Error(err.message || 'Error al desactivar cliente');
+  }
 }

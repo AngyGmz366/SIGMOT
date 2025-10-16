@@ -46,14 +46,27 @@ export async function GET(req: Request) {
 
 /* ===== POST: crear nuevo cliente ===== */
 export async function POST(req: Request) {
-  const { Id_Persona_FK } = await req.json();
+  const { Id_Persona_FK, Estado } = await req.json();
 
-  if (!Id_Persona_FK)
-    return NextResponse.json({ error: 'Falta Id_Persona_FK' }, { status: 400 });
+  if (!Id_Persona_FK || !Estado)
+    return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 });
 
   const conn = await getSafeConnection();
   try {
-    const [result]: any = await conn.query('CALL mydb.sp_clientes_crear(?)', [Id_Persona_FK]);
+    // 🔹 Asignar rol Cliente automáticamente
+    await conn.query(
+      `UPDATE TBL_MS_USUARIO
+       SET Id_Rol_FK = 3
+       WHERE Id_Persona_FK = ? AND Id_Rol_FK != 3`,
+      [Id_Persona_FK]
+    );
+
+    // 🔹 Llamar al SP para crear cliente
+    const [result]: any = await conn.query(
+      'CALL mydb.sp_clientes_crear(?, ?)',
+      [Id_Persona_FK, Estado]
+    );
+
     const resRow = Array.isArray(result[0]) ? result[0][0] : result[0];
 
     return NextResponse.json(

@@ -1,139 +1,195 @@
+'use client';
 import React from 'react';
-import { Persona } from '@/types/persona';
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
-import { Calendar } from 'primereact/calendar';
 import { Dropdown } from 'primereact/dropdown';
-import { Button } from 'primereact/button';  // Agrega esta línea
-interface PersonaModalProps {
-    visible: boolean;
-    onHide: () => void;
-    onSave: () => void;
-    persona: Persona;
-    setPersona: (persona: Persona) => void;
-    submitted: boolean;
-    generos: { label: string; value: string }[];
-    tiposPersona: { label: string; value: string }[];
+import { Calendar } from 'primereact/calendar';
+import { Button } from 'primereact/button';
+import { Persona } from '@/types/persona';
+
+interface Props {
+  visible: boolean;
+  onHide: () => void;
+  onSave: () => void;
+  persona: Persona;
+  setPersona: React.Dispatch<React.SetStateAction<Persona>>; // ✅ corregido
+  submitted: boolean;
 }
 
-const PersonaModal: React.FC<PersonaModalProps> = ({
-    visible,
-    onHide,
-    onSave,
-    persona,
-    setPersona,
-    submitted,
-    generos,
-    tiposPersona
-}) => {
-    return (
-        <Dialog 
-            visible={visible} 
-            style={{ width: '600px' }} 
-            header="Detalles de Persona" 
-            modal 
-            className="p-fluid" 
-            onHide={onHide}
-            footer={
-                <div>
-                    <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={onHide} />
-                    <Button label="Guardar" icon="pi pi-check" onClick={onSave} />
-                </div>
+export default function PersonaModal({
+  visible,
+  onHide,
+  onSave,
+  persona,
+  setPersona,
+  submitted,
+}: Props) {
+// 🔹 Géneros reales (IDs según tu tabla TBL_MS_GENERO)
+const generos = [
+  { label: 'Masculino', value: 1 },
+  { label: 'Femenino', value: 2 },
+  { label: 'Otro', value: 3 },
+  { label: 'Prefiero no decir', value: 4 },
+];
+// 🔹 Tipos de persona
+
+ const tiposPersona = [
+  { label: 'Cliente', value: 1 },
+  { label: 'Empleado', value: 2 },
+];
+
+
+  return (
+    <Dialog
+      visible={visible}
+      header="Datos de la Persona"
+      modal
+      className="w-4"
+      onHide={onHide}
+      footer={
+        <div className="flex justify-content-end gap-2">
+          <Button label="Cancelar" icon="pi pi-times" outlined onClick={onHide} />
+          <Button label="Guardar" icon="pi pi-check" onClick={onSave} />
+        </div>
+      }
+    >
+      <div className="p-fluid formgrid grid">
+        {/* 🔹 Nombres */}
+        <div className="field col-12 md:col-6">
+          <label htmlFor="nombres">Nombres</label>
+          <InputText
+            id="nombres"
+            value={persona.Nombres}
+            onChange={(e) => setPersona({ ...persona, Nombres: e.target.value })}
+            required
+            autoFocus
+            className={submitted && !persona.Nombres ? 'p-invalid' : ''}
+          />
+          {submitted && !persona.Nombres && <small className="p-error">Campo obligatorio</small>}
+        </div>
+
+        {/* 🔹 Apellidos */}
+        <div className="field col-12 md:col-6">
+          <label htmlFor="apellidos">Apellidos</label>
+          <InputText
+            id="apellidos"
+            value={persona.Apellidos}
+            onChange={(e) => setPersona({ ...persona, Apellidos: e.target.value })}
+            required
+            className={submitted && !persona.Apellidos ? 'p-invalid' : ''}
+          />
+          {submitted && !persona.Apellidos && <small className="p-error">Campo obligatorio</small>}
+        </div>
+
+        {/* 🔹 DNI */}
+        <div className="field col-12 md:col-6">
+          <label htmlFor="dni">DNI</label>
+          <InputText
+            id="dni"
+            value={persona.DNI}
+            onChange={(e) => setPersona({ ...persona, DNI: e.target.value })}
+          />
+        </div>
+
+        {/* 🔹 Teléfono */}
+        <div className="field col-12 md:col-6">
+          <label htmlFor="telefono">Teléfono</label>
+          <InputText
+            id="telefono"
+            value={persona.Telefono}
+            onChange={(e) => setPersona({ ...persona, Telefono: e.target.value })}
+          />
+        </div>
+
+        {/* 🔹 Fecha Nacimiento */}
+        <div className="field col-12 md:col-6">
+          <label htmlFor="fechaNacimiento">Fecha de Nacimiento</label>
+          <Calendar
+            id="fechaNacimiento"
+            value={persona.Fecha_Nacimiento ? new Date(persona.Fecha_Nacimiento) : undefined}
+            onChange={(e) =>
+              setPersona({
+                ...persona,
+                Fecha_Nacimiento: e.value ? e.value.toISOString().split('T')[0] : '',
+              })
             }
-        >
-            <div className="grid formgrid">
-                <div className="field col-12 md:col-6">
-                    <label htmlFor="nombre">Nombre</label>
-                    <InputText 
-                        id="nombre" 
-                        value={persona.nombre} 
-                        onChange={(e) => setPersona({ ...persona, nombre: e.target.value })} 
-                        required 
-                        className={submitted && !persona.nombre ? 'p-invalid' : ''} 
-                    />
-                    {submitted && !persona.nombre && <small className="p-error">Nombre es requerido</small>}
-                </div>
+            dateFormat="yy-mm-dd"
+            showIcon
+          />
+        </div>
 
-                <div className="field col-12 md:col-6">
-                    <label htmlFor="apellido">Apellido</label>
-                    <InputText 
-                        id="apellido" 
-                        value={persona.apellido} 
-                        onChange={(e) => setPersona({ ...persona, apellido: e.target.value })} 
-                        required 
-                        className={submitted && !persona.apellido ? 'p-invalid' : ''} 
-                    />
-                    {submitted && !persona.apellido && <small className="p-error">Apellido es requerido</small>}
-                </div>
+        {/* 🔹 Género */}
+<div className="field col-12 md:col-6">
+  <label htmlFor="genero">Género</label>
+  <Dropdown
+    id="genero"
+    value={persona.Genero}
+    options={[
+      { label: 'Masculino', value: 1 },
+      { label: 'Femenino', value: 2 },
+      { label: 'Otro', value: 3 },
+      { label: 'Prefiero no decir', value: 4 },
+    ]}
+    optionLabel="label"
+    optionValue="value"  // 👈🔹 AGREGA ESTA LÍNEA
+    placeholder="Seleccione un género"
+    onChange={(e) => setPersona({ ...persona, Genero: e.value })} // 👈🔹 e.value
+    className={submitted && !persona.Genero ? 'p-invalid' : ''}
+  />
+  {submitted && !persona.Genero && (
+    <small className="p-error">Campo obligatorio</small>
+  )}
+</div>
 
-                <div className="field col-12 md:col-6">
-                    <label htmlFor="dni">DNI</label>
-                    <InputText 
-                        id="dni" 
-                        value={persona.dni} 
-                        onChange={(e) => setPersona({ ...persona, dni: e.target.value })} 
-                        required 
-                        className={submitted && !persona.dni ? 'p-invalid' : ''} 
-                    />
-                    {submitted && !persona.dni && <small className="p-error">DNI es requerido</small>}
-                </div>
 
-                <div className="field col-12 md:col-6">
-                    <label htmlFor="fechaNacimiento">Fecha de Nacimiento</label>
-                    <Calendar 
-                        id="fechaNacimiento" 
-                        value={persona.fechaNacimiento ? new Date(persona.fechaNacimiento) : null} 
-                        onChange={(e) => setPersona({ ...persona, fechaNacimiento: e.value?.toISOString() || '' })} 
-                        showIcon 
-                        dateFormat="dd/mm/yy" 
-                    />
-                </div>
 
-                <div className="field col-12 md:col-6">
-                    <label htmlFor="correo">Correo Electrónico</label>
-                    <InputText 
-                        id="correo" 
-                        value={persona.correo} 
-                        onChange={(e) => setPersona({ ...persona, correo: e.target.value })} 
-                        required 
-                        className={submitted && !persona.correo ? 'p-invalid' : ''} 
-                    />
-                    {submitted && !persona.correo && <small className="p-error">Correo es requerido</small>}
-                </div>
+        {/* 🔹 Tipo Persona */}
+        <div className="field col-12 md:col-6">
+          <label htmlFor="tipoPersona">Tipo de Persona</label>
+         <Dropdown
+  id="tipoPersona"
+  value={persona.TipoPersona}
+  options={tiposPersona}
+  onChange={(e) => setPersona({ ...persona, TipoPersona: e.value })}
+  placeholder="Seleccione tipo"
+/>
 
-                <div className="field col-12 md:col-6">
-                    <label htmlFor="telefono">Teléfono</label>
-                    <InputText 
-                        id="telefono" 
-                        value={persona.telefono} 
-                        onChange={(e) => setPersona({ ...persona, telefono: e.target.value })} 
-                    />
-                </div>
+        </div>
 
-                <div className="field col-12 md:col-6">
-                    <label htmlFor="idGenero">Género</label>
-                    <Dropdown 
-                        id="idGenero" 
-                        value={persona.idGenero} 
-                        options={generos} 
-                        onChange={(e) => setPersona({ ...persona, idGenero: e.value })} 
-                        placeholder="Seleccione un género" 
-                    />
-                </div>
+        {/* 🔹 Correo Electrónico */}
+        <div className="field col-12 md:col-6">
+          <label htmlFor="correo">Correo Electrónico</label>
+        <InputText
+  id="correo"
+  value={persona.Correo}
+  onChange={(e) => setPersona({ ...persona, Correo: e.target.value })}
+  required
+  className={submitted && !persona.Correo ? 'p-invalid' : ''}
+/>
+{submitted && !persona.Correo && <small className="p-error">Correo obligatorio</small>}
+c
+        </div>
 
-                <div className="field col-12 md:col-6">
-                    <label htmlFor="idTipoPersona">Tipo de Persona</label>
-                    <Dropdown 
-                        id="idTipoPersona" 
-                        value={persona.idTipoPersona} 
-                        options={tiposPersona} 
-                        onChange={(e) => setPersona({ ...persona, idTipoPersona: e.value })} 
-                        placeholder="Seleccione un tipo" 
-                    />
-                </div>
-            </div>
-        </Dialog>
-    );
-};
+        {/* 🔹 Departamento */}
+        <div className="field col-12 md:col-6">
+          <label htmlFor="departamento">Departamento</label>
+          <InputText
+            id="departamento"
+            value={persona.Departamento}
+            onChange={(e) => setPersona({ ...persona, Departamento: e.target.value })}
+          />
+        </div>
 
-export default PersonaModal;
+        {/* 🔹 Municipio */}
+        <div className="field col-12 md:col-6">
+          <label htmlFor="municipio">Municipio</label>
+          <InputText
+            id="municipio"
+            value={persona.Municipio}
+            onChange={(e) => setPersona({ ...persona, Municipio: e.target.value })}
+          />
+        </div>
+      </div>
+    </Dialog>
+  );
+}

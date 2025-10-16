@@ -1,4 +1,4 @@
-// app/modulos/boletos/servicios/ventas.servicios.ts
+ // app/modulos/boletos/servicios/ventas.servicios.ts
 import { http } from '@/lib/http';
 import type { Boleto } from '@/types/ventas';
 
@@ -75,38 +75,64 @@ export function mapTicketToBoleto(r: TicketRow): Boleto {
 // ==================== CATALOGOS ====================
 
 // CLIENTES
+
+let clientesCache: Opcion[] | null = null;
+
 export async function getClientes(): Promise<Opcion[]> {
+  // ⚡ Si ya están en memoria, retornarlos al instante
+  if (clientesCache && clientesCache.length > 0) {
+    return clientesCache;
+  }
+
+  // 🔹 Si no, consultar la API
   const { data } = await http.get('/api/clientes');
   const items = (data?.items ?? []) as Array<{ id: number; nombre: string }>;
-  return items.map(c => ({ value: c.id, label: c.nombre }));
+
+  // 🔹 Mapear al formato de opciones
+  const clientes = items.map(c => ({
+    value: c.id,
+    label: c.nombre,
+  }));
+
+  // ⚡ Guardar en memoria para próximas llamadas
+  clientesCache = clientes;
+
+  return clientes;
 }
 
 // VIAJES (dropdown "Destino")
 export async function getViajes(): Promise<Opcion[]> {
-  const { data } = await http.get('/api/viajes');
+  const { data } = await http.get('/api/rutas-activas');
   const items = (data?.items ?? []) as Array<{
     id: number;
-    Origen?: string | null;
-    Destino?: string | null;
+    label: string;
+    value: number;
   }>;
 
   return items.map(v => ({
     value: v.id,
-    label: `${v.Origen || 'Sin origen'} → ${v.Destino || 'Sin destino'}`, // ✅ genera el texto completo
+    label: v.label
   }));
 }
 
 
 
 // UNIDADES
-export async function getUnidades(): Promise<Opcion[]> {
-  const { data } = await http.get('/api/unidades');
-  const items = (data?.items ?? []) as Array<{ id: number; numero_placa: string; marca: string; modelo: string }>;
-  return items.map(u => ({
-    value: u.id,
-    label: `${u.numero_placa} (${u.marca} ${u.modelo})`
-  }));
+export async function getUnidadesPorRuta(idRuta: number): Promise<Opcion[]> {
+  try {
+    const { data } = await axios.get(`/api/unidades-por-ruta/${idRuta}`);
+    const items = data?.items ?? [];
+
+    return items.map((u: any) => ({
+      value: u.idUnidad,
+      label: `${u.unidad} (${u.fecha} - ${u.horaSalida})`,
+    }));
+  } catch (err) {
+    console.error('❌ Error obteniendo unidades por ruta:', err);
+    return [];
+  }
 }
+
 
 // ASIENTOS
 export async function getAsientos(unidadId: number | string): Promise<Opcion[]> {
@@ -260,10 +286,11 @@ export async function getCatalogos() {
   const [clientes, viajes, unidades, metodos, estados, puntos] = await Promise.all([
     getClientes(),
     getViajes(),
-    getUnidades(),
+    getUnidadesPorRuta(1),
     getMetodosPago(),
     getEstadosTicket(),
     getPuntosVenta(),
   ]);
+
   return { clientes, viajes, unidades, metodos, estados, puntos };
 }

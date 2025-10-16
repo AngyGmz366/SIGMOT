@@ -1,39 +1,50 @@
+// 📁 /types/persona.ts
+
 export interface Persona {
-  id: string;
-  nombre: string;
-  apellido: string;
-  dni: string;
-  fechaNacimiento: string;
-  correo: string;
-  telefono: string;
-  idGenero: string;
-  idTipoPersona: string;
-  idDireccion: string;
-  idUsuario: string;
+  Id_Persona: number;
+  Nombres: string;
+  Apellidos: string;
+  DNI: string;
+  Telefono: string;
+  Fecha_Nacimiento: string;
+  Genero: string;        // Descripción (e.g., "Masculino")
+  TipoPersona: string;   // Descripción (e.g., "Cliente")
+  Correo: string;
+  Departamento: string;
+  Municipio: string;
+  Rol_Sistema?: string;
+  Estado_Usuario?: string;
 }
 
+// =======================================================
+// 🔹 CLIENTE (tabla TBL_CLIENTES)
+// =======================================================
 export interface Cliente {
-  id: string;
-  idPersona: string;
-  estado: string;
-  persona?: Persona; // ← opcional, para evitar errores en tiempo de ejecución
+  id: number;            // Id_Cliente_PK
+  idPersona: number;     // Id_Persona_FK
+  estado: string;        // "Activo" | "Inactivo"
+  persona?: Persona;     // Datos de persona vinculada
 }
 
-
-
-export interface Pago {
-  id: string;
-  idCliente: string;
-  fechaPago: string; // ISO date string, ej. '2025-08-02'
-  monto: number;
-  metodoPago: 'efectivo' | 'tarjeta' | 'transferencia' | '';
-}
-
+// =======================================================
+// 🔹 VIAJE (placeholder para historial futuro)
+// =======================================================
 export interface Viaje {
-  id: string;
-  idCliente: string;
-  fecha: string; // O Date, si usas objetos de fecha
+  id: number;
+  idCliente: number;
+  fecha: string;
   origen: string;
   destino: string;
   costo: number;
+}
+
+// =======================================================
+// 🔹 PAGO (placeholder para historial futuro)
+// =======================================================
+export interface Pago {
+  id: number;
+  idCliente: number;
+  fechaPago: string; // ISO string
+  monto: number;
+  metodoPago: 'efectivo' | 'tarjeta' | 'transferencia' | '';
 }

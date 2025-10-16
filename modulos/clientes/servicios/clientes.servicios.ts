@@ -1,27 +1,65 @@
 import { http } from '@/lib/http';
 import type { Cliente } from '@/types/persona';
 
+/* =========================
+   🔹 LISTAR CLIENTES
+========================= */
 export async function listarClientes() {
   const { data } = await http.get('/api/clientes');
-  return data.items?.map((c: any) => ({
-    id: c.Id_Cliente_PK,
-    idPersona: c.Id_Persona_FK,
-    nombre: `${c.Nombres} ${c.Apellidos}`,
-    dni: c.DNI,
+
+  return data.items.map((c: any) => ({
+    id: c.id,                          // coincide con JSON
+    idPersona: c.id_persona,           // coincide con JSON
+    estado: c.Estado,                  // coincide con JSON
+    nombreCompleto: c.nombre || '—',   // nuevo campo para mostrar en tabla
   })) as Cliente[];
 }
 
-export async function crearCliente(idPersona: number) {
-  const { data } = await http.post('/api/clientes', { Id_Persona_FK: idPersona });
+/* =========================
+   🔹 CREAR CLIENTE
+========================= */
+export async function crearCliente(payload: { idPersona: number; estado: string }) {
+  const { data } = await http.post('/api/clientes', {
+    Id_Persona_FK: payload.idPersona,
+    Estado: payload.estado,
+  });
   return data.result;
 }
 
-export async function actualizarCliente(id: number, idPersona: number) {
-  const { data } = await http.put(`/api/clientes/${id}`, { Id_Persona_FK: idPersona });
+/* =========================
+   🔹 ACTUALIZAR CLIENTE
+========================= */
+export async function actualizarCliente(id: number, payload: { estado: string }) {
+  const { data } = await http.put(`/api/clientes/${id}`, {
+    Estado: payload.estado,
+  });
   return data.result;
 }
 
+
+/* =========================
+   🔹 ELIMINAR CLIENTE (soft delete)
+========================= */
 export async function eliminarCliente(id: number) {
-  const { data } = await http.delete(`/api/clientes/${id}`);
-  return data;
+  try {
+    const { data } = await http.delete(`/api/clientes/${id}`);
+    return data;
+  } catch (err: any) {
+    console.error('❌ Error eliminando cliente:', err?.response?.data || err.message);
+    throw new Error(err?.response?.data?.error || 'Error al desactivar cliente');
+  }
 }
+
+/* =========================
+   🔹 BORRAR CLIENTE (llama al servicio)
+========================= */
+export async function borrarCliente(id: number): Promise<void> {
+  try {
+    await eliminarCliente(id);
+  } catch (err: any) {
+    console.error('❌ Error en borrarCliente:', err);
+    throw new Error(err.message || 'Error al desactivar cliente');
+  }
+}
+
+

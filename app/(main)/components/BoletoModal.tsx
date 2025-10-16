@@ -14,7 +14,7 @@ import { Boleto } from '@/types/ventas';
 import {
   getClientes,
   getViajes,
-  getUnidades,
+  getUnidadesPorRuta,
   getAsientos,
   getMetodosPago,
   getEstadosTicket,
@@ -56,7 +56,7 @@ useEffect(() => {
       const [clientes, destinos, autobuses, metodos, estados] = await Promise.all([
         getClientes(),
         getViajes(),
-        getUnidades(),
+        getUnidadesPorRuta(1), // carga unidades de la ruta 1 por defecto
         getMetodosPago(),
         getEstadosTicket(),
       ]);
@@ -77,6 +77,22 @@ useEffect(() => {
     }
   })();
 }, [visible, boleto.Id_Unidad_FK]);
+
+
+
+// Cargar unidades cuando cambia la ruta
+
+useEffect(() => {
+  if (boleto.Id_Viaje_FK) {
+    // Cuando cambie la ruta seleccionada, recargamos las unidades
+    getUnidadesPorRuta(boleto.Id_Viaje_FK).then((unidades) => {
+      setOptAutobuses(unidades);
+    });
+  }
+}, [boleto.Id_Viaje_FK]);  // Dependemos de la ruta seleccionada
+
+
+
 
 
   // Cargar asientos cuando cambia la unidad (y cuando se abre el modal con unidad ya seleccionada)
@@ -106,13 +122,12 @@ useEffect(() => {
     return total < 0 ? 0 : total;
   };
 
-  const handleChangeBus = (busId: number | string | null) => {
-    setBoleto({
-      ...boleto,
-      Id_Unidad_FK: busId ? Number(busId) : null,
-      Id_Asiento_FK: null, // limpiar asiento al cambiar de bus
-    });
-  };
+const handleChangeRuta = (idRuta: number) => {
+  setBoleto({ ...boleto, Id_Viaje_FK: idRuta });
+  getUnidadesPorRuta(idRuta).then((unidades) => {
+    setOptAutobuses(unidades);
+  });
+};
 
   // Footer
   const dialogFooter = (
@@ -216,7 +231,7 @@ useEffect(() => {
   onChange={(e) => {
     const newUnidad = e.value ?? null;
     setBoleto({ ...boleto, Id_Unidad_FK: newUnidad });
-    handleChangeBus(newUnidad); // carga asientos
+    handleChangeRuta(newUnidad); // carga asientos
   }}
   placeholder="Seleccionar autobús"
   filter
