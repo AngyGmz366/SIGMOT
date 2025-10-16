@@ -25,10 +25,12 @@ export async function GET() {
 }
 
 /**
- * Sincroniza usuario Firebase → MySQL
- * 1️⃣ Verifica el token de Firebase.
- * 2️⃣ Crea el correo, persona y usuario si no existen.
- * 3️⃣ Registra en bitácora y genera cookie `app_token`.
+ * 🔐 Sincroniza usuario Firebase → MySQL
+ * - Verifica token de Firebase
+ * - Crea o actualiza correo, persona y usuario
+ * - Activa usuario si estaba "NUEVO"
+ * - Registra en bitácora
+ * - Devuelve cookie JWT httpOnly
  */
 export async function POST(req: Request) {
   try {
@@ -114,7 +116,21 @@ export async function POST(req: Request) {
         [firebaseUid, correo, rolDefecto, personaFk]
       );
 
-      // 6️⃣ Registrar evento en bitácora
+      // 6️⃣ Activar automáticamente el usuario si estaba "NUEVO"
+      // (estado 1 → 2)
+      await conn.query(`
+        UPDATE mydb.TBL_MS_USUARIO 
+        SET Estado_Usuario = (
+          SELECT Id_Estado_PK 
+          FROM mydb.TBL_MS_ESTADO_USUARIO 
+          WHERE Estado = 'ACTIVO' 
+          LIMIT 1
+        )
+        WHERE Firebase_UID = ? 
+          AND (Estado_Usuario IS NULL OR Estado_Usuario = 1);
+      `, [firebaseUid]);
+
+      // 7️⃣ Registrar evento en bitácora
       const [[usuario]]: any = await conn.query(
         `SELECT Id_Usuario_PK 
            FROM mydb.TBL_MS_USUARIO
@@ -124,17 +140,11 @@ export async function POST(req: Request) {
         [firebaseUid, correo]
       );
 
-      if (usuario?.Id_Usuario_PK) {
-        await conn.query('CALL mydb.sp_registrar_usuario_bitacora(?, ?)', [
-          usuario.Id_Usuario_PK,
-          1, // ID del objeto "Login/Seguridad"
-        ]);
-      }
 
       await conn.commit();
       conn.release();
 
-      // 7️⃣ Generar JWT interno
+      // 8️⃣ Generar JWT interno
       const secret = new TextEncoder().encode(process.env.APP_JWT_SECRET!);
       const appToken = await new SignJWT({
         uid: firebaseUid,
@@ -145,7 +155,7 @@ export async function POST(req: Request) {
         .setExpirationTime('1d')
         .sign(secret);
 
-      // 8️⃣ Responder con cookie segura
+      // 9️⃣ Responder con cookie segura
       const resp = NextResponse.json({
         ok: true,
         message: 'Usuario sincronizado correctamente',
@@ -177,4 +187,3 @@ export async function POST(req: Request) {
     );
   }
 }
-//PRUEBA
