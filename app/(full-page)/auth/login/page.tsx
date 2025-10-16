@@ -73,17 +73,35 @@ export default function LoginPage() {
     return data;
   };
 
-  // login local (no firebase, sino API propia con bcrypt)
+    // login local (no firebase, sino API propia con bcrypt)
   const loginLocal = async (email: string, password: string) => {
     const r = await fetch('/api/auth/login-local', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: email.trim(), password }),
     });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data?.error || 'Credenciales inválidas (local)');
-    return data; // acá el backend ya me dejó la cookie httpOnly
+
+    const data = await r.json().catch(() => ({}));
+
+    if (r.status === 423) {
+      // Usuario bloqueado
+      if (data.minutosRestantes) {
+        throw new Error(`Usuario bloqueado temporalmente. Intenta en ${data.minutosRestantes} minutos.`);
+      }
+      throw new Error(data?.error || 'Usuario bloqueado temporalmente. Intenta más tarde.');
+    }
+
+    if (r.status === 429) {
+      throw new Error(data?.error || 'Demasiados intentos desde esta IP. Intenta más tarde.');
+    }
+
+    if (!r.ok) {
+      throw new Error(data?.error || 'Credenciales inválidas');
+    }
+
+    return data; // backend ya setea cookie httpOnly
   };
+
 
   // login normal (correo y clave)
   const handleSubmit = async (e: React.FormEvent) => {
@@ -180,8 +198,14 @@ export default function LoginPage() {
             </div>
 
             {errors.general && (
-              <div className="p-2 mb-3 border-round surface-100 text-red-600">{errors.general}</div>
+              <div
+                className="p-3 mb-4 border-round"
+                style={{ background: '#fee2e2', color: '#991b1b', fontWeight: 600 }}
+              >
+                {errors.general}
+              </div>
             )}
+
 
             {/* input correo */}
             <label htmlFor="email" className="block text-900 text-base font-medium mb-2">
