@@ -1,3 +1,4 @@
+// app/(main)/admin/rutas-admin/page.tsx
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
@@ -6,22 +7,19 @@ import { Card } from "primereact/card";
 import { Dialog } from "primereact/dialog";
 import { Toast } from "primereact/toast";
 import { ConfirmDialog } from "primereact/confirmdialog";
-import dynamic from "next/dynamic";
 
-import RutasAdminTable, { RutaUI } from "./components/RutasAdminTable";
+import RutasAdminTable from "./components/RutasAdminTable";
 import FormularioRuta from "./components/FormularioRuta";
-
-// ✅ Carga dinámica del mapa (evita errores SSR)
-const MapaInteractivo = dynamic(
-  () => import("@/app/(main)/cliente/rutas/components/MapaInteractivo"),
-  { ssr: false }
-);
+import { RutaUI } from "./components/types";
 
 export default function PageAdminRutas() {
   const [rutas, setRutas] = useState<RutaUI[]>([]);
   const [rutaSeleccionada, setRutaSeleccionada] = useState<RutaUI | null>(null);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [unidadesDisponibles, setUnidadesDisponibles] = useState<
+    { id: number; nombre: string }[]
+  >([]);
   const toast = useRef<Toast>(null);
 
   // 🔹 Notificaciones
@@ -39,7 +37,7 @@ export default function PageAdminRutas() {
 
       if (!data.ok) throw new Error(data.error || "Error al cargar rutas");
 
-      // ✅ Transformar datos y evitar errores en JSON
+      // Transformar datos - asegurar que horarios nunca sea null
       setRutas(
         (data.items ?? []).map((r: any) => ({
           id: r.id,
@@ -47,34 +45,16 @@ export default function PageAdminRutas() {
           destino: r.destino,
           estado: r.estado === "ACTIVA" ? "activo" : "inactivo",
           tiempoEstimado: r.tiempoEstimado,
-          distancia: r.distancia,
+          distancia: r.distancia ? Number(r.distancia) : null,
           descripcion: r.descripcion ?? "",
           precio: Number(r.precio ?? 0),
-          horarios: Array.isArray(r.horarios)
-            ? r.horarios
-            : typeof r.horarios === "string"
-            ? (() => {
-                try {
-                  return JSON.parse(r.horarios);
-                } catch {
-                  return [];
-                }
-              })()
-            : [],
-          coordenadas: Array.isArray(r.coordenadas)
-            ? r.coordenadas
-            : typeof r.coordenadas === "string"
-            ? (() => {
-                try {
-                  return JSON.parse(r.coordenadas);
-                } catch {
-                  return [];
-                }
-              })()
-            : [],
+          horarios: Array.isArray(r.horarios) ? r.horarios : [],
+          coordenadas: Array.isArray(r.coordenadas) ? r.coordenadas : [],
+          unidades: r.unidades || [],
         }))
       );
     } catch (e: any) {
+      console.error("❌ Error cargando rutas:", e);
       showErr(e.message || "No se pudieron cargar las rutas");
     } finally {
       setLoading(false);
@@ -83,14 +63,47 @@ export default function PageAdminRutas() {
 
   useEffect(() => {
     cargarRutas();
+    cargarUnidades();
   }, []);
+
+  // 🔹 Cargar unidades disponibles (adaptando la respuesta existente)
+  const cargarUnidades = async () => {
+    try {
+      const res = await fetch("/api/unidades");
+      const data = await res.json();
+      
+      // Transformar la respuesta al formato que espera el formulario
+      const unidadesFormateadas = (data || []).map((u: any) => {
+        // El endpoint puede devolver diferentes estructuras, manejamos ambas
+        const id = u.Id_Unidad_PK || u.id;
+        const nombre = u.Numero_Placa || u.nombre || `Unidad ${id}`;
+        
+        return {
+          id: id,
+          nombre: nombre
+        };
+      }).filter((u: any) => u.id); // Filtrar unidades válidas
+      
+      console.log("🔄 Unidades cargadas:", unidadesFormateadas);
+      
+      setUnidadesDisponibles(unidadesFormateadas);
+    } catch (error) {
+      console.error("Error al cargar unidades:", error);
+      // En caso de error, cargar unidades de ejemplo para testing
+      setUnidadesDisponibles([
+        { id: 3, nombre: "HND5123" },
+        { id: 11, nombre: "HND5060" },
+        { id: 12, nombre: "HND2030" }
+      ]);
+    }
+  };
 
   // 🔹 Función para cambiar el estado de una ruta
   const cambiarEstado = async (id: number, nuevoEstado: "activo" | "inactivo") => {
     try {
       setLoading(true);
 
-      // Convertir 'activo' a 'ACTIVA' y 'inactivo' a 'INACTIVA'
+      // Convertir 'activo' a 'ACTIVA' y 'inactivo' a 'INACTIVA' para la BD
       const estadoEnMayusculas = nuevoEstado === "activo" ? "ACTIVA" : "INACTIVA";
 
       const res = await fetch(`/api/rutas/${id}/estado`, {
@@ -100,15 +113,18 @@ export default function PageAdminRutas() {
         },
         body: JSON.stringify({ estado: estadoEnMayusculas }),
       });
+      
       const data = await res.json();
+      
       if (data.ok) {
         showOk("Estado actualizado correctamente");
-        cargarRutas(); // Recargar rutas después de la actualización
+        await cargarRutas();
       } else {
         showErr(data.error || "Error al cambiar el estado");
       }
-    } catch (error) {
-      showErr("Error al cambiar el estado");
+    } catch (error: any) {
+      console.error("❌ Error cambiando estado:", error);
+      showErr(error.message || "Error al cambiar el estado");
     } finally {
       setLoading(false);
     }
@@ -127,51 +143,94 @@ export default function PageAdminRutas() {
       precio: null,
       horarios: [],
       coordenadas: [],
+      unidades: [],
     });
     setMostrarModal(true);
   };
 
-  // 🔹 Guardar ruta (crear o actualizar)
-  const onGuardar = async (val: RutaUI) => {
-    try {
-      setLoading(true);
+  // 🔹 Guardar ruta (crear o actualizar) - MODIFICADO
+const onGuardar = async (val: RutaUI) => {
+  try {
+    setLoading(true);
 
-      const payload = {
-        origen: val.origen,
-        destino: val.destino,
-        estado: val.estado === "activo" ? "ACTIVA" : "INACTIVA",
-        tiempoEstimado: val.tiempoEstimado ?? "00:00:00",
-        distancia: val.distancia ?? 0,
-        descripcion: val.descripcion ?? null,
-        precio: val.precio ?? 0,
-        horarios: val.horarios ?? [],
-        coordenadas: val.coordenadas ?? [],
-      };
-
-      const res = await fetch("/api/rutas", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-
-      if (!data.ok) throw new Error(data.error || "Error al guardar ruta");
-      showOk("Ruta creada correctamente");
-
-      setMostrarModal(false);
-      await cargarRutas();
-    } catch (e: any) {
-      showErr(e.message || "Error al guardar la ruta");
-    } finally {
-      setLoading(false);
+    // Validar datos antes de enviar
+    if (!val.origen?.trim() || !val.destino?.trim()) {
+      showErr("Origen y destino son obligatorios");
+      return;
     }
-  };
+
+    const payload = {
+      origen: val.origen.trim(),
+      destino: val.destino.trim(),
+      estado: val.estado === "activo" ? "ACTIVA" : "INACTIVA",
+      tiempoEstimado: val.tiempoEstimado || "00:00:00",
+      distancia: val.distancia || 0,
+      descripcion: val.descripcion || "",
+      precio: val.precio || 0,
+      horarios: val.horarios || [],
+      coordenadas: val.coordenadas || [],
+      unidades: val.unidades || [],
+    };
+
+    console.log("📤 Enviando payload:", payload);
+
+    let url = "/api/rutas";
+    let method = "POST";
+
+    if (val.id && val.id !== 0) {
+      url = `/api/rutas/${val.id}/editar`;
+      method = "PATCH";
+    }
+
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const responseText = await res.text();
+    console.log("📨 Respuesta del servidor:", responseText);
+
+    if (!responseText) {
+      throw new Error("El servidor no respondió");
+    }
+
+    const data = JSON.parse(responseText);
+
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || `Error ${res.status}: ${res.statusText}`);
+    }
+
+    showOk(val.id ? "Ruta actualizada correctamente" : "Ruta creada correctamente");
+    setMostrarModal(false);
+    await cargarRutas();
+    
+  } catch (e: any) {
+    console.error("❌ Error guardando ruta:", e);
+    
+    // Mensajes de error más específicos
+    let errorMessage = "Error al guardar la ruta";
+    
+    if (e.message.includes("JSON")) {
+      errorMessage = "Error en la respuesta del servidor";
+    } else if (e.message.includes("duplicate") || e.message.includes("duplicad")) {
+      errorMessage = "Ya existe una ruta con ese origen y destino";
+    } else if (e.message.includes("foreign key") || e.message.includes("Unidad")) {
+      errorMessage = "Error con las unidades asignadas - verifique que existan";
+    } else {
+      errorMessage = e.message;
+    }
+    
+    showErr(errorMessage);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // 🔹 Editar ruta (pasar datos al formulario)
   const onEditarRuta = (ruta: RutaUI) => {
-    setRutaSeleccionada(ruta); // Cargar los datos de la ruta seleccionada
-    setMostrarModal(true); // Mostrar el formulario para editar
+    setRutaSeleccionada(ruta);
+    setMostrarModal(true);
   };
 
   const cerrarFormulario = () => {
@@ -179,7 +238,6 @@ export default function PageAdminRutas() {
     setRutaSeleccionada(null);
   };
 
-  // === Render principal ===
   return (
     <div className="p-4 space-y-6">
       <Toast ref={toast} />
@@ -192,6 +250,7 @@ export default function PageAdminRutas() {
           icon="pi pi-plus"
           className="p-button-success"
           onClick={abrirCrear}
+          disabled={loading}
         />
       </div>
 
@@ -199,12 +258,11 @@ export default function PageAdminRutas() {
         <RutasAdminTable
           rutas={rutas}
           loading={loading}
-          onCambiarEstado={cambiarEstado} // Pasa la función de cambio de estado
-          onEditarRuta={onEditarRuta} // Pasa la función para editar rutas
+          onCambiarEstado={cambiarEstado}
+          onEditarRuta={onEditarRuta}
         />
       </Card>
 
-      {/* 🧭 Modal de creación / edición */}
       <Dialog
         header={rutaSeleccionada && rutaSeleccionada.id !== 0 ? "Editar Ruta" : "Nueva Ruta"}
         visible={mostrarModal}
@@ -218,6 +276,8 @@ export default function PageAdminRutas() {
           onCerrar={cerrarFormulario}
           onGuardar={onGuardar}
           loading={loading}
+          unidadesDisponibles={unidadesDisponibles}
+          unidadesAsignadas={rutaSeleccionada?.unidades ?? []}
         />
       </Dialog>
     </div>

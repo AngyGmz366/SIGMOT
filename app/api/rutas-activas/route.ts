@@ -7,7 +7,10 @@ import { db } from '@/lib/db';
 // Manejo de la solicitud GET para obtener rutas activas
 export async function GET() {
   try {
+    // Consulta para obtener rutas activas
     const [rows]: any = await db.query('SELECT * FROM VW_RUTAS_ACTIVAS');
+    
+    // Transformar los datos para enviarlos de manera adecuada
     const items = rows.map((r: any) => ({
       id: r.Id_Ruta_PK,
       label: `${r.Origen} → ${r.Destino}`,
@@ -15,12 +18,14 @@ export async function GET() {
       precio: r.Precio,
       tiempo: r.Tiempo_Estimado,
     }));
+
+    // Responder con los items transformados
     return NextResponse.json({ items }, { status: 200 });
   } catch (e: any) {
-    return NextResponse.json({ error: e?.sqlMessage || e?.message || 'Error' }, { status: 500 });
+    // Manejo de errores con mensaje adecuado
+    return NextResponse.json({ error: e?.sqlMessage || e?.message || 'Error al obtener rutas activas' }, { status: 500 });
   }
 }
-
 // Manejo de la solicitud POST para asociar unidades a rutas activas
 export async function POST(req: Request) {
   const { id_ruta, horarios, unidades } = await req.json(); // Recibiendo los datos del frontend
@@ -30,8 +35,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 });
   }
 
-  try {
-    // Llamar al procedimiento almacenado sp_asociar_unidades_activas_a_rutas_con_horarios
+ try {
+    // Llamar al procedimiento almacenado para asociar unidades a rutas con horarios
     const result = await db.query(`
       CALL sp_asociar_unidades_activas_a_rutas_con_horarios(?, ?, ?)
     `, [id_ruta, JSON.stringify(horarios), JSON.stringify(unidades)]);
@@ -40,7 +45,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: 'Unidades asociadas correctamente a la ruta' }, { status: 200 });
 
   } catch (error) {
+    // Manejo de errores al ejecutar el procedimiento almacenado
     console.error('Error al ejecutar la SP:', error);
-    return NextResponse.json({ error: 'Error al ejecutar la SP' }, { status: 500 });
+    return NextResponse.json({ error: 'Error al ejecutar el procedimiento almacenado' }, { status: 500 });
   }
 }
