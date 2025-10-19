@@ -7,20 +7,20 @@ import { ConfirmDialog } from 'primereact/confirmdialog';
 import { InputText } from 'primereact/inputtext';
 import { useState } from 'react';
 import { ReservacionBase } from './types';
+import ActionsColumn from './ActionsColumn';
 
-export default function TablaReservaciones({ 
-  reservaciones, 
-  onDelete, 
-  onAdd 
+export default function TablaReservaciones({
+  reservaciones,
+  onDelete,
+  onAdd,
 }: {
   reservaciones: ReservacionBase[];
   onDelete: (id: string) => void;
-  onAdd: () => void;
+  onAdd: (reserva?: ReservacionBase) => void;
 }) {
   const [selectedReservation, setSelectedReservation] = useState<ReservacionBase | null>(null);
   const [globalFilter, setGlobalFilter] = useState<string>('');
 
-  // Activar / desactivar botones según la selección
   const isRowSelected = !!selectedReservation;
 
   return (
@@ -41,16 +41,8 @@ export default function TablaReservaciones({
             label="Nueva Reservación"
             icon="pi pi-plus"
             className="p-button-success"
-            onClick={onAdd}
+            onClick={() => onAdd()}
           />
-          {/* Quitar el botón de editar */}
-          {/* <Button
-            label="Editar"
-            icon="pi pi-pencil"
-            className="p-button-warning"
-            onClick={() => selectedReservation?.id && onEdit(selectedReservation.id)}
-            disabled={!isRowSelected}
-          /> */}
           <Button
             label="Eliminar"
             icon="pi pi-trash"
@@ -65,7 +57,7 @@ export default function TablaReservaciones({
         value={reservaciones}
         selection={selectedReservation}
         onSelectionChange={(e) => setSelectedReservation(e.value as ReservacionBase)}
-        selectionMode="single" // si prefieres checkbox múltiple, cámbialo por "checkbox"
+        selectionMode="single"
         dataKey="id"
         globalFilter={globalFilter}
         paginator
@@ -77,7 +69,6 @@ export default function TablaReservaciones({
         showGridlines
         stripedRows
       >
-        {/* ✅ Checkbox de selección */}
         <Column
           selectionMode="single"
           headerStyle={{ width: '3rem' }}
@@ -102,15 +93,10 @@ export default function TablaReservaciones({
         <Column field="ruta" header="Ruta" sortable></Column>
         <Column field="unidad" header="Unidad" sortable></Column>
 
-        {/* 🆕 Nueva columna Asiento / Costo */}
         <Column
           field="asiento_peso"
           header="Asiento / Costo"
-          body={(row) => (
-            <span className="text-gray-700">
-              {row.asiento_peso ?? '-'}
-            </span>
-          )}
+          body={(row) => <span className="text-gray-700">{row.asiento_peso ?? '-'}</span>}
           sortable
           style={{ width: '10rem' }}
         ></Column>
@@ -120,7 +106,7 @@ export default function TablaReservaciones({
           header="Estado"
           body={(row) => (
             <span
-              className={`estado-${row.estado.toLowerCase()} font-semibold $ {
+              className={`estado-${row.estado?.toLowerCase()} font-semibold ${
                 row.estado === 'confirmada'
                   ? 'text-green-600'
                   : row.estado === 'pendiente'
@@ -128,20 +114,22 @@ export default function TablaReservaciones({
                   : 'text-red-600'
               }`}
             >
-              {row.estado.charAt(0).toUpperCase() + row.estado.slice(1)}
+              {row.estado?.charAt(0).toUpperCase() + row.estado?.slice(1)}
             </span>
           )}
           sortable
           style={{ width: '9rem', textAlign: 'center' }}
         ></Column>
 
-        {/* 🔧 Columna Acciones (opcional si mantienes los botones arriba) */}
+        {/* 🔹 Columna de acciones funcional */}
         <Column
           header="Acciones"
           body={(row) => (
-            <span> {/* Columna de acciones se puede dejar vacía si ya se tienen los botones arriba */}
-              {/* No se requiere edición ya que ya está eliminado */}
-            </span>
+            <ActionsColumn
+              row={row}
+              onEdit={(reserva) => onAdd(reserva)}
+              onDelete={(id) => onDelete(id)}
+            />
           )}
           exportable={false}
           style={{ width: '8rem', textAlign: 'center' }}

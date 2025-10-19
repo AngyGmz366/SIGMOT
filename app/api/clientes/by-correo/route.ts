@@ -6,50 +6,58 @@ import { db } from '@/lib/db';
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const correoRaw = url.searchParams.get('correo');
-  if (!correoRaw) {
-    return NextResponse.json({ error: 'correo es obligatorio' }, { status: 400 });
+  const dniRaw = url.searchParams.get('dni');
+  if (!dniRaw) {
+    return NextResponse.json({ error: 'dni es obligatorio' }, { status: 400 });
   }
 
-  const correo = correoRaw.trim().toLowerCase();
+  const dni = dniRaw.trim();
 
+  const conn = await db.getConnection();
   try {
-    const [rows]: any = await db.query(
+    // Buscar persona por DNI
+    const [rows]: any = await conn.query(
       `
       SELECT 
-        c.Id_Cliente_PK AS idCliente,
-        p.Nombres, 
+        p.Id_Persona_PK    AS idPersona,
+        c.Id_Cliente_PK    AS idCliente,
+        p.Nombres,
         p.Apellidos,
+        p.DNI,
         co.Correo
-      FROM TBL_CLIENTES c
-      JOIN TBL_PERSONAS p ON p.Id_Persona_PK = c.Id_Persona_FK
-      JOIN TBL_CORREOS  co ON co.Id_Correo_PK = p.Id_Correo_FK
-      WHERE LOWER(co.Correo) = ?
+      FROM mydb.TBL_PERSONAS p
+      LEFT JOIN mydb.TBL_CLIENTES c ON c.Id_Persona_FK = p.Id_Persona_PK
+      LEFT JOIN mydb.TBL_CORREOS  co ON co.Id_Correo_PK = p.Id_Correo_FK
+      WHERE p.DNI = ?
       LIMIT 1;
       `,
-      [correo]
+      [dni]
     );
 
     if (!rows?.length) {
-      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
+      return NextResponse.json({ error: 'Persona no encontrada por DNI' }, { status: 404 });
     }
 
     const r = rows[0];
     return NextResponse.json(
       {
-        idCliente: r.idCliente,
+        idPersona: r.idPersona,
+        idCliente: r.idCliente ?? null, // puede ser null si no tiene cliente asociado
         nombre: r.Nombres ?? '',
         apellido: r.Apellidos ?? '',
         nombreCompleto: `${r.Nombres ?? ''} ${r.Apellidos ?? ''}`.trim(),
-        correo: r.Correo,
+        dni: r.DNI,
+        correo: r.Correo ?? null,
       },
       { status: 200 }
     );
   } catch (e: any) {
-    console.error('❌ Error al buscar cliente por correo:', e);
+    console.error('❌ Error al buscar persona por DNI:', e);
     return NextResponse.json(
-      { error: e?.sqlMessage || e?.message || 'Error al buscar cliente' },
+      { error: e?.sqlMessage || e?.message || 'Error al buscar persona' },
       { status: 500 }
     );
+  } finally {
+    conn.release();
   }
 }

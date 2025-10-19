@@ -37,11 +37,11 @@ export async function GET(req: Request) {
   const offset = Number(url.searchParams.get('offset')) || 0;
   const estado = upperOrNull(url.searchParams.get('estado')); // PENDIENTE/CONFIRMADA/CANCELADA
   const tipo = upperOrNull(url.searchParams.get('tipo'));     // VIAJE/ENCOMIENDA
-  const soloActivas = url.searchParams.get('solo_activas') === '1' ? 1 : 0;
+  const soloActivasParam = url.searchParams.get('solo_activas');
+  const soloActivas = soloActivasParam === null ? 1 : Number(soloActivasParam) === 1 ? 1 : 0;
 
   const conn = await db.getConnection();
   try {
-    // ✅ sp_reserva_listar(limit, offset, estado, tipo, solo_activas)
     const [rows]: any = await conn.query(
       'CALL sp_reserva_listar(?,?,?,?,?)',
       [limit, offset, estado, tipo, soloActivas]
@@ -65,11 +65,11 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const tipo = upperOrNull(body?.tipo); // VIAJE | ENCOMIENDA
-  const correo = body?.correo as string;
+  const dni = body?.dni as string;
   const fecha = body?.fecha ? new Date(body.fecha) : new Date();
 
-  if (!correo) {
-    return NextResponse.json({ error: 'correo es obligatorio' }, { status: 400 });
+  if (!dni) {
+    return NextResponse.json({ error: 'dni es obligatorio' }, { status: 400 });
   }
 
   const conn = await db.getConnection();
@@ -90,9 +90,8 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'id_asiento es obligatorio y numérico' }, { status: 400 });
       }
 
-      // ✅ Llamada al SP actualizado
       await conn.query('CALL sp_reserva_crear_viaje_por_correo(?,?,?,?,@out)', [
-        correo,
+        dni,
         idViaje,
         idAsiento,
         fecha,
@@ -103,18 +102,18 @@ export async function POST(req: Request) {
     // ENCOMIENDA
     // =====================
     else if (tipo === 'ENCOMIENDA') {
-      const idEncomienda = Number(body?.id_encomienda);
+      const idViaje = Number(body?.id_viaje);
       const costo = Number(body?.costo) || null;
 
-      if (!Number.isFinite(idEncomienda)) {
-        return NextResponse.json({ error: 'id_encomienda es obligatorio y numérico' }, { status: 400 });
+      if (!Number.isFinite(idViaje)) {
+        return NextResponse.json({ error: 'id_viaje es obligatorio y numérico' }, { status: 400 });
       }
 
-      // ✅ Llamada al SP actualizado
-      await conn.query('CALL sp_reserva_crear_encomienda_por_correo(?,?,?,?,@out)', [
-        correo,
-        idEncomienda,
+      await conn.query('CALL sp_reserva_crear_encomienda_por_correo(?,?,?,?,?,@out)', [
+        dni,
+        idViaje,
         costo,
+        body?.descripcion || null,
         fecha,
       ]);
     }
@@ -123,7 +122,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'tipo debe ser VIAJE o ENCOMIENDA' }, { status: 400 });
     }
 
-    // Recuperar id de salida
     const [outRows]: any = await conn.query('SELECT @out AS id');
     const id = outRows?.[0]?.id ?? null;
     return NextResponse.json({ id }, { status: 201 });

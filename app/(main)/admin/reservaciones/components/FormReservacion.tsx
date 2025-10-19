@@ -8,7 +8,7 @@ import { ReservacionBase, ReservacionViaje, ReservacionEncomienda } from './type
 import { useEffect, useState } from 'react';
 import './FormReservacion.css';
 
-/* Helper para consumir tus APIs */
+/* Helper API */
 async function apiGet<T>(url: string): Promise<T> {
   const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) throw new Error(await res.text());
@@ -24,18 +24,25 @@ type FormProps = {
 };
 
 export default function FormReservacion({ initialData, onSave, onCancel }: FormProps) {
-  const [formData, setFormData] = useState<ReservacionFormData>(
-    initialData || { tipo: 'viaje', estado: 'pendiente', fecha: new Date() }
-  );
+  const [formData, setFormData] = useState<Partial<ReservacionBase>>(
+  initialData || { tipo: 'viaje', estado: 'pendiente', fecha: new Date(), dni: '' }
+);
 
   const [rutasOptions, setRutasOptions] = useState<{ label: string; value: number }[]>([]);
   const [rutaSeleccionadaId, setRutaSeleccionadaId] = useState<number | null>(null);
-
   const [viajesOptions, setViajesOptions] = useState<{ label: string; value: number }[]>([]);
   const [viajeSeleccionadoId, setViajeSeleccionadoId] = useState<number | null>(null);
-
   const [asientosOptions, setAsientosOptions] = useState<{ label: string; value: number }[]>([]);
   const [asientoSeleccionadoId, setAsientoSeleccionadoId] = useState<number | null>(null);
+
+  /* 🆕 Reaccionar a cambios de initialData */
+  useEffect(() => {
+    if (!initialData) return;
+    setFormData({
+      ...initialData,
+      fecha: initialData.fecha ? new Date(initialData.fecha) : new Date(),
+    });
+  }, [initialData]);
 
   /* 🟩 Cargar rutas activas */
   useEffect(() => {
@@ -51,7 +58,7 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
     })();
   }, []);
 
-  /* 🟨 Cargar viajes/unidades según la ruta */
+  /* 🟨 Cargar viajes por ruta */
   useEffect(() => {
     (async () => {
       if (!rutaSeleccionadaId) {
@@ -63,22 +70,19 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
         const data = await apiGet<{
           items: { idViaje: number; unidad: string; fecha: string; horaSalida: string }[];
         }>(`/api/unidades-por-rutas/${encodeURIComponent(String(rutaSeleccionadaId))}`);
-
         const opts = (data.items || []).map((u) => ({
           label: `${u.unidad} · salida ${String(u.horaSalida).slice(0, 5)}`,
           value: u.idViaje,
         }));
         setViajesOptions(opts);
-        setViajeSeleccionadoId(null);
       } catch (err) {
         console.error('No se pudieron cargar las unidades por ruta:', err);
         setViajesOptions([]);
-        setViajeSeleccionadoId(null);
       }
     })();
   }, [rutaSeleccionadaId]);
 
-  /* 🟦 Cargar asientos según el viaje */
+  /* 🟦 Cargar asientos por viaje */
   useEffect(() => {
     (async () => {
       if (!viajeSeleccionadoId || formData.tipo !== 'viaje') {
@@ -102,8 +106,10 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
     })();
   }, [viajeSeleccionadoId, formData.tipo]);
 
+  /* 🧾 Guardar formulario */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     if (formData.tipo === 'viaje' && !asientoSeleccionadoId) {
       alert('Debe seleccionar un asiento disponible.');
       return;
@@ -112,13 +118,20 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
       alert('Debe ingresar el costo de la encomienda.');
       return;
     }
+    if (!formData.dni) {
+      alert('Debe ingresar el DNI de la persona.');
+      return;
+    }
 
     const payload = {
-      ...formData,
+      dni: formData.dni,
+      tipo: formData.tipo,
       id_viaje: viajeSeleccionadoId,
       id_asiento: asientoSeleccionadoId,
-      id_ruta: rutaSeleccionadaId,
+      id_encomienda: (formData as ReservacionEncomienda).id_encomienda ?? null,
+      costo: (formData as ReservacionEncomienda).costo ?? null,
       fecha: formData.fecha,
+      estado: formData.estado,
     };
     onSave(payload as ReservacionBase);
   };
@@ -127,27 +140,42 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
     <form onSubmit={handleSubmit} className="p-fluid grid gap-3">
       <div className="col-12 md:col-6">
         <Dropdown
-          value={formData.tipo}
-          options={[
-            { label: 'Viaje', value: 'viaje' },
-            { label: 'Encomienda', value: 'encomienda' },
-          ]}
-          onChange={(e) => {
-            setFormData({ ...formData, tipo: e.value });
-            // limpiar dependencias
-            setAsientosOptions([]);
-            setAsientoSeleccionadoId(null);
-          }}
-          placeholder="Tipo de reservación"
-          className="w-full"
-        />
+        value={formData.tipo}
+        options={[
+        { label: 'Viaje', value: 'viaje' },
+        { label: 'Encomienda', value: 'encomienda' },
+        ]}
+        onChange={(e) => {
+        const newTipo = e.value as 'viaje' | 'encomienda';
+        if (newTipo === 'viaje') {
+        setFormData({
+        ...formData,
+        tipo: newTipo,
+        id_encomienda: null,
+        costo: null,
+      });
+    } else {
+      setFormData({
+        ...formData,
+        tipo: newTipo,
+        id_viaje: null,
+        id_asiento: null,
+      });
+    }
+    setAsientosOptions([]);
+    setAsientoSeleccionadoId(null);
+  }}
+  placeholder="Tipo de reservación"
+  className="w-full"
+/>
+
       </div>
 
       <div className="col-12 md:col-6">
         <InputText
-          value={formData.cliente || ''}
-          onChange={(e) => setFormData({ ...formData, cliente: e.target.value })}
-          placeholder="Cliente"
+          value={formData.dni || ''}
+          onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
+          placeholder="DNI de la persona"
           required
           className="w-full"
         />
@@ -233,19 +261,8 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
       </div>
 
       <div className="col-12 flex justify-content-end gap-2">
-        <Button
-          label="Cancelar"
-          icon="pi pi-times"
-          onClick={onCancel}
-          type="button"
-          className="custom-button"
-        />
-        <Button
-          label="Guardar"
-          icon="pi pi-check"
-          type="submit"
-          className="custom-button"
-        />
+        <Button label="Cancelar" icon="pi pi-times" onClick={onCancel} type="button" className="custom-button" />
+        <Button label="Guardar" icon="pi pi-check" type="submit" className="custom-button" />
       </div>
     </form>
   );

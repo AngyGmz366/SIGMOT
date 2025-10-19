@@ -50,7 +50,7 @@ async function apiPut<T>(url: string, body: any): Promise<T> {
 export default function ReservacionesPage() {
   const [reservaciones, setReservaciones] = useState<ReservacionBase[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingReserva, setEditingReserva] = useState<ReservacionBase | null>(null);
   const toast = useRef<Toast>(null);
 
   /* 🟢 Carga inicial */
@@ -74,10 +74,22 @@ export default function ReservacionesPage() {
   /* 🟡 Crear o editar */
   const handleSave = async (data: ReservacionBase) => {
     try {
-      if (editingId) {
+
+      if (editingReserva && editingReserva.id && !data.dni) {
+      data.dni = editingReserva.dni;
+    }
+
+    // 'id_encomienda' is not declared on ReservacionBase; use a narrow any-cast only for that property access
+    if (editingReserva && editingReserva.id && data.tipo === 'encomienda' && !(data as any).id_encomienda) {
+      (data as any).id_encomienda = (editingReserva as any).id_encomienda ?? editingReserva.id;
+    }
+
+      if (editingReserva && editingReserva.id) {
         // 🔁 Actualizar
-        await apiPut(`/api/reservas/${encodeURIComponent(editingId)}`, data);
-        setReservaciones((prev) => prev.map((r) => (r.id === editingId ? data : r)));
+        await apiPut(`/api/reservas/${encodeURIComponent(editingReserva.id)}`, data);
+        setReservaciones((prev) =>
+          prev.map((r) => (r.id === editingReserva.id ? { ...r, ...data } : r))
+        );
         showSuccess("Reservación actualizada correctamente");
       } else {
         // 🆕 Crear
@@ -96,6 +108,7 @@ export default function ReservacionesPage() {
       });
     } finally {
       setShowForm(false);
+      setEditingReserva(null); // 🔹 Limpia modo edición
     }
   };
 
@@ -129,26 +142,45 @@ export default function ReservacionesPage() {
   return (
     <div className="p-4">
       <Toast ref={toast} />
+
       <TablaReservaciones
         reservaciones={reservaciones}
         onDelete={handleDelete}
-        onAdd={() => {
-          setEditingId(null);
-          setShowForm(true);
-        }}
+        onAdd={async (reserva) => {
+  if (reserva) {
+    try {
+      // 🔹 Llama al detalle para obtener todos los datos (dni, ids, etc.)
+      const full = await apiGet<ReservacionBase>(`/api/reservas/${reserva.id}`);
+      setEditingReserva(full); // 👈 aquí guardas la versión completa
+      setShowForm(true);
+    } catch (err) {
+      console.error('Error obteniendo detalle de la reserva:', err);
+    }
+  } else {
+    setEditingReserva(null);
+    setShowForm(true);
+  }
+}}
+
       />
 
       <Dialog
         visible={showForm}
-        onHide={() => setShowForm(false)}
-        header={editingId ? "Editar Reservación" : "Nueva Reservación"}
+        onHide={() => {
+          setShowForm(false);
+          setEditingReserva(null);
+        }}
+        header={editingReserva ? "Editar Reservación" : "Nueva Reservación"}
         style={{ width: "50vw" }}
         breakpoints={{ "960px": "75vw", "640px": "90vw" }}
       >
         <FormReservacion
-          initialData={editingId ? reservaciones.find((r) => r.id === editingId) : undefined}
+          initialData={editingReserva ?? undefined} // 👈 pasa la reserva completa
           onSave={handleSave}
-          onCancel={() => setShowForm(false)}
+          onCancel={() => {
+            setShowForm(false);
+            setEditingReserva(null);
+          }}
         />
       </Dialog>
     </div>

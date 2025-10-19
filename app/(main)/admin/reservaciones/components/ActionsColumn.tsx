@@ -1,3 +1,5 @@
+'use client';
+
 import { Button } from 'primereact/button';
 import { confirmDialog } from 'primereact/confirmdialog';
 import { ReservacionBase } from './types';
@@ -10,14 +12,15 @@ export default function ActionsColumn({
   disabled = false,
 }: {
   row: ReservacionBase;
-  onEdit: (id: string) => void;
+  onEdit: (reserva: ReservacionBase) => void;
   onDelete: (id: string) => void;
   disabled?: boolean;
 }) {
+
   const confirmDelete = () => {
     confirmDialog({
       message: `¿Desea eliminar la ${row.tipo === 'viaje' ? 'reservación de viaje' : 'encomienda'} de ${row.cliente}?`,
-      header: 'Confirmar',
+      header: 'Confirmar eliminación',
       icon: 'pi pi-exclamation-triangle',
       acceptLabel: 'Sí, eliminar',
       rejectLabel: 'Cancelar',
@@ -37,9 +40,10 @@ export default function ActionsColumn({
         rounded
         text
         severity="secondary"
-        onClick={() => row.id && onEdit(row.id)}
+        onClick={() => onEdit(row)}
         disabled={disabled}
       />
+
       <Button
         icon="pi pi-trash"
         className="btn-delete"
