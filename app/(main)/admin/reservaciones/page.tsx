@@ -75,6 +75,14 @@ export default function ReservacionesPage() {
   const handleSave = async (data: ReservacionBase) => {
     try {
 
+      if (data.tipo === 'viaje') {
+      data.id_encomienda = null;
+      data.costo = null;
+    } else if (data.tipo === 'encomienda') {
+      data.id_viaje = null;
+      data.id_asiento = null;
+    }
+
       if (editingReserva && editingReserva.id && !data.dni) {
       data.dni = editingReserva.dni;
     }
