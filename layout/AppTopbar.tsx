@@ -138,11 +138,11 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
       icon: 'pi pi-user-edit',
       command: () => router.push('/configuracion/perfil'),
     },
-    /*{
+    {
       label: 'Activar autenticación 2FA',
       icon: 'pi pi-shield',
       command: () => router.push('/configuracion/activar-2fa'),
-    },*/
+    },
     { separator: true },
     {
       label: 'Cerrar sesión',

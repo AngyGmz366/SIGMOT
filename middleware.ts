@@ -2,60 +2,79 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
+/**
+ * 🔐 Middleware de seguridad SIGMOT
+ * Protege las rutas internas verificando el JWT (cookie 'app_token')
+ * generado tras el login o verificación 2FA.
+ */
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const token = req.cookies.get('app_token')?.value || '';
 
-  // ✅ 1. Permitir acceso a recursos públicos
-  if (
+  // ✅ 1️⃣ Permitir acceso a recursos públicos y APIs abiertas
+  const isPublicPath =
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon.ico') ||
     pathname.startsWith('/images') ||
-    pathname.startsWith('/api/auth') || // login, logout, register
-    pathname.startsWith('/auth') // páginas de login y registro
-  ) {
+    pathname.startsWith('/auth') || // páginas públicas
+    pathname.startsWith('/api/auth') || // login, register, upsert
+    pathname.startsWith('/api/2fa'); // setup, verify, disable
+
+  if (isPublicPath) {
     return NextResponse.next();
   }
 
-  // ✅ 2. Si no hay token, redirigir al login
+  // ✅ 2️⃣ Si no hay token → redirigir al login
   if (!token) {
-    console.warn('🚫 No hay token, redirigiendo al login');
+    console.warn('🚫 No hay token de sesión, redirigiendo al login.');
     const url = req.nextUrl.clone();
     url.pathname = '/auth/login';
     return NextResponse.redirect(url);
   }
 
-  // ✅ 3. Verificar token con JOSE (WebCrypto)
+  // ✅ 3️⃣ Verificar token JWT
   try {
-    const secret = new TextEncoder().encode(process.env.APP_JWT_SECRET);
+    const secretEnv = process.env.APP_JWT_SECRET;
+    if (!secretEnv) throw new Error('APP_JWT_SECRET no configurado.');
+
+    const secret = new TextEncoder().encode(secretEnv);
     const { payload } = await jwtVerify(token, secret);
 
-    // Verifica que el payload tenga el usuario (opcional)
+    // ⚙️ Validación básica del payload
     if (!payload?.uid) {
-      console.warn('⚠️ Token inválido: no contiene UID');
+      console.warn('⚠️ Token inválido: sin UID en el payload.');
       const url = req.nextUrl.clone();
       url.pathname = '/auth/login';
       return NextResponse.redirect(url);
     }
 
-    console.log('✅ Token válido, acceso permitido');
+    // ✅ Token válido → permitir acceso
+    console.log(`✅ Acceso permitido a ${pathname} para UID: ${payload.uid}`);
     return NextResponse.next();
   } catch (err) {
-    console.warn('⚠️ Token inválido o expirado:', err);
+    console.warn('⛔ Token inválido o expirado:', err);
     const url = req.nextUrl.clone();
     url.pathname = '/auth/login';
     return NextResponse.redirect(url);
   }
 }
 
-// ✅ 4. Rutas protegidas
+/**
+ * ✅ 4️⃣ Rutas protegidas por el middleware
+ * Se interceptan solo estas rutas (otras quedan públicas)
+ */
 export const config = {
   matcher: [
     '/dashboard/:path*',
+    '/unidades/:path*',
     '/vehiculos/:path*',
-    '/seguridad/:path*',
-    '/empleados/:path*',
-    '/rutas/:path*',
     '/mantenimiento/:path*',
+    '/rutas/:path*',
+    '/empleados/:path*',
+    '/clientes/:path*',
+    '/seguridad/:path*',
+    '/reservaciones/:path*',
+    '/ventas/:path*',
   ],
 };

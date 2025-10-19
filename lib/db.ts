@@ -11,4 +11,15 @@ export const db = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0,
   dateStrings: true,
+  timezone: "Z", // usa UTC interno, luego forzamos manualmente
+});
+
+// 👇 Ejecutar comando al crear conexión
+db.on("connection", async (connection) => {
+  try {
+    await connection.query("SET time_zone = '-06:00';");
+    console.log("🕓 Zona horaria de conexión establecida a Honduras (-06:00)");
+  } catch (err) {
+    console.error("⚠️ Error al establecer zona horaria:", err);
+  }
 });

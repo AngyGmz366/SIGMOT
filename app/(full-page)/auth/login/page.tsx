@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-'use client'; // Fuerza render del lado del cliente
+'use client';
 
 import { useRouter } from 'next/navigation';
 import React, { useContext, useState } from 'react';
@@ -10,19 +10,19 @@ import { LayoutContext } from '../../../../layout/context/layoutcontext';
 import { InputText } from 'primereact/inputtext';
 import { classNames } from 'primereact/utils';
 import Image from 'next/image';
+import Swal from 'sweetalert2';
 
 import { auth } from '@/lib/firebase';
 import {
-  signInWithEmailAndPassword, // login normal firebase (correo/clave)
-  GoogleAuthProvider,         // proveedor de google
-  signInWithPopup,            // abre el popup de google
-  setPersistence,             // define si la sesión queda guardada
-  browserLocalPersistence,    // sesión se guarda en el navegador (recordarme)
-  browserSessionPersistence,  // sesión solo mientras la pestaña esté abierta
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
 } from 'firebase/auth';
 
-const ROL_DEFECTO = 1; // rol por defecto "usuario"
-
+const ROL_DEFECTO = 1;
 type ErrorState = { email?: string; password?: string; general?: string };
 
 export default function LoginPage() {
@@ -40,7 +40,7 @@ export default function LoginPage() {
     { 'p-input-filled': layoutConfig.inputStyle === 'filled' }
   );
 
-  // 🔹 Validaciones básicas
+  // 🧩 Validaciones
   const validate = (): ErrorState => {
     const errs: ErrorState = {};
     if (!email.trim()) errs.email = 'El correo es obligatorio.';
@@ -50,13 +50,16 @@ export default function LoginPage() {
     return errs;
   };
 
-  const showError = (field: keyof ErrorState) =>
-    (field === 'email' || field === 'password') && Boolean(errors[field] && touched[field]);
+  const showError = (field: keyof typeof touched): boolean => {
+    return Boolean(errors[field as keyof ErrorState] && touched[field]);
+  };
 
-  const handleBlur = (field: 'email' | 'password') =>
+  const handleBlur = (field: keyof typeof touched): void => {
     setTouched((prev) => ({ ...prev, [field]: true }));
+  };
 
-  // 🔹 Sincroniza usuario Firebase → BD y guarda datos en localStorage
+
+  // 🔹 Sincroniza usuario Firebase → BD y detecta 2FA
   const syncUsuarioConBD = async (idToken: string) => {
     const resp = await fetch('/api/auth/upsert', {
       method: 'POST',
@@ -67,11 +70,18 @@ export default function LoginPage() {
     const data = await resp.json();
     if (!resp.ok) throw new Error(data?.detail || data?.error || 'Error al sincronizar usuario');
 
-    // 🔹 Detecta si viene como array o objeto
-    const usuario = Array.isArray(data.usuario) ? data.usuario[0] : data.usuario;
+    // 🚨 Si el backend indica que requiere 2FA
+    if (data.requires2FA) {
+      localStorage.setItem('idUsuario', String(data.idUsuario));
+      localStorage.setItem('correoUsuario', data.correo || '');
+      localStorage.setItem('tipoUsuario', data.tipoUsuario || 'FIREBASE');
+      localStorage.setItem('authType', 'firebase');
+      return { requires2FA: true };
+    }
 
+    // 🔹 Si no requiere 2FA
+    const usuario = Array.isArray(data.usuario) ? data.usuario[0] : data.usuario;
     if (usuario) {
-      // ✅ Guardamos datos básicos para el resto del sistema
       localStorage.setItem('idUsuario', usuario.Id_Usuario_PK?.toString() || '');
       localStorage.setItem('nombreUsuario', usuario.Nombre_Usuario || 'Usuario');
       localStorage.setItem('correoUsuario', usuario.Correo_Electronico || '');
@@ -79,9 +89,8 @@ export default function LoginPage() {
       localStorage.setItem('authType', 'firebase');
     }
 
-    return usuario;
+    return { usuario, requires2FA: false };
   };
-
 
   // 🔹 Login local (respaldo)
   const loginLocal = async (email: string, password: string) => {
@@ -94,20 +103,12 @@ export default function LoginPage() {
     const data = await r.json().catch(() => ({}));
 
     if (r.status === 423) {
-      if (data.minutosRestantes) {
-        throw new Error(`Usuario bloqueado temporalmente. Intenta en ${data.minutosRestantes} minutos.`);
-      }
-      throw new Error(data?.error || 'Usuario bloqueado temporalmente. Intenta más tarde.');
+      const minutos = data.minutosRestantes ?? 30;
+      throw new Error(`Usuario bloqueado temporalmente. Intenta en ${minutos} minutos.`);
     }
 
-    if (r.status === 429) {
-      throw new Error(data?.error || 'Demasiados intentos desde esta IP. Intenta más tarde.');
-    }
-
-    if (!r.ok) {
-      throw new Error(data?.error || 'Correo y/o contraseña inválidos.');
-    }
-
+    if (r.status === 429) throw new Error(data?.error || 'Demasiados intentos desde esta IP. Intenta más tarde.');
+    if (!r.ok) throw new Error(data?.error || 'Correo y/o contraseña inválidos.');
     return data;
   };
 
@@ -121,29 +122,53 @@ export default function LoginPage() {
     if (Object.keys(valErrors).length > 0) return;
 
     setLoading(true);
-    setErrors({});
     try {
       await setPersistence(auth, checked ? browserLocalPersistence : browserSessionPersistence);
       const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
       const idToken = await cred.user.getIdToken(true);
 
-      const usuario = await syncUsuarioConBD(idToken);
+      const resultado = await syncUsuarioConBD(idToken);
 
-      router.push('/dashboard');
-
+      if (resultado.requires2FA) {
+        Swal.fire({
+          imageUrl: '/demo/images/login/LOGO-SIGMOT.png', // o la ruta real de tu logo
+          imageWidth: 80,
+          imageAlt: 'Logo SIGMOT',
+          title: 'Verificación 2FA requerida',
+          text: 'Ingresa el código de autenticación para continuar.',
+          confirmButtonColor: '#6366F1',
+        }).then(() => router.push('/auth/verificar-2fa'));
+      } else {
+        router.push('/dashboard');
+      }
     } catch (err: any) {
       const code = err?.code || '';
       const canTryLocal = ['auth/invalid-credential', 'auth/user-not-found', 'auth/wrong-password'].includes(code);
+
       try {
         if (canTryLocal) {
-            // 🔹 Intenta login local como respaldo
-           const data = await loginLocal(email, password);
-           // ✅ Guarda el ID de usuario y rol en localStorage
-            if (data?.Id_Usuario_PK) {
-              localStorage.setItem('idUsuario', String(data.Id_Usuario_PK));
-              localStorage.setItem('rolUsuario', data.rol || 'Usuario');
-              localStorage.setItem('authType', 'local');
-            }
+          const data = await loginLocal(email, password);
+
+          if (data.requires2FA) {
+            localStorage.setItem('idUsuario', String(data.idUsuario));
+            localStorage.setItem('correoUsuario', data.correo || '');
+            localStorage.setItem('tipoUsuario', data.tipoUsuario || 'LOCAL');
+            localStorage.setItem('authType', 'local');
+
+            Swal.fire({
+              icon: 'info',
+              title: 'Verificación 2FA requerida',
+              text: 'Ingresa el código de autenticación para continuar.',
+              confirmButtonColor: '#6366F1',
+            }).then(() => router.push('/auth/verificar-2fa'));
+            return;
+          }
+
+          if (data?.Id_Usuario_PK) {
+            localStorage.setItem('idUsuario', String(data.Id_Usuario_PK));
+            localStorage.setItem('rolUsuario', data.rol || 'Usuario');
+            localStorage.setItem('authType', 'local');
+          }
 
           router.push('/dashboard');
         } else {
@@ -151,7 +176,12 @@ export default function LoginPage() {
         }
       } catch (e: any) {
         console.error(e);
-        setErrors((p) => ({ ...p, general: e?.message || 'Error iniciando sesión' }));
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: e?.message || 'Error iniciando sesión',
+          confirmButtonColor: '#6366F1',
+        });
       }
     } finally {
       setLoading(false);
@@ -161,7 +191,6 @@ export default function LoginPage() {
   // 🔹 Login con Google
   const handleLoginGoogle = async () => {
     setLoading(true);
-    setErrors({});
     try {
       await setPersistence(auth, checked ? browserLocalPersistence : browserSessionPersistence);
       const provider = new GoogleAuthProvider();
@@ -169,20 +198,33 @@ export default function LoginPage() {
 
       const result = await signInWithPopup(auth, provider);
       const idToken = await result.user.getIdToken(true);
-      const usuario = await syncUsuarioConBD(idToken);
+      const resultado = await syncUsuarioConBD(idToken);
 
-      router.push('/dashboard');
-
+      if (resultado.requires2FA) {
+        Swal.fire({
+          icon: 'info',
+          title: 'Verificación 2FA requerida',
+          text: 'Ingresa el código de autenticación para continuar.',
+          confirmButtonColor: '#6366F1',
+        }).then(() => router.push('/verificar-2fa'));
+      } else {
+        router.push('/dashboard');
+      }
     } catch (err: any) {
       if (err?.code === 'auth/popup-closed-by-user') return;
       console.error(err);
-      setErrors((p) => ({ ...p, general: err?.message || 'No se pudo iniciar sesión con Google.' }));
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: err?.message || 'No se pudo iniciar sesión con Google.',
+        confirmButtonColor: '#6366F1',
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  // 🔹 UI del login
+  // 🎨 UI
   return (
     <div className={containerClassName}>
       <div className="flex flex-column align-items-center justify-content-center">
