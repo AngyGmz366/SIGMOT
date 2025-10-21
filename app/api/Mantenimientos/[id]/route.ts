@@ -8,14 +8,11 @@ const pool = db;
    GET → Obtener mantenimiento por ID o por placa
    Llama al SP: sp_mantenimiento_obtener
 ============================================================ */
-export async function GET(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
-  try {
+export async function GET(req: Request, context: { params: { id: string } })
+{ try {
     const { searchParams } = new URL(req.url);
     const placa = searchParams.get('placa'); // si viene ?placa=HAA-1234
-    const id = Number(params.id);
+    const { id } = context.params;
 
     let query: string;
     let values: any[];
@@ -24,7 +21,7 @@ export async function GET(
       // 🔹 Buscar por número de placa
       query = `CALL sp_mantenimiento_obtener(NULL, ?);`;
       values = [placa];
-    } else if (!isNaN(id) && id > 0) {
+    } else if (!isNaN(Number(id)) && Number(id) > 0) {
       // 🔹 Buscar por ID
       query = `CALL sp_mantenimiento_obtener(?, NULL);`;
       values = [id];
