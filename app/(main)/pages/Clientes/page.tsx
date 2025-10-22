@@ -11,7 +11,7 @@ import { InputText } from 'primereact/inputtext';
 import { Dialog } from 'primereact/dialog';
 import { Tag } from 'primereact/tag';
 
-import ClienteModal from '../../components/ClienteModal';
+import ClienteModal from '@/app/(main)/components/ClienteModal';
 import { Cliente, Persona } from '@/types/persona';
 import { cargarPersonas } from '@/modulos/personas/controlador/personas.controlador';
 import {
@@ -20,7 +20,7 @@ import {
   borrarCliente,
 } from '@/modulos/clientes/controlador/clientes.controlador';
 
-export default function ClientesPage() {
+function ClientesPage() {
   const toast = useRef<Toast>(null);
   const dt = useRef<DataTable<any>>(null);
 
@@ -32,11 +32,18 @@ export default function ClientesPage() {
   const [cliente, setCliente] = useState<Cliente>({
     id: 0,
     idPersona: 0,
-    estado: 'Activo',
+    idEstadoCliente: 1,
+    estado: 'ACTIVO',
   });
   const [selectedClientes, setSelectedClientes] = useState<Cliente[]>([]);
   const [deleteClienteDialog, setDeleteClienteDialog] = useState(false);
   const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
+
+  // Catálogo de estados
+  const estadosCliente = [
+    { label: 'ACTIVO', value: 1 },
+    { label: 'INACTIVO', value: 2 },
+  ];
 
   /* ===============================
      🔹 CARGAR CLIENTES Y PERSONAS
@@ -64,109 +71,104 @@ export default function ClientesPage() {
   }, []);
 
   /* ===============================
-   🔹 CRUD CLIENTE
-=============================== */
-const openNew = () => {
-  setCliente({ id: 0, idPersona: 0, estado: 'Activo' });
-  setSubmitted(false);
-  setClienteDialog(true);
-};
+     🔹 CRUD CLIENTE
+  =============================== */
+  const openNew = () => {
+    setCliente({ id: 0, idPersona: 0, idEstadoCliente: 1, estado: 'ACTIVO' });
+    setSubmitted(false);
+    setClienteDialog(true);
+  };
 
-const hideDialog = () => {
-  setClienteDialog(false);
-  setSubmitted(false);
-};
-
-const saveCliente = async () => {
-  setSubmitted(true);
-
-  if (!cliente.idPersona || !cliente.estado) return;
-
-  try {
-    // Crear o actualizar
-    await guardarCliente(cliente);
-
-    // Mostrar toast
-    toast.current?.show({
-      severity: 'success',
-      summary: cliente.id ? 'Actualizado' : 'Creado',
-      detail: cliente.id
-        ? 'Cliente actualizado correctamente'
-        : 'Cliente creado correctamente',
-      life: 3000,
-    });
-
-    // 🔹 Recargar clientes
-    const nuevos = await cargarClientes();
-    setClientes(nuevos);
-
-    // 🔹 Cerrar modal y limpiar formulario
+  const hideDialog = () => {
     setClienteDialog(false);
-    setCliente({ id: 0, idPersona: 0, estado: 'Activo' });
     setSubmitted(false);
-  } catch (err: any) {
-    console.error('❌ Error guardando cliente:', err);
-    toast.current?.show({
-      severity: 'error',
-      summary: 'Error',
-      detail: err.response?.data?.error || err.message || 'No se pudo guardar el cliente',
-      life: 4000,
-    });
-  }
-};
+  };
 
-const editCliente = (c: Cliente) => {
-  setCliente({ ...c });
-  setSubmitted(false);
-  setClienteDialog(true);
-};
+  const saveCliente = async () => {
+    setSubmitted(true);
 
-const confirmDeleteCliente = (c: Cliente) => {
-  setCliente(c);
-  setDeleteClienteDialog(true);
-};
+    if (!cliente.idPersona || !cliente.idEstadoCliente) return;
 
-const deleteCliente = async () => {
-  if (!cliente.id || cliente.id <= 0) {
-    toast.current?.show({
-      severity: 'error',
-      summary: 'Error',
-      detail: 'ID de cliente inválido',
-      life: 4000,
-    });
-    return;
-  }
+    try {
+      await guardarCliente(cliente);
 
-  try {
-    await borrarCliente(cliente.id);
+      toast.current?.show({
+        severity: 'success',
+        summary: cliente.id ? 'Actualizado' : 'Creado',
+        detail: cliente.id
+          ? 'Cliente actualizado correctamente'
+          : 'Cliente creado correctamente',
+        life: 3000,
+      });
 
-    // Mostrar toast
-    toast.current?.show({
-      severity: 'success',
-      summary: 'Desactivado',
-      detail: 'Cliente desactivado correctamente',
-      life: 3000,
-    });
+      const nuevos = await cargarClientes();
+      setClientes(nuevos);
 
-    // 🔹 Recargar clientes
-    const nuevos = await cargarClientes();
-    setClientes(nuevos);
+      setClienteDialog(false);
+      setCliente({ id: 0, idPersona: 0, idEstadoCliente: 1, estado: 'ACTIVO' });
+      setSubmitted(false);
+    } catch (err: any) {
+      console.error('❌ Error guardando cliente:', err);
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail:
+          err.response?.data?.error ||
+          err.message ||
+          'No se pudo guardar el cliente',
+        life: 4000,
+      });
+    }
+  };
 
-    // 🔹 Cerrar modal de confirmación y reset formulario
-    setDeleteClienteDialog(false);
-    setCliente({ id: 0, idPersona: 0, estado: 'Activo' });
+  const editCliente = (c: Cliente) => {
+    setCliente({ ...c });
     setSubmitted(false);
-  } catch (err: any) {
-    console.error('❌ Error desactivando cliente:', err);
-    toast.current?.show({
-      severity: 'error',
-      summary: 'Error',
-      detail: err.message || 'No se pudo desactivar el cliente',
-      life: 4000,
-    });
-  }
-};
+    setClienteDialog(true);
+  };
 
+  const confirmDeleteCliente = (c: Cliente) => {
+    setCliente(c);
+    setDeleteClienteDialog(true);
+  };
+
+  const deleteCliente = async () => {
+    if (!cliente.id || cliente.id <= 0) {
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'ID de cliente inválido',
+        life: 4000,
+      });
+      return;
+    }
+
+    try {
+      await borrarCliente(cliente.id);
+
+      toast.current?.show({
+        severity: 'success',
+        summary: 'Desactivado',
+        detail: 'Cliente desactivado correctamente',
+        life: 3000,
+      });
+
+      const nuevos = await cargarClientes();
+      setClientes(nuevos);
+
+      setDeleteClienteDialog(false);
+      setCliente({ id: 0, idPersona: 0, idEstadoCliente: 1, estado: 'ACTIVO' });
+      setSubmitted(false);
+    } catch (err: any) {
+      console.error('❌ Error desactivando cliente:', err);
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail: err.message || 'No se pudo desactivar el cliente',
+        life: 4000,
+      });
+    }
+  };
 
   /* ===============================
      🔹 Templates de la tabla
@@ -179,7 +181,14 @@ const deleteCliente = async () => {
   const estadoTemplate = (rowData: Cliente) => (
     <Tag
       value={rowData.estado}
-      severity={rowData.estado === 'Activo' ? 'success' : 'danger'}
+      severity={
+        rowData.estado?.toUpperCase() === 'ACTIVO' ? 'success' : 'danger'
+      }
+      icon={
+        rowData.estado?.toUpperCase() === 'ACTIVO'
+          ? 'pi pi-check-circle'
+          : 'pi pi-times-circle'
+      }
     />
   );
 
@@ -249,7 +258,7 @@ const deleteCliente = async () => {
     const persona = personas.find((p) => p.Id_Persona === cliente.idPersona);
     return {
       ...cliente,
-      id: cliente.id || cliente.idPersona || index + 1, // clave única
+      id: cliente.id || cliente.idPersona || index + 1,
       nombreCompleto: persona
         ? `${persona.Nombres} ${persona.Apellidos}`
         : '—',
@@ -264,19 +273,11 @@ const deleteCliente = async () => {
           <Toolbar
             className="mb-4"
             left={() => (
-              <Button
+                <Button
                 label="Nuevo Cliente"
                 icon="pi pi-plus"
                 severity="success"
                 onClick={openNew}
-              />
-            )}
-            right={() => (
-              <Button
-                label="Exportar"
-                icon="pi pi-upload"
-                severity="help"
-                onClick={() => dt.current?.exportCSV()}
               />
             )}
           />
@@ -319,6 +320,7 @@ const deleteCliente = async () => {
             cliente={cliente}
             setCliente={setCliente}
             personas={personas}
+            estadosCliente={estadosCliente}
             submitted={submitted}
           />
 
@@ -332,8 +334,7 @@ const deleteCliente = async () => {
             onHide={() => setDeleteClienteDialog(false)}
           >
             <div className="flex align-items-center justify-content-center">
-             <i className="pi pi-exclamation-triangle icon-warning" />
-
+              <i className="pi pi-exclamation-triangle icon-warning" />
               {cliente && (
                 <span>
                   ¿Está seguro de eliminar al cliente{' '}
@@ -351,8 +352,8 @@ const deleteCliente = async () => {
                 <Button
                   label="Cerrar Historial"
                   icon="pi pi-times"
+                  className="btn-cancelar"
                   onClick={() => setClienteSeleccionado(null)}
-                  severity="secondary"
                 />
               </div>
               <p>Aquí se mostrará el historial de viajes y pagos del cliente seleccionado.</p>
@@ -363,3 +364,4 @@ const deleteCliente = async () => {
     </div>
   );
 }
+export default ClientesPage;

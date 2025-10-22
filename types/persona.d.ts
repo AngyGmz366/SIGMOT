@@ -16,14 +16,15 @@ export interface Persona {
   Estado_Usuario?: string;
 }
 
-// =======================================================
-// 🔹 CLIENTE (tabla TBL_CLIENTES)
-// =======================================================
+/* =======================================
+   🔹 CLIENTE (tabla TBL_CLIENTES)
+======================================= */
 export interface Cliente {
-  id: number;            // Id_Cliente_PK
-  idPersona: number;     // Id_Persona_FK
-  estado: string;        // "Activo" | "Inactivo"
-  persona?: Persona;     // Datos de persona vinculada
+  id: number;                  // Id_Cliente_PK
+  idPersona: number;           // Id_Persona_FK
+  idEstadoCliente: number;     // Id_EstadoCliente_FK (FK al catálogo)
+  estado: string;              // e.Estado_Cliente → "ACTIVO" | "INACTIVO"
+  persona?: Persona;           // Datos de persona vinculada
 }
 
 // =======================================================

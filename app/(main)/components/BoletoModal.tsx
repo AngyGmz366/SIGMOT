@@ -3,24 +3,25 @@
 import React, { useEffect, useState } from 'react';
 import { Dialog } from 'primereact/dialog';
 import { Button } from 'primereact/button';
-import { Calendar } from 'primereact/calendar';
 import { Dropdown } from 'primereact/dropdown';
 import { InputNumber } from 'primereact/inputnumber';
 import { InputText } from 'primereact/inputtext';
-
-import { classNames } from 'primereact/utils';
-
 import { Boleto } from '@/types/ventas';
+import { classNames } from 'primereact/utils';
+import { apiGet } from '@/lib/http'; 
+import axios from "axios"; 
+
 import {
   getClientes,
-  getViajes,
-  getUnidadesPorRuta,
-  getAsientos,
   getMetodosPago,
   getEstadosTicket,
+  
 } from '@/modulos/boletos/servicios/ventas.servicios';
 
-type Opcion = { label: string; value: number | string; disabled?: boolean };
+import type { Opcion } from '@/modulos/boletos/servicios/ventas.servicios';
+
+
+
 
 type Props = {
   visible: boolean;
@@ -41,80 +42,117 @@ const BoletoDialog: React.FC<Props> = ({
 }) => {
   // Catálogos
   const [optClientes, setOptClientes] = useState<Opcion[]>([]);
-  const [optDestinos, setOptDestinos] = useState<Opcion[]>([]);
-  const [optAutobuses, setOptAutobuses] = useState<Opcion[]>([]);
+  const [optRutas, setOptRutas] = useState<Opcion[]>([]);
+  const [optViajes, setOptViajes] = useState<Opcion[]>([]);
   const [optAsientos, setOptAsientos] = useState<Opcion[]>([]);
   const [optMetodosPago, setOptMetodosPago] = useState<Opcion[]>([]);
   const [optEstados, setOptEstados] = useState<Opcion[]>([]);
   const [saving, setSaving] = useState(false);
 
-  // Cargar catálogos cuando se abre el modal
-useEffect(() => {
-  if (!visible) return;
-  (async () => {
-    try {
-      const [clientes, destinos, autobuses, metodos, estados] = await Promise.all([
-        getClientes(),
-        getViajes(),
-        getUnidadesPorRuta(1), // carga unidades de la ruta 1 por defecto
-        getMetodosPago(),
-        getEstadosTicket(),
-      ]);
 
-      setOptClientes(clientes);
-      setOptDestinos(destinos);
-      setOptAutobuses(autobuses);
-      setOptMetodosPago(metodos);
-      setOptEstados(estados);
+// 🟨 Horarios
+const [optHorarios, setOptHorarios] = useState<string[]>([]);
 
-      // 🔹 Si el boleto tiene una unidad seleccionada, carga sus asientos también
-      if (boleto.Id_Unidad_FK) {
-        const asientos = await getAsientos(boleto.Id_Unidad_FK);
-        setOptAsientos(asientos);
-      }
-    } catch (err) {
-      console.error('❌ Error cargando catálogos:', err);
-    }
-  })();
-}, [visible, boleto.Id_Unidad_FK]);
+  const [rutaSeleccionadaId, setRutaSeleccionadaId] = useState<number | null>(null);
+  const [viajeSeleccionadoId, setViajeSeleccionadoId] = useState<number | null>(null);
 
-
-
-// Cargar unidades cuando cambia la ruta
-
-useEffect(() => {
-  if (boleto.Id_Viaje_FK) {
-    // Cuando cambie la ruta seleccionada, recargamos las unidades
-    getUnidadesPorRuta(boleto.Id_Viaje_FK).then((unidades) => {
-      setOptAutobuses(unidades);
-    });
-  }
-}, [boleto.Id_Viaje_FK]);  // Dependemos de la ruta seleccionada
-
-
-
-
-
-  // Cargar asientos cuando cambia la unidad (y cuando se abre el modal con unidad ya seleccionada)
+  /* 🟩 Cargar rutas activas */
   useEffect(() => {
-    const loadAsientos = async () => {
-      if (!visible) return;
-      if (boleto.Id_Unidad_FK) {
-        try {
-          const asientos = await getAsientos(boleto.Id_Unidad_FK);
-          setOptAsientos(asientos);
-        } catch (err) {
-          console.error('❌ Error cargando asientos:', err);
-          setOptAsientos([]);
-        }
-      } else {
+    if (!visible) return;
+    (async () => {
+      try {
+        const data = await apiGet<{ items: { id: number; label: string; value: number }[] }>(
+          '/api/rutas-activas'
+        );
+        const opts = (data.items || []).map((r) => ({
+          label: r.label,
+          value: r.id ?? r.value,
+        }));
+        setOptRutas(opts);
+      } catch (err) {
+        console.error('❌ Error cargando rutas activas:', err);
+        setOptRutas([]);
+      }
+    })();
+  }, [visible]);
+
+
+
+
+
+
+
+
+
+  
+
+  /* 🟨 Cargar viajes (unidades) por ruta */
+  useEffect(() => {
+    (async () => {
+      if (!rutaSeleccionadaId) {
+        setOptViajes([]);
+        setViajeSeleccionadoId(null);
+        return;
+      }
+      try {
+        const data = await apiGet<{
+          items: { idViaje: number; unidad: string; fecha: string; horaSalida: string }[];
+        }>(`/api/unidades-por-rutas/${encodeURIComponent(String(rutaSeleccionadaId))}`);
+
+        const opts = (data.items || []).map((u) => ({
+          label: `${u.unidad} · salida ${String(u.horaSalida).slice(0, 5)}`,
+          value: u.idViaje,
+        }));
+        setOptViajes(opts);
+      } catch (err) {
+        console.error('❌ Error cargando unidades por ruta:', err);
+        setOptViajes([]);
+      }
+    })();
+  }, [rutaSeleccionadaId]);
+
+  /* 🟦 Cargar asientos por viaje */
+  useEffect(() => {
+    (async () => {
+      if (!viajeSeleccionadoId) {
+        setOptAsientos([]);
+        return;
+      }
+      try {
+        const data = await apiGet<{ items: { id: number; numero: number }[] }>(
+          `/api/asientos-por-viaje/${encodeURIComponent(String(viajeSeleccionadoId))}`
+        );
+        const opts = (data.items || []).map((a) => ({
+          label: `Asiento ${a.numero}`,
+          value: a.id,
+        }));
+        setOptAsientos(opts);
+      } catch (err) {
+        console.error('❌ Error cargando asientos disponibles:', err);
         setOptAsientos([]);
       }
-    };
-    loadAsientos();
-  }, [visible, boleto.Id_Unidad_FK]);
+    })();
+  }, [viajeSeleccionadoId]);
 
-  // Helpers
+  /* 🟧 Cargar clientes, métodos de pago y estados */
+  useEffect(() => {
+    if (!visible) return;
+    (async () => {
+      try {
+        const [clientes, metodos, estados] = await Promise.all([
+          getClientes(),
+          getMetodosPago(),
+          getEstadosTicket(),
+        ]);
+        setOptClientes(clientes);
+        setOptMetodosPago(metodos);
+        setOptEstados(estados);
+      } catch (err) {
+        console.error('❌ Error cargando catálogos base:', err);
+      }
+    })();
+  }, [visible]);
+
   const calcularTotal = () => {
     const precio = Number(boleto.precio) || 0;
     const descuento = Number(boleto.descuento || 0);
@@ -122,23 +160,18 @@ useEffect(() => {
     return total < 0 ? 0 : total;
   };
 
-const handleChangeRuta = (idRuta: number) => {
-  setBoleto({ ...boleto, Id_Viaje_FK: idRuta });
-  getUnidadesPorRuta(idRuta).then((unidades) => {
-    setOptAutobuses(unidades);
-  });
-};
-
-  // Footer
   const dialogFooter = (
     <div className="flex justify-content-end gap-2">
-      <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={onHide} type="button" />
+      <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={onHide} />
       <Button
         label={saving ? 'Guardando...' : 'Guardar'}
         icon={saving ? 'pi pi-spin pi-spinner' : 'pi pi-check'}
         onClick={async () => {
           setSaving(true);
-          await onSave(boleto);
+          await onSave({
+            ...boleto,
+            Id_Viaje_FK: viajeSeleccionadoId ?? boleto.Id_Viaje_FK,
+          });
           setSaving(false);
         }}
         disabled={saving}
@@ -159,11 +192,8 @@ const handleChangeRuta = (idRuta: number) => {
       <div className="grid formgrid">
         {/* Cliente */}
         <div className="col-12 md:col-6">
-          <label htmlFor="cliente" className="font-bold">
-            Cliente *
-          </label>
+          <label className="font-bold">Cliente *</label>
           <Dropdown
-            id="cliente"
             value={boleto.Id_Cliente_FK ?? null}
             options={optClientes}
             optionLabel="label"
@@ -174,79 +204,89 @@ const handleChangeRuta = (idRuta: number) => {
             showClear
           />
         </div>
-{/* Origen y Destino (Viaje) */}
+
+
+
+{/* Ruta */}
 <div className="col-12 md:col-6">
-  <label htmlFor="viaje" className="font-bold">
-    Origen y Destino *
-  </label>
+  <label className="font-bold">Ruta *</label>
   <Dropdown
-    id="viaje"
-    value={boleto.Id_Viaje_FK ?? null}
-    options={optDestinos} // ✅ ya trae el label “Origen → Destino”
+    value={rutaSeleccionadaId ?? null}
+    options={optRutas}
     optionLabel="label"
     optionValue="value"
-    onChange={(e) =>
-      setBoleto({
-        ...boleto,
-        Id_Viaje_FK: e.value ?? null,
-      })
-    }
+    onChange={async (e) => {
+      const rutaId = e.value ?? null;
+
+      setRutaSeleccionadaId(rutaId);
+      setViajeSeleccionadoId(null);
+      setOptViajes([]);
+      setOptAsientos([]);
+
+      if (!rutaId) return;
+
+      try {
+        // 🔹 Llamada a la API local de boletos
+        const { data } = await axios.get(`/api/boletos/rutas_precio/${rutaId}`);
+
+        // ✅ Asigna el precio automáticamente
+        setBoleto({
+          ...boleto,
+          precio: data.precio ?? 0,
+        });
+
+        // ✅ Carga horarios si existen
+        setOptHorarios(data.horarios ?? []);
+      } catch (err) {
+        console.error("❌ Error obteniendo precio de ruta:", err);
+      }
+    }}
     placeholder="Seleccionar ruta"
     filter
     showClear
   />
+
+  {optHorarios.length > 0 && (
+    <div className="mt-3">
+      <label htmlFor="horario" className="font-bold">
+        Horario disponible
+      </label>
+      <Dropdown
+        id="horario"
+        value={boleto.horario ?? null}
+        options={optHorarios.map((h) => ({ label: h, value: h }))}
+        onChange={(e) => setBoleto({ ...boleto, horario: e.value })}
+        placeholder="Seleccionar horario"
+        showClear
+      />
+    </div>
+  )}
 </div>
 
 
-
-{/* Fecha de Compra (automática, no editable) */}
-<div className="col-12 md:col-6">
-  <label htmlFor="fecha" className="font-bold">
-    Fecha de Compra
-  </label>
-  <InputText
-    id="fecha"
-    value={
-      boleto.fecha
-        ? new Date(boleto.fecha).toLocaleDateString('es-HN')
-        : new Date().toLocaleDateString('es-HN')
-    }
-    disabled
-    className="bg-gray-100 text-gray-600"
-  />
-</div>
-
-
-        {/* Autobús */}
+        {/* Viaje / Unidad */}
         <div className="col-12 md:col-6">
-          <label htmlFor="autobus" className="font-bold">
-            Autobús
-          </label>
-         <Dropdown
-  id="autobus"
-  value={boleto.Id_Unidad_FK ?? null}
-  options={optAutobuses}
-  optionLabel="label"
-  optionValue="value"
-  onChange={(e) => {
-    const newUnidad = e.value ?? null;
-    setBoleto({ ...boleto, Id_Unidad_FK: newUnidad });
-    handleChangeRuta(newUnidad); // carga asientos
-  }}
-  placeholder="Seleccionar autobús"
-  filter
-  showClear
-/>
-
+          <label className="font-bold">Unidad (Viaje) *</label>
+          <Dropdown
+            value={viajeSeleccionadoId ?? null}
+            options={optViajes}
+            optionLabel="label"
+            optionValue="value"
+            onChange={(e) => {
+              setViajeSeleccionadoId(e.value ?? null);
+              setBoleto({ ...boleto, Id_Viaje_FK: e.value ?? null });
+            }}
+            placeholder="Seleccionar unidad"
+            filter
+            showClear
+            disabled={!rutaSeleccionadaId}
+          />
         </div>
 
         {/* Asiento */}
         <div className="col-12 md:col-6">
-          <label htmlFor="asiento" className="font-bold">
-            Asiento
-          </label>
+          <label className="font-bold">Asiento *</label>
           <Dropdown
-            id="asiento"
             value={boleto.Id_Asiento_FK ?? null}
             options={optAsientos}
             optionLabel="label"
@@ -255,31 +295,27 @@ const handleChangeRuta = (idRuta: number) => {
             placeholder="Seleccionar asiento"
             filter
             showClear
-            disabled={!boleto.Id_Unidad_FK}
+            disabled={!viajeSeleccionadoId}
           />
         </div>
 
         {/* Precio / Descuento / Total */}
-        <div className="col-12 md:col-4">
-          <label htmlFor="precio" className="font-bold">
-            Precio *
-          </label>
-          <InputNumber
-            id="precio"
-            value={boleto.precio ?? 0}
-            onValueChange={(e) => setBoleto({ ...boleto, precio: e.value ?? 0 })}
-            mode="currency"
-            currency="HNL"
-            locale="es-HN"
-          />
-        </div>
+     <div className="col-12 md:col-4">
+  <label className="font-bold">Precio *</label>
+  <InputNumber
+    value={boleto.precio ?? 0}
+    onValueChange={(e) => setBoleto({ ...boleto, precio: e.value ?? 0 })}
+    mode="currency"
+    currency="HNL"
+    locale="es-HN"
+    disabled  // 💡 si quieres que sea solo lectura (precio fijo de ruta)
+  />
+</div>
+
 
         <div className="col-12 md:col-4">
-          <label htmlFor="descuento" className="font-bold">
-            Descuento
-          </label>
+          <label className="font-bold">Descuento</label>
           <InputNumber
-            id="descuento"
             value={boleto.descuento ?? 0}
             onValueChange={(e) => setBoleto({ ...boleto, descuento: e.value ?? 0 })}
             mode="currency"
@@ -289,19 +325,14 @@ const handleChangeRuta = (idRuta: number) => {
         </div>
 
         <div className="col-12 md:col-4">
-          <label htmlFor="total" className="font-bold">
-            Total
-          </label>
-          <InputNumber id="total" value={calcularTotal()} mode="currency" currency="HNL" locale="es-HN" disabled />
+          <label className="font-bold">Total</label>
+          <InputNumber value={calcularTotal()} mode="currency" currency="HNL" locale="es-HN" disabled />
         </div>
 
-        {/* Método de pago */}
+        {/* Método de Pago */}
         <div className="col-12 md:col-6">
-          <label htmlFor="metodoPago" className="font-bold">
-            Método de Pago *
-          </label>
+          <label className="font-bold">Método de Pago *</label>
           <Dropdown
-            id="metodoPago"
             value={boleto.Id_MetodoPago_FK ?? null}
             options={optMetodosPago}
             optionLabel="label"
@@ -315,30 +346,22 @@ const handleChangeRuta = (idRuta: number) => {
 
         {/* Estado */}
         <div className="col-12 md:col-6">
-          <label htmlFor="estado" className="font-bold">
-            Estado
-          </label>
-         <Dropdown
-  id="estado"
-  value={boleto.Id_EstadoTicket_FK ?? 1} // 1 = Pendiente por defecto
-  options={optEstados.filter(
-    (e) =>
-      !['cancelado', 'reembolsado', 'usado'].includes(
-        (e.label || '').toLowerCase().trim()
-      )
-  )}
-  optionLabel="label"
-  optionValue="value"
-  onChange={(e) =>
-    setBoleto({
-      ...boleto,
-      Id_EstadoTicket_FK: e.value ?? null,
-    })
-  }
-  placeholder="Seleccione estado"
-  filter
-  showClear={false} // 🚫 No permitir limpiar el estado
-/>
+          <label className="font-bold">Estado *</label>
+          <Dropdown
+            value={boleto.Id_EstadoTicket_FK ?? 1}
+            options={optEstados.filter(
+              (e) =>
+                !['cancelado', 'reembolsado', 'usado'].includes(
+                  (e.label || '').toLowerCase().trim()
+                )
+            )}
+            optionLabel="label"
+            optionValue="value"
+            onChange={(e) => setBoleto({ ...boleto, Id_EstadoTicket_FK: e.value ?? null })}
+            placeholder="Seleccione estado"
+            filter
+            showClear={false}
+          />
         </div>
       </div>
     </Dialog>

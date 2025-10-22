@@ -87,27 +87,50 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 /* ==============================================
    🔹 DELETE /api/personas/:id?idUsuarioAdmin=10
    ============================================== */
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
-  const id = Number(params.id);
+export async function DELETE(req: Request, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params; // 👈 aquí esperas la promesa correctamente
+  const idPersona = Number(id);
+
   const { searchParams } = new URL(req.url);
   const idUsuarioAdmin = Number(searchParams.get('idUsuarioAdmin'));
 
-  if (!id || !idUsuarioAdmin) {
-    return jsonError('Parámetros inválidos', 400);
+  if (!idPersona) {
+    return new Response(JSON.stringify({ error: 'ID de persona inválido' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   const conn = await db.getConnection();
   try {
-    console.log('🗑 Eliminando persona ID:', id);
+    console.log('🗑 Eliminando persona ID:', idPersona);
+    const [resultSets]: any = await conn.query(
+      'CALL mydb.sp_personas_eliminar(?, ?)',
+      [idPersona, idUsuarioAdmin]
+    );
+    await conn.query('DO 1'); // limpia resultsets abiertos
 
-    // ⚙️ Ejecutar SP y limpiar resultados
-    const [resultSets]: any = await conn.query('CALL mydb.sp_personas_eliminar(?, ?)', [id, idUsuarioAdmin]);
-    await conn.query('DO 1'); // fuerza cierre de result set si hay más de uno
-
-    return json({ message: 'Persona eliminada correctamente', id }, 200);
+    return new Response(
+      JSON.stringify({ message: 'Persona eliminada correctamente', id: idPersona }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
   } catch (e: any) {
-    console.error('❌ Error en DELETE /personas/[id]:', e);
-    return jsonError(e?.sqlMessage || e?.message || 'Error al eliminar persona', 500);
+    // Manejo elegante de error de FK
+    if (e.code === 'ER_ROW_IS_REFERENCED_2') {
+      return new Response(
+        JSON.stringify({
+          error:
+            'No se puede eliminar la persona porque tiene registros asociados (clientes, encomiendas, etc.).',
+        }),
+        { status: 409, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.error('❌ Error en DELETE /personas/[id]:', e?.sqlMessage || e?.message);
+    return new Response(
+      JSON.stringify({ error: e?.sqlMessage || e?.message }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
   } finally {
     conn.release();
   }
