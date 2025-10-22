@@ -248,9 +248,9 @@ function cerrarDetalle() {
       },
       {
         title: 'Reportes de Boletos',
-        columns: ['N°', 'Cliente', 'Ruta', 'Fecha', 'Total (L)'],
+        columns: ['Tipo', 'Cliente', 'Origen', 'Destino', 'Fecha', 'Estado', 'Metodo de Pago', 'Total (L)'],
         rows: [],
-        mapRow: (r: any) => [r.numero, r.cliente, r.ruta, r.fecha, r.total],
+        mapRow: (r: any) => [r.tipo, r.cliente, r.origen, r.destino, r.fecha, r.estado, r.metodo_pago, r.total],
       },
       {
         title: 'Reportes de Ventas / Facturación',
@@ -266,15 +266,15 @@ function cerrarDetalle() {
       },
       {
         title: 'Reportes de Rutas',
-        columns: ['Origen', 'Destino', 'Duración Est.', 'Km'],
+        columns: ['ID', 'Origen', 'Destino', 'Estado', 'Tiempo Estimado', 'Precio', 'Horarios', 'Unidades', 'Descripción'],
         rows: [],
-        mapRow: (r: any) => [r.origen, r.destino, r.duracion, r.kilometros],
+        mapRow: (r: any) => [r.id, r.origen, r.destino, r.estado, r.tiempo_estimado, r.precio, r.horarios, r.unidades, r.descripcion],
       },
       {
         title: 'Reportes de Mantenimiento',
-        columns: ['Vehículo', 'Tipo', 'Fecha', 'Costo (L)', 'Detalle'],
+        columns: ['Vehículo', 'Placa', 'Tipo de Servicio', 'Fecha Programada', 'Fecha Realizada', 'Próximo Mantenimiento', 'Kilometraje', 'Taller', 'Costo (L)'],
         rows: [],
-        mapRow: (r: any) => [r.vehiculo, r.tipo, r.fecha, r.costo, r.detalle],
+        mapRow: (r: any) => [r.vehiculo, r.placa, r.tipo_servicio, r.fecha_programada, r.fecha_realizada, r.proximo_mantenimiento, r.kilometraje, r.taller, r.costo],
       },
       {
         title: 'Reportes de Incidencias',
@@ -284,15 +284,15 @@ function cerrarDetalle() {
       },
       {
         title: 'Reportes de Reservaciones',
-        columns: ['Cliente', 'Ruta', 'Fecha', 'Asientos', 'Estado', 'Total (L)'],
+        columns: ['ID', 'Cliente', 'Tipo', 'Ruta', 'Unidad', 'Asientos/Costo', 'Estado'],
         rows: [],
-        mapRow: (r: any) => [r.cliente, r.ruta, r.fecha, r.asientos, r.estado, r.total],
+        mapRow: (r: any) => [r.id, r.cliente, r.tipo, r.ruta, r.asiento_costo, r.estado],
       },
       {
         title: 'Reportes de Unidades',
-        columns: ['Placa', 'Marca', 'Modelo', 'Año', 'Estado'],
+        columns: ['Placa', 'Marca', 'Modelo', 'Asientos', 'Descripción', 'Año', 'Estado'],
         rows: [],
-        mapRow: (r: any) => [r.placa, r.marca, r.modelo, r.anio, r.estado],
+        mapRow: (r: any) => [r.placa, r.marca, r.modelo, r.asientos, r.descripcion, r.anio, r.estado],
       },
       {
         title: 'Reportes de Clientes',
@@ -302,9 +302,9 @@ function cerrarDetalle() {
       },
       {
         title: 'Reportes de Personas',
-        columns: ['Nombre Completo', 'Tipo', 'Género', 'Teléfono', 'Correo'],
+        columns: ['Nombres', 'Apellidos','DNI', 'Tipo Persona', 'Género', 'Teléfono', 'Correo', 'Departamento', 'Municipio'],
         rows: [],
-        mapRow: (r: any) => [r.nombre, r.tipo, r.genero, r.telefono, r.correo],
+        mapRow: (r: any) => [r.nombres, r.apellidos, r.dni, r.tipo_persona, r.genero, r.telefono, r.correo, r.departamento, r.municipio],
       },
     ];
   };
@@ -744,10 +744,13 @@ function cerrarDetalle() {
           title="Reportes de Boletos"
           data={[]}
           columns={[
-            { field: 'numero', header: 'N°' },
+            { field: 'tipo', header: 'Tipo' },
             { field: 'cliente', header: 'Cliente' },
-            { field: 'ruta', header: 'Ruta' },
+            { field: 'origen', header: 'Origen' },
+            { field: 'destino', header: 'Destino' },
             { field: 'fecha', header: 'Fecha' },
+            { field: 'estado', header: 'Estado' },
+            { field: 'metodo_pago', header: 'Metodo de Pago' },
             { field: 'total', header: 'Total (L)' },
           ]}
           onView={(row) => abrirDetalle('Boletos', row)}
@@ -787,11 +790,15 @@ function cerrarDetalle() {
         title="Reportes de Rutas"
         data={[]}
         columns={[
-          { field: 'codigo', header: 'Código' },
+          { field: 'id', header: 'ID' },
           { field: 'origen', header: 'Origen' },
           { field: 'destino',header: 'Destino' },
-          { field: 'precio', header: 'Precio (L)' },
           { field: 'estado', header: 'Estado' },
+          { field: 'tiempo_estimado', header: 'Tiempo Estimado' },
+          { field: 'precio', header: 'Precio' },
+          { field: 'horarios', header: 'Horarios' },
+          { field: 'unidades', header: 'Unidades' },
+          { field: 'descripcion', header: 'Descripción' },
         ]}
         onView={(row) => abrirDetalle('Rutas', row)}
       />
@@ -801,12 +808,14 @@ function cerrarDetalle() {
         title="Reportes de Mantenimiento"
         data={[]}
         columns={[
-          { field: 'id',       header: 'ID' },
           { field: 'vehiculo', header: 'Vehículo' },
-          { field: 'tipo',     header: 'Tipo' },       // preventivo/correctivo
-          { field: 'fecha',    header: 'Fecha' },
+          { field: 'placa', header: 'Placa' },
+          { field: 'tipo_servicio',     header: 'Tipo de Servicio' },       // preventivo/correctivo
+          { field: 'fecha_programada',    header: 'Fecha Programada' },
+          { field: 'fecha_realizada', header: 'Fecha Realizada' },
+          { field: 'proximo_mantenimiento', header: 'Próximo Mantenimiento' },
+          { field: 'kilometraje', header: 'Kilometraje' },
           { field: 'costo',    header: 'Costo (L)' },
-          { field: 'estado',   header: 'Estado' },
         ]}
         onView={(row) => abrirDetalle('Mantenimiento', row)}
       />
@@ -833,10 +842,11 @@ function cerrarDetalle() {
         columns={[
           { field: 'id',       header: 'ID' },
           { field: 'cliente',  header: 'Cliente' },
+          { field: 'tipo',     header: 'Tipo' },
           { field: 'ruta',     header: 'Ruta' },
+          { field: 'unidad',   header: 'Unidad' },
           { field: 'fecha',    header: 'Fecha' },
-          { field: 'asientos', header: 'Asientos' },
-          { field: 'total',    header: 'Total (L)' },
+          { field: 'asiento/costo', header: 'Asientos/Costo' },
           { field: 'estado',   header: 'Estado' },
         ]}
         onView={(row) => abrirDetalle('Reservaciones', row)}
@@ -850,6 +860,8 @@ function cerrarDetalle() {
           { field: 'placa',  header: 'Placa' },
           { field: 'marca',  header: 'Marca' },
           { field: 'modelo', header: 'Modelo' },
+          { field: 'asientos', header: 'Asientos' },
+          { field: 'descripcion', header: 'Descripción' },
           { field: 'anio',   header: 'Año' },
           { field: 'estado', header: 'Estado' },
 
@@ -877,11 +889,15 @@ function cerrarDetalle() {
         data={[]}
         columns={[
           { field: 'id',      header: 'ID' },
-          { field: 'nombre',  header: 'Nombre' },
-          { field: 'rol',     header: 'Rol' },      // empleado/cliente/etc.
+          { field: 'nombres',  header: 'Nombres' },
+          { field: 'apellidos', header: 'Apellidos' },
+          { field: 'dni', header: 'DNI' },
+          { field: 'tipo_persona',     header: 'Tipo Persona' },      // empleado/cliente/etc.
           { field: 'telefono',header: 'Teléfono' },
           { field: 'correo',  header: 'Correo' },
-          { field: 'estado',  header: 'Estado' },
+          { field: 'genero', header: 'Género' },
+          { field: 'departamento',  header: 'Departamento' },
+          { field: 'municipio', header: 'Municipio' },
         ]}
         onView={(row) => abrirDetalle('Personas', row)}
       />
