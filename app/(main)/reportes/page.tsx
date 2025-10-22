@@ -863,7 +863,6 @@ function cerrarDetalle() {
           { field: 'asientos', header: 'Asientos' },
           { field: 'descripcion', header: 'Descripción' },
           { field: 'anio',   header: 'Año' },
-          { field: 'estado', header: 'Estado' },
 
         ]}
         onView={(row) => abrirDetalle('Vehículos', row)}
