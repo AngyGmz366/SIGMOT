@@ -124,8 +124,6 @@ function ReportSection({ title, children }: { title: string; children: React.Rea
       );
     }
 
-
-
 const ReportesPage = () => {
   const [fechaInicio, setFechaInicio] = useState<Date | null>(null);
   const [fechaFin, setFechaFin] = useState<Date | null>(null);
@@ -273,12 +271,6 @@ function cerrarDetalle() {
         mapRow: (r: any) => [r.origen, r.destino, r.duracion, r.kilometros],
       },
       {
-        title: 'Reportes de Productos',
-        columns: ['Producto', 'Categoría', 'Precio (L)', 'Stock'],
-        rows: [],
-        mapRow: (r: any) => [r.nombre, r.categoria, r.precio, r.stock],
-      },
-      {
         title: 'Reportes de Mantenimiento',
         columns: ['Vehículo', 'Tipo', 'Fecha', 'Costo (L)', 'Detalle'],
         rows: [],
@@ -297,7 +289,7 @@ function cerrarDetalle() {
         mapRow: (r: any) => [r.cliente, r.ruta, r.fecha, r.asientos, r.estado, r.total],
       },
       {
-        title: 'Reportes de Vehículos',
+        title: 'Reportes de Unidades',
         columns: ['Placa', 'Marca', 'Modelo', 'Año', 'Estado'],
         rows: [],
         mapRow: (r: any) => [r.placa, r.marca, r.modelo, r.anio, r.estado],
@@ -325,9 +317,6 @@ function cerrarDetalle() {
         text:      "#000000", // Negro para textos y títulos de secciones
         zebra:     "#e3f2fd", // Azul muy claro para filas alternas
       };
-      
-      
-
       // Convierte el logo por ruta a DataURL (base64) para jsPDF
       async function toDataURL(path: string): Promise<string | null> {
         try {
@@ -404,7 +393,6 @@ function cerrarDetalle() {
           // paginación
           doc.text(`Página ${pageNum} de ${pageCount}`, pageWidth - 32, pageHeight - 16, { align: "right" });
         };
-
         // puebla todas las páginas
         const pages = doc.internal.getNumberOfPages();
         for (let i = 1; i <= pages; i++) {
@@ -415,8 +403,6 @@ function cerrarDetalle() {
 
         return { HEADER_H, FOOTER_H };
       }
-
-
 
   // -------------------- EXPORTAR A PDF (TODAS LAS TABLAS) --------------------
   const exportReportesPDF = async () => {
@@ -476,13 +462,9 @@ function cerrarDetalle() {
 
   // pintar header/footer en TODAS las páginas al final
   paintHeaderFooter(doc, logoDataURL, meta);
-
-
   const stamp = new Date().toISOString().slice(0, 10);
   doc.save(`Reportes_Generales_${stamp}.pdf`);
 };
-
-
     // Limpia nombres de hoja para Excel
   const toSafeSheetName = (raw: string, fallback = 'Hoja') => {
     // Prohibidos: : \ / ? * [ ]
@@ -499,8 +481,6 @@ function cerrarDetalle() {
     if (!name) name = fallback;
     return name;
   };
-
-
   // -------------------- EXPORTAR A EXCEL (12 HOJAS) --------------------
   const exportReportesExcel = () => {
     const wb = XLSX.utils.book_new();
@@ -537,7 +517,6 @@ function cerrarDetalle() {
     });
   };
 
-
   const accionesTemplate = (rowData: Reporte) => (
     <div className="flex gap-2">
       <Button icon="pi pi-eye" className="btn-ver" rounded text severity="info" onClick={() => verDetalle(rowData)} />
@@ -545,7 +524,6 @@ function cerrarDetalle() {
       <Button icon="pi pi-trash" className="btn-eliminar" rounded text severity="danger" onClick={() => confirmarEliminacion(rowData)} />
     </div>
   )
-
   const leftToolbarTemplate = () => (
     <Button label="Nuevo Reporte" icon="pi pi-plus" className="btn-verde" onClick={abrirNuevo} />
   );
@@ -584,30 +562,6 @@ function cerrarDetalle() {
       <h2 className="text-2xl font-bold mb-4">Reportes Generales</h2>
 
       <Toast ref={toast} />
-
-      {/* Filtros de fecha */}
-      <div className="flex gap-6 items-center">
-        <div className="flex items-center gap-2">
-          <label htmlFor="desde" className="text-base font-medium leading-[44px]">Desde:</label>
-          <Calendar
-            id="desde"
-            value={fechaInicio}
-            onChange={(e) => setFechaInicio(e.value as Date)}
-            showIcon
-            inputClassName="text-base"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <label htmlFor="hasta" className="text-base font-medium leading-[44px]">Hasta:</label>
-          <Calendar
-            id="hasta"
-            value={fechaFin}
-            onChange={(e) => setFechaFin(e.value as Date)}
-            showIcon
-            inputClassName="text-base"
-          />
-        </div>
-      </div>
 
      {/* Tarjetas estadísticas */}
 <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-3 mt-6">
@@ -773,8 +727,6 @@ function cerrarDetalle() {
             </div>
           </div>
         </section>
-
-     
         {/* ================== Sección: Reportes de Empleados ================== */}
           <ReportTable
             title="Reportes de Empleados"
@@ -800,7 +752,6 @@ function cerrarDetalle() {
           ]}
           onView={(row) => abrirDetalle('Boletos', row)}
         />
-
           {/* ==================== Reportes de Ventas / Facturación ==================== */}
       <ReportTable
         title="Reportes de Ventas / Facturación"
@@ -815,7 +766,6 @@ function cerrarDetalle() {
         ]}
         onView={(row) => abrirDetalle('Ventas', row)}
       />
-
       {/* ==================== Reportes de Encomiendas ==================== */}
       <ReportTable
         title="Reportes de Encomiendas"
@@ -844,21 +794,6 @@ function cerrarDetalle() {
           { field: 'estado', header: 'Estado' },
         ]}
         onView={(row) => abrirDetalle('Rutas', row)}
-      />
-
-      {/* ==================== Reportes de Productos ==================== */}
-      <ReportTable
-        title="Reportes de Productos"
-        data={[]}
-        columns={[
-          { field: 'codigo',    header: 'Código' },
-          { field: 'nombre',    header: 'Producto' },
-          { field: 'categoria', header: 'Categoría' },
-          { field: 'stock',     header: 'Stock' },
-          { field: 'precio',    header: 'Precio (L)' },
-          { field: 'estado',    header: 'Estado' },
-        ]}
-        onView={(row) => abrirDetalle('Productos', row)}
       />
 
       {/* ==================== Reportes de Mantenimiento ==================== */}
@@ -907,9 +842,9 @@ function cerrarDetalle() {
         onView={(row) => abrirDetalle('Reservaciones', row)}
       />
 
-      {/* ==================== Reportes de Vehículos ==================== */}
+      {/* ==================== Reportes de Unidades ==================== */}
       <ReportTable
-        title="Reportes de Vehículos"
+        title="Reportes de Unidades"
         data={[]}
         columns={[
           { field: 'placa',  header: 'Placa' },
@@ -917,6 +852,7 @@ function cerrarDetalle() {
           { field: 'modelo', header: 'Modelo' },
           { field: 'anio',   header: 'Año' },
           { field: 'estado', header: 'Estado' },
+
         ]}
         onView={(row) => abrirDetalle('Vehículos', row)}
       />
@@ -949,8 +885,6 @@ function cerrarDetalle() {
         ]}
         onView={(row) => abrirDetalle('Personas', row)}
       />
-
-
                 <Dialog
           header={`Detalle - ${detalleInfo?.seccion ?? ''}`}
           visible={detalleOpen}
@@ -971,10 +905,6 @@ function cerrarDetalle() {
             <p>No hay datos.</p>
           )}
         </Dialog>
-
-
-            
-
     </div>
   );
 };
