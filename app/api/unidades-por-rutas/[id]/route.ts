@@ -23,14 +23,30 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     const [rows]: any = await conn.query('CALL sp_unidades_por_ruta(?)', [idRuta]);
     const data = normalizeCallResult(rows);
 
-    const items = data.map((r: any) => ({
-      idViaje: r.idViaje ?? r.Id_Viaje_PK,
-      idUnidad: r.idUnidad ?? r.Id_Unidad_PK,
-      unidad: r.unidad ?? `${r.Numero_Placa} - ${r.Marca_Unidad}`,
-      fecha: r.Fecha,
-      horaSalida: r.Hora_Salida,
-      horaLlegada: r.Hora_Estimada_Llegada,
-    }));
+    const items = data.map((r: any) => {
+  // 🕓 Limpia formato de hora
+  const formatHora = (hora: any) => {
+    if (!hora) return null;
+    try {
+      const date = new Date(hora);
+      // devuelve solo HH:mm
+      return date.toLocaleTimeString("es-HN", { hour: "2-digit", minute: "2-digit", hour12: false });
+    } catch {
+      // fallback si viene como string tipo '2025-10-22T06:00:00'
+      const match = String(hora).match(/\d{2}:\d{2}/);
+      return match ? match[0] : hora;
+    }
+  };
+
+  return {
+    idViaje: r.idViaje ?? r.Id_Viaje_PK,
+    idUnidad: r.idUnidad ?? r.Id_Unidad_PK,
+    unidad: r.unidad ?? `${r.Numero_Placa} - ${r.Marca_Unidad}`,
+    fecha: r.Fecha,
+    horaSalida: formatHora(r.Hora_Salida),
+    horaLlegada: formatHora(r.Hora_Estimada_Llegada),
+  };
+});
 
     if (!items.length) {
       return NextResponse.json({ error: 'No se encontraron unidades para esta ruta' }, { status: 404 });

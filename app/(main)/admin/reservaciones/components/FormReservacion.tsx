@@ -4,18 +4,9 @@ import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
 import { Calendar } from 'primereact/calendar';
-import { ReservacionBase, ReservacionViaje, ReservacionEncomienda } from './types';
+import { ReservacionBase, ReservacionEncomienda } from './types';
 import { useEffect, useState } from 'react';
 import './FormReservacion.css';
-
-/* Helper API */
-async function apiGet<T>(url: string): Promise<T> {
-  const res = await fetch(url, { cache: 'no-store' });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-
-type ReservacionFormData = Partial<ReservacionViaje | ReservacionEncomienda>;
 
 type FormProps = {
   initialData?: ReservacionBase;
@@ -24,9 +15,12 @@ type FormProps = {
 };
 
 export default function FormReservacion({ initialData, onSave, onCancel }: FormProps) {
+  // ✅ Garantizar tipo inicial (si no hay initialData, usar por defecto)
   const [formData, setFormData] = useState<Partial<ReservacionBase>>(
-  initialData || { tipo: 'viaje', estado: 'pendiente', fecha: new Date(), dni: '' }
-);
+    initialData && Object.keys(initialData).length > 0
+      ? { ...initialData, fecha: initialData.fecha ? new Date(initialData.fecha) : new Date() }
+      : { tipo: 'viaje', estado: 'pendiente', fecha: new Date(), dni: '' }
+  );
 
   const [rutasOptions, setRutasOptions] = useState<{ label: string; value: number }[]>([]);
   const [rutaSeleccionadaId, setRutaSeleccionadaId] = useState<number | null>(null);
@@ -35,16 +29,23 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
   const [asientosOptions, setAsientosOptions] = useState<{ label: string; value: number }[]>([]);
   const [asientoSeleccionadoId, setAsientoSeleccionadoId] = useState<number | null>(null);
 
-  /* 🆕 Reaccionar a cambios de initialData */
+  /* 🔁 Actualizar form si cambia initialData (editar) */
   useEffect(() => {
-    if (!initialData) return;
-    setFormData({
-      ...initialData,
-      fecha: initialData.fecha ? new Date(initialData.fecha) : new Date(),
-    });
+    if (initialData && Object.keys(initialData).length > 0) {
+      setFormData({
+        ...initialData,
+        fecha: initialData.fecha ? new Date(initialData.fecha) : new Date(),
+      });
+    }
   }, [initialData]);
 
   /* 🟩 Cargar rutas activas */
+  async function apiGet<T>(url: string): Promise<T> {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  }
+
   useEffect(() => {
     (async () => {
       try {
@@ -76,13 +77,13 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
         }));
         setViajesOptions(opts);
       } catch (err) {
-        console.error('No se pudieron cargar las unidades por ruta:', err);
+        console.error('No se pudieron cargar los viajes:', err);
         setViajesOptions([]);
       }
     })();
   }, [rutaSeleccionadaId]);
 
-  /* 🟦 Cargar asientos por viaje */
+  /* 🟦 Cargar asientos disponibles */
   useEffect(() => {
     (async () => {
       if (!viajeSeleccionadoId || formData.tipo !== 'viaje') {
@@ -106,71 +107,70 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
     })();
   }, [viajeSeleccionadoId, formData.tipo]);
 
-  /* 🧾 Guardar formulario */
+  /* 🧾 Guardar */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (formData.tipo === 'viaje' && !asientoSeleccionadoId) {
-      alert('Debe seleccionar un asiento disponible.');
-      return;
-    }
-    if (formData.tipo === 'encomienda' && !(formData as ReservacionEncomienda).costo) {
-      alert('Debe ingresar el costo de la encomienda.');
-      return;
-    }
-    if (!formData.dni) {
-      alert('Debe ingresar el DNI de la persona.');
-      return;
-    }
+    if (!formData.dni) return alert('Debe ingresar el DNI de la persona.');
+    if (!formData.tipo) return alert('Debe seleccionar el tipo de reservación.');
 
-    const payload = {
+    if (formData.tipo === 'viaje' && !asientoSeleccionadoId)
+      return alert('Debe seleccionar un asiento disponible.');
+
+    if (formData.tipo === 'encomienda' && !(formData as ReservacionEncomienda).costo)
+      return alert('Debe ingresar el costo de la encomienda.');
+
+    const payload: ReservacionBase = {
       dni: formData.dni,
       tipo: formData.tipo,
-      id_viaje: viajeSeleccionadoId,
-      id_asiento: asientoSeleccionadoId,
+      id_viaje: viajeSeleccionadoId ?? null,
+      id_asiento: asientoSeleccionadoId ?? null,
       id_encomienda: (formData as ReservacionEncomienda).id_encomienda ?? null,
       costo: (formData as ReservacionEncomienda).costo ?? null,
-      fecha: formData.fecha,
-      estado: formData.estado,
+      fecha: formData.fecha ? new Date(formData.fecha).toISOString() : new Date().toISOString(),
+      estado: formData.estado ?? 'pendiente',
     };
-    onSave(payload as ReservacionBase);
+
+    onSave(payload);
   };
 
   return (
     <form onSubmit={handleSubmit} className="p-fluid grid gap-3">
+      {/* Tipo */}
       <div className="col-12 md:col-6">
         <Dropdown
-        value={formData.tipo}
-        options={[
-        { label: 'Viaje', value: 'viaje' },
-        { label: 'Encomienda', value: 'encomienda' },
-        ]}
-        onChange={(e) => {
-        const newTipo = e.value as 'viaje' | 'encomienda';
-        if (newTipo === 'viaje') {
-        setFormData({
-        ...formData,
-        tipo: newTipo,
-        id_encomienda: null,
-        costo: null,
-      });
-    } else {
-      setFormData({
-        ...formData,
-        tipo: newTipo,
-        id_viaje: null,
-        id_asiento: null,
-      });
-    }
-    setAsientosOptions([]);
-    setAsientoSeleccionadoId(null);
-  }}
-  placeholder="Tipo de reservación"
-  className="w-full"
-/>
-
+          value={formData.tipo ?? 'viaje'}
+          options={[
+            { label: 'Viaje', value: 'viaje' },
+            { label: 'Encomienda', value: 'encomienda' },
+          ]}
+          onChange={(e) => {
+            const newTipo = e.value as 'viaje' | 'encomienda';
+            if (newTipo === 'viaje') {
+              setFormData({
+                ...formData,
+                tipo: newTipo,
+                id_encomienda: null,
+                costo: null,
+              });
+            } else {
+              // ✅ Mantener id_viaje al cambiar a encomienda (para vincularla a la unidad/ruta)
+              setFormData({
+                ...formData,
+                tipo: newTipo,
+                id_asiento: null,
+                id_encomienda: null,
+              });
+            }
+            setAsientosOptions([]);
+            setAsientoSeleccionadoId(null);
+          }}
+          placeholder="Tipo de reservación"
+          className="w-full"
+        />
       </div>
 
+      {/* DNI */}
       <div className="col-12 md:col-6">
         <InputText
           value={formData.dni || ''}
@@ -181,6 +181,7 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
         />
       </div>
 
+      {/* Ruta y Unidad */}
       <div className="col-12 md:col-6">
         <Dropdown
           value={rutaSeleccionadaId ?? null}
@@ -211,6 +212,7 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
         />
       </div>
 
+      {/* Asientos (solo viaje) */}
       {formData.tipo === 'viaje' && (
         <div className="col-12 md:col-6">
           <Dropdown
@@ -225,14 +227,11 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
         </div>
       )}
 
+      {/* Costo (solo encomienda) */}
       {formData.tipo === 'encomienda' && (
         <div className="col-12 md:col-6">
           <InputText
-            value={
-              (formData as ReservacionEncomienda).costo
-                ? String((formData as ReservacionEncomienda).costo)
-                : ''
-            }
+            value={String((formData as ReservacionEncomienda).costo ?? '')}
             onChange={(e) =>
               setFormData({
                 ...(formData as ReservacionEncomienda),
@@ -249,6 +248,7 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
         </div>
       )}
 
+      {/* Fecha */}
       <div className="col-12 md:col-6">
         <Calendar
           value={formData.fecha ? new Date(formData.fecha) : new Date()}
@@ -260,6 +260,7 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
         />
       </div>
 
+      {/* Botones */}
       <div className="col-12 flex justify-content-end gap-2">
         <Button label="Cancelar" icon="pi pi-times" onClick={onCancel} type="button" className="custom-button" />
         <Button label="Guardar" icon="pi pi-check" type="submit" className="custom-button" />
