@@ -132,7 +132,6 @@ const MantenimientoTransporte = () => {
             clear: 'Limpiar'
         });
     }, []);
-
     useEffect(() => {
         const hoy = new Date();
         const hoySinHora = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
@@ -140,13 +139,10 @@ const MantenimientoTransporte = () => {
         const nuevoResumen = { verde: 0, amarillo: 0, rojo: 0 };
 
         servicios.forEach((s) => {
-            // 🚫 Si ya tiene fecha realizada, no genera alertas
-            if (s.fechaRealizada) return;
-
-            // =====================================================
-            // 🔸 ALERTAS DE FECHA PROGRAMADA
-            // =====================================================
-            if (s.fecha) {
+            // ============================
+            // 🔸 FECHAS PROGRAMADAS (solo si NO hay fechaRealizada)
+            // ============================
+            if (!s.fechaRealizada && s.fecha) {
                 const fechaServicio = new Date(s.fecha);
                 const fechaServicioSinHora = new Date(
                     fechaServicio.getFullYear(),
@@ -154,8 +150,7 @@ const MantenimientoTransporte = () => {
                     fechaServicio.getDate()
                 );
                 const diferenciaDias = Math.floor(
-                    (fechaServicioSinHora.getTime() - hoySinHora.getTime()) /
-                    (1000 * 60 * 60 * 24)
+                    (fechaServicioSinHora.getTime() - hoySinHora.getTime()) / (1000 * 60 * 60 * 24)
                 );
 
                 if (diferenciaDias > 7) {
@@ -197,9 +192,9 @@ const MantenimientoTransporte = () => {
                 }
             }
 
-            // =====================================================
-            // 🔹 ALERTAS DE PRÓXIMO MANTENIMIENTO
-            // =====================================================
+            // ============================
+            // 🔹 PRÓXIMO MANTENIMIENTO (SIEMPRE)
+            // ============================
             if (s.proximoMantenimiento) {
                 const fechaProx = new Date(s.proximoMantenimiento);
                 const fechaProxSinHora = new Date(
@@ -208,54 +203,40 @@ const MantenimientoTransporte = () => {
                     fechaProx.getDate()
                 );
                 const diferenciaProx = Math.floor(
-                    (fechaProxSinHora.getTime() - hoySinHora.getTime()) /
-                    (1000 * 60 * 60 * 24)
+                    (fechaProxSinHora.getTime() - hoySinHora.getTime()) / (1000 * 60 * 60 * 24)
                 );
 
-                // 📅 Alertas para PRÓXIMO MANTENIMIENTO (mostrar siempre)
-                if (s.proximoMantenimiento) {
-                    const fechaProx = new Date(s.proximoMantenimiento);
-                    const fechaProxSinHora = new Date(
-                        fechaProx.getFullYear(),
-                        fechaProx.getMonth(),
-                        fechaProx.getDate()
-                    );
-                    const diferenciaProx = Math.floor(
-                        (fechaProxSinHora.getTime() - hoySinHora.getTime()) / (1000 * 60 * 60 * 24)
-                    );
+                let prioridad = '';
+                let mensaje = '';
 
-                    let prioridad = '';
-                    let mensaje = '';
-
-                    if (diferenciaProx < 0) {
-                        prioridad = 'azul-vencido';
-                        mensaje = `El próximo mantenimiento está vencido desde hace ${Math.abs(diferenciaProx)} días`;
-                    } else if (diferenciaProx <= 10) {
-                        prioridad = 'azul-cercano';
-                        mensaje = `Debe realizar el próximo mantenimiento en ${diferenciaProx} días (${fechaProxSinHora.toLocaleDateString('es-HN')})`;
-                    } else if (diferenciaProx <= 30) {
-                        prioridad = 'azul-normal';
-                        mensaje = `El próximo mantenimiento será en ${diferenciaProx} días (${fechaProxSinHora.toLocaleDateString('es-HN')})`;
-                    } else {
-                        prioridad = 'azul-lejano';
-                        mensaje = `El próximo mantenimiento está programado para el ${fechaProxSinHora.toLocaleDateString('es-HN')}`;
-                    }
-
-                    nuevasAlertas.push({
-                        ...s,
-                        prioridad,
-                        tipo: 'proximo',
-                        diasRestantes: diferenciaProx,
-                        mensaje,
-                    });
+                if (diferenciaProx < 0) {
+                    prioridad = 'azul-vencido';
+                    mensaje = `El próximo mantenimiento está vencido desde hace ${Math.abs(diferenciaProx)} días`;
+                } else if (diferenciaProx <= 10) {
+                    prioridad = 'azul-cercano';
+                    mensaje = `Debe realizar el próximo mantenimiento en ${diferenciaProx} días (${fechaProxSinHora.toLocaleDateString('es-HN')})`;
+                } else if (diferenciaProx <= 30) {
+                    prioridad = 'azul-normal';
+                    mensaje = `El próximo mantenimiento será en ${diferenciaProx} días (${fechaProxSinHora.toLocaleDateString('es-HN')})`;
+                } else {
+                    prioridad = 'azul-lejano';
+                    mensaje = `El próximo mantenimiento está programado para el ${fechaProxSinHora.toLocaleDateString('es-HN')}`;
                 }
 
+                nuevasAlertas.push({
+                    ...s,
+                    prioridad,
+                    tipo: 'proximo',
+                    diasRestantes: diferenciaProx,
+                    mensaje,
+                });
             }
         });
 
         setAlertas(nuevasAlertas);
-        setResumen(nuevoResumen);
+        setResumen(nuevoResumen); // 👈 este resumen solo considera "fecha programada", como antes
     }, [servicios]);
+
 
     const openNew = () => {
         setServicio(emptyServicio);
