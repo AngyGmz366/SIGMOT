@@ -91,13 +91,13 @@ export async function guardarPersona(persona: Persona): Promise<Persona> {
   }
 }
 
-/** Eliminar una persona */
 export async function eliminarPersona(idPersona: number, idUsuarioAdmin: number) {
-  if (!idPersona || !idUsuarioAdmin || isNaN(idUsuarioAdmin)) {
-    throw new Error('Parámetros inválidos: idPersona o idUsuarioAdmin no válidos');
+  try {
+    const { data } = await axios.delete(`/api/personas/${idPersona}?idUsuarioAdmin=${idUsuarioAdmin}`);
+    if (data.error) throw new Error(data.error);
+    return data.message;
+  } catch (error: any) {
+    console.error("❌ Error al eliminar persona:", error.response?.data || error.message);
+    throw error;
   }
-
-  const { data } = await axios.delete(`/api/personas/${idPersona}?idUsuarioAdmin=${idUsuarioAdmin}`);
-  if (data.error) throw new Error(data.error);
-  return data.message;
 }

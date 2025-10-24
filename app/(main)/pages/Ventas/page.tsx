@@ -113,7 +113,10 @@ export default function VentasPage() {
     total: 0,
   });
 
+
+  
   const [filters] = useState({
+    
     global: { value: null, matchMode: FilterMatchMode.CONTAINS },
     cliente: { value: null, matchMode: FilterMatchMode.STARTS_WITH },
     remitente: { value: null, matchMode: FilterMatchMode.STARTS_WITH },

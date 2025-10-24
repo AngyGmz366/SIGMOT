@@ -77,14 +77,21 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 }
 
 /* ================== DELETE /api/boletos/[id] ================== */
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   const id = Number(params.id);
   if (!id || isNaN(id)) return jsonError('Id inválido', 400);
 
+  // 👉 Puedes obtener el usuario admin del body o del token
+  const body = await req.json().catch(() => ({}));
+  const Id_UsuarioAdmin = Number(body.Id_UsuarioAdmin ?? 1); // usa 1 por defecto si no se envía
+
   const conn = await db.getConnection();
   try {
-    await conn.query(`CALL mydb.sp_ticket_eliminar(?);`, [id]);
-    return json({ ok: true, message: 'Ticket eliminado correctamente', result: { Id_Ticket_PK: id } }, 200);
+    await conn.query(`CALL mydb.sp_ticket_eliminar(?, ?);`, [id, Id_UsuarioAdmin]);
+    return json(
+      { ok: true, message: 'Ticket eliminado correctamente', result: { Id_Ticket_PK: id } },
+      200
+    );
   } catch (e: any) {
     console.error('❌ DELETE /boletos/[id]:', e?.sqlMessage || e?.message);
     return jsonError(e?.sqlMessage || e?.message || 'Error al eliminar ticket', 500);

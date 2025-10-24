@@ -347,21 +347,17 @@ const [optHorarios, setOptHorarios] = useState<string[]>([]);
         {/* Estado */}
         <div className="col-12 md:col-6">
           <label className="font-bold">Estado *</label>
-          <Dropdown
-            value={boleto.Id_EstadoTicket_FK ?? 1}
-            options={optEstados.filter(
-              (e) =>
-                !['cancelado', 'reembolsado', 'usado'].includes(
-                  (e.label || '').toLowerCase().trim()
-                )
-            )}
-            optionLabel="label"
-            optionValue="value"
-            onChange={(e) => setBoleto({ ...boleto, Id_EstadoTicket_FK: e.value ?? null })}
-            placeholder="Seleccione estado"
-            filter
-            showClear={false}
-          />
+         <Dropdown
+  value={boleto.Id_EstadoTicket_FK ?? 1}
+  options={optEstados}
+  optionLabel="label"
+  optionValue="value"
+  onChange={(e) => setBoleto({ ...boleto, Id_EstadoTicket_FK: e.value ?? null })}
+  placeholder="Seleccione estado"
+  filter
+  showClear={false}
+/>
+
         </div>
       </div>
     </Dialog>

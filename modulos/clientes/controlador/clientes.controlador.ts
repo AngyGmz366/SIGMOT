@@ -4,15 +4,13 @@ import * as servicios from '@/modulos/clientes/servicios/clientes.servicios';
 /* =========================
    🔹 Cargar clientes
 ========================= */
-export async function cargarClientes(): Promise<Cliente[]> {
-  try {
-    const clientes = await servicios.listarClientes();
-    return clientes ?? [];
-  } catch (err: any) {
-    console.error('❌ Error en cargarClientes:', err);
-    throw new Error(err?.message || 'Error al listar clientes');
-  }
+export async function cargarClientes() {
+  const res = await fetch('/api/clientes', { cache: 'no-store' }); // 🔥 evita cache
+  if (!res.ok) throw new Error('Error al cargar clientes');
+  const data = await res.json();
+  return data.items || [];
 }
+
 
 /* =========================
    🔹 Guardar cliente (crear o actualizar)
