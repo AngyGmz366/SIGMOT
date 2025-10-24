@@ -10,8 +10,6 @@ import { Column } from 'primereact/column';
 import { InputText } from 'primereact/inputtext';
 import { Dialog } from 'primereact/dialog';
 import { Tag } from 'primereact/tag';
-import { useRouter } from 'next/navigation';
-
 
 import ClienteModal from '@/app/(main)/components/ClienteModal';
 import { Cliente, Persona } from '@/types/persona';
@@ -23,8 +21,6 @@ import {
 } from '@/modulos/clientes/controlador/clientes.controlador';
 
 function ClientesPage() {
-  const router = useRouter();
-
   const toast = useRef<Toast>(null);
   const dt = useRef<DataTable<any>>(null);
 
@@ -86,56 +82,44 @@ function ClientesPage() {
   const hideDialog = () => {
     setClienteDialog(false);
     setSubmitted(false);
-  };  
-const saveCliente = async () => {
-  setSubmitted(true);
+  };
 
-  if (!cliente.idPersona || !cliente.idEstadoCliente) return;
+  const saveCliente = async () => {
+    setSubmitted(true);
 
-  try {
-    await guardarCliente(cliente);
+    if (!cliente.idPersona || !cliente.idEstadoCliente) return;
 
-    toast.current?.show({
-      severity: 'success',
-      summary: cliente.id ? 'Actualizado' : 'Creado',
-      detail: cliente.id
-        ? 'Cliente actualizado correctamente'
-        : 'Cliente creado correctamente',
-      life: 3000,
-    });
+    try {
+      await guardarCliente(cliente);
 
-    // 🔁 Recargar datos
-    const [clientesData, personasData] = await Promise.all([
-      cargarClientes(),
-      cargarPersonas(1),
-    ]);
-    setClientes([...clientesData]);  // ✅ Fuerza re-render con nuevo array
-    setPersonas([...personasData]);
+      toast.current?.show({
+        severity: 'success',
+        summary: cliente.id ? 'Actualizado' : 'Creado',
+        detail: cliente.id
+          ? 'Cliente actualizado correctamente'
+          : 'Cliente creado correctamente',
+        life: 3000,
+      });
 
-    // ✅ Limpiar formulario antes de cerrar
-    setCliente({ id: 0, idPersona: 0, idEstadoCliente: 1, estado: 'ACTIVO' });
-    setSubmitted(false);
+      const nuevos = await cargarClientes();
+      setClientes(nuevos);
 
-    // ✅ Cerrar el modal
-    setClienteDialog(false);
-
-    // 🔄 Forzar refresco de UI en caso de cache o render pendiente
-    router.refresh(); 
-
-  } catch (err: any) {
-    console.error('❌ Error guardando cliente:', err);
-    toast.current?.show({
-      severity: 'error',
-      summary: 'Error',
-      detail:
-        err.response?.data?.error ||
-        err.message ||
-        'No se pudo guardar el cliente',
-      life: 4000,
-    });
-  }
-};
-
+      setClienteDialog(false);
+      setCliente({ id: 0, idPersona: 0, idEstadoCliente: 1, estado: 'ACTIVO' });
+      setSubmitted(false);
+    } catch (err: any) {
+      console.error('❌ Error guardando cliente:', err);
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail:
+          err.response?.data?.error ||
+          err.message ||
+          'No se pudo guardar el cliente',
+        life: 4000,
+      });
+    }
+  };
 
   const editCliente = (c: Cliente) => {
     setCliente({ ...c });
