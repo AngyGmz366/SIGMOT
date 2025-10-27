@@ -63,7 +63,7 @@ const AppMenu = () => {
             items: [
                 { label: 'Incidencias y Soporte', icon: 'pi pi-fw pi-exclamation-triangle', to: '/cliente/incidencias-soporte' },
                 { label: 'Rutas', icon: 'pi pi-fw pi-map', to: '/cliente/rutas' },
-                { label: 'Nueva Reservación', icon: 'pi pi-fw pi-user', to: '/cliente/reservacion/nueva' },
+                { label: 'Reservación', icon: 'pi pi-fw pi-user', to: '/cliente/reservacion/nueva' },
                 { label: 'Mis Reservaciones', icon: 'pi pi-file', to: '/cliente/reservacion/mis-reservaciones' }
             ]
         }
@@ -77,7 +77,7 @@ const AppMenu = () => {
             items: [
                 { label: 'Rutas', icon: 'pi pi-fw pi-map', to: '/cliente/rutas' },
                 { label: 'Nueva Reservación', icon: 'pi pi-fw pi-user', to: '/cliente/reservacion/nueva' },
-                { label: 'Mis Reservaciones', icon: 'pi pi-file', to: '/cliente/reservacion/mis-reservaciones' },
+                { label: 'Reservaciones', icon: 'pi pi-file', to: '/cliente/reservacion/mis-reservaciones' },
                 { label: 'Incidencias y Soporte', icon: 'pi pi-fw pi-exclamation-triangle', to: '/cliente/incidencias-soporte' }
             ]
         }
@@ -89,9 +89,15 @@ const AppMenu = () => {
             label: 'Operador',
             icon: 'pi pi-fw pi-briefcase',
             items: [
+                { label: 'Personas', icon: 'pi pi-fw pi-id-card', to: '/pages/Personas' },
+                { label: 'Clientes', icon: 'pi pi-fw pi-users', to: '/pages/Clientes' },
                 { label: 'Unidades', icon: 'pi pi-car', to: '/vehiculos' },
                 { label: 'Rutas', icon: 'pi pi-map', to: '/admin/rutas-admin' },
-                { label: 'Boletos', icon: 'pi pi-ticket', to: '/pages/Ventas' }
+                { label: 'Boletos', icon: 'pi pi-ticket', to: '/pages/Ventas' },
+                { label: 'Reservaciones', icon: 'pi pi-fw pi-calendar', to: '/admin/reservaciones' },
+                { label: 'Mantenimiento Transporte', icon: 'pi pi-wrench', to: '/pages/MantenimientoTransporte' },
+                { label: 'Incidencias  y Soporte', icon: 'pi pi-fw pi-exclamation-triangle', to: '/admin/incidencias-sop' }
+                
             ]
         }
     ];
