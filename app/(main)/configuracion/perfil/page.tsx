@@ -1,50 +1,70 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { InputText } from 'primereact/inputtext';
-import { Password } from 'primereact/password';
 import { Dropdown } from 'primereact/dropdown';
 import { Button } from 'primereact/button';
 import { Toast } from 'primereact/toast';
+import axios from 'axios';
 
 const Perfil = () => {
-    const toast = React.useRef<Toast>(null);
+    const toast = useRef<Toast>(null);
+
     const [perfil, setPerfil] = useState({
         nombre: '',
         apellido: '',
         correo: '',
         telefono: '',
         direccion: '',
+        departamento: '',
+        municipio: '',
         genero: '',
-        contrasena: '',
         foto: ''
     });
 
+    const [loading, setLoading] = useState(true);
+
     const generos = [
-        { label: 'Masculino', value: 'M' },
-        { label: 'Femenino', value: 'F' },
-        { label: 'Otro', value: 'O' },
+        { label: 'Masculino', value: 'Masculino' },
+        { label: 'Femenino', value: 'Femenino' },
+        { label: 'Otro', value: 'Otro' },
     ];
 
+    // 🔹 1. Cargar datos desde el backend
     useEffect(() => {
-        const datosEjemplo = {
-            nombre: 'Juan',
-            apellido: 'Pérez',
-            correo: 'juanperez@gmail.com',
-            telefono: '98765432',
-            direccion: 'Col. Miraflores, Tegucigalpa',
-            genero: 'M',
-            contrasena: '',
-            foto: '/demo/images/avatar/stephenshaw.png' // 📌 Foto por defecto
-        };
-        setPerfil(datosEjemplo);
+        const idUsuario = localStorage.getItem('idUsuario');
+        if (!idUsuario) {
+            toast.current?.show({ severity: 'warn', summary: 'Usuario no encontrado', life: 3000 });
+            setLoading(false);
+            return;
+        }
+
+        axios.get(`/api/usuarios/${idUsuario}`)
+            .then(res => {
+                if (res.data.ok) {
+                    setPerfil({
+                        nombre: res.data.data.nombre || '',
+                        apellido: res.data.data.apellido || '',
+                        correo: res.data.data.correo || '',
+                        telefono: res.data.data.telefono || '',
+                        direccion: res.data.data.direccion || '',
+                        departamento: res.data.data.departamento || '',
+                        municipio: res.data.data.municipio || '',
+                        genero: res.data.data.genero || '',
+                        foto: res.data.data.fotoPerfil || '/demo/images/avatar/stephenshaw.png'
+                    });
+                } else {
+                    toast.current?.show({ severity: 'error', summary: 'No se encontró el perfil', life: 3000 });
+                }
+            })
+            .catch(err => {
+                console.error('Error al cargar perfil:', err);
+                toast.current?.show({ severity: 'error', summary: 'Error al cargar perfil', life: 3000 });
+            })
+            .finally(() => setLoading(false));
     }, []);
 
-    const actualizarPerfil = () => {
-        toast.current?.show({ severity: 'success', summary: 'Perfil actualizado', life: 3000 });
-        console.log(perfil);
-    };
-
+    // 🔹 2. Cambiar foto localmente
     const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
@@ -56,12 +76,44 @@ const Perfil = () => {
         }
     };
 
+    // 🔹 3. Actualizar perfil en la base
+    const actualizarPerfil = async () => {
+        try {
+            const idUsuario = localStorage.getItem('idUsuario');
+            if (!idUsuario) return;
+
+            // ✅ Body ajustado para coincidir con el backend
+            const body = {
+                nombre: perfil.nombre,
+                apellido: perfil.apellido,
+                telefono: perfil.telefono,
+                genero: perfil.genero,
+                foto: perfil.foto,
+                departamento: perfil.departamento,
+                municipio: perfil.municipio
+            };
+
+            const res = await axios.put(`/api/usuarios/${idUsuario}`, body);
+
+            if (res.data.ok) {
+                toast.current?.show({ severity: 'success', summary: 'Perfil actualizado correctamente', life: 3000 });
+            } else {
+                toast.current?.show({ severity: 'warn', summary: res.data.error || 'No se pudo actualizar', life: 3000 });
+            }
+        } catch (error) {
+            console.error(error);
+            toast.current?.show({ severity: 'error', summary: 'Error al actualizar perfil', life: 3000 });
+        }
+    };
+
+    if (loading) return <p>Cargando datos...</p>;
+
     return (
         <div className="card">
             <Toast ref={toast} />
             <h2 className="text-2xl font-bold mb-4">Mi Perfil</h2>
 
-            {/* Foto de perfil */}
+            {/* 📸 Foto de perfil */}
             <div className="flex flex-column align-items-center mb-4">
                 {perfil.foto && (
                     <img
@@ -90,7 +142,7 @@ const Perfil = () => {
                 </label>
             </div>
 
-            {/* Datos de perfil */}
+            {/* 🧾 Datos del perfil */}
             <div className="p-fluid grid formgrid">
                 <div className="field col-12 md:col-6">
                     <label htmlFor="nombre">Nombre</label>
@@ -108,15 +160,21 @@ const Perfil = () => {
                     <label htmlFor="telefono">Teléfono</label>
                     <InputText id="telefono" value={perfil.telefono} onChange={(e) => setPerfil({ ...perfil, telefono: e.target.value })} />
                 </div>
-                <div className="field col-12">
-                    <label htmlFor="direccion">Dirección</label>
-                    <InputText id="direccion" value={perfil.direccion} onChange={(e) => setPerfil({ ...perfil, direccion: e.target.value })} />
+
+                {/* 🏠 Campos nuevos para dirección */}
+                <div className="field col-12 md:col-6">
+                    <label htmlFor="departamento">Departamento</label>
+                    <InputText id="departamento" value={perfil.departamento} onChange={(e) => setPerfil({ ...perfil, departamento: e.target.value })} />
                 </div>
+                <div className="field col-12 md:col-6">
+                    <label htmlFor="municipio">Municipio</label>
+                    <InputText id="municipio" value={perfil.municipio} onChange={(e) => setPerfil({ ...perfil, municipio: e.target.value })} />
+                </div>
+
                 <div className="field col-12 md:col-6">
                     <label htmlFor="genero">Género</label>
                     <Dropdown id="genero" value={perfil.genero} options={generos} onChange={(e) => setPerfil({ ...perfil, genero: e.value })} placeholder="Seleccione" />
                 </div>
-               
             </div>
 
             <div className="mt-4">
