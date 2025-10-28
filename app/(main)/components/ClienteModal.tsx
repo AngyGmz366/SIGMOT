@@ -18,12 +18,12 @@ interface Props {
   onSave: () => void;
   cliente: Cliente;
   setCliente: React.Dispatch<React.SetStateAction<Cliente>>;
-  personas: Persona[];
+  personas: Persona[]; // 👈 ya viene filtrado desde el backend (clientes activos)
   estadosCliente: EstadoOption[];
   submitted: boolean;
 }
 
-function ClienteModal({
+export default function ClienteModal({
   visible,
   onHide,
   onSave,
@@ -61,21 +61,20 @@ function ClienteModal({
             onClick={onHide}
             className="p-button-text"
           />
- <Button
-  label="Guardar"
-  icon="pi pi-check"
-  onClick={onSave}
-  outlined
-/>
-
+          <Button
+            label="Guardar"
+            icon="pi pi-check"
+            onClick={onSave}
+            outlined
+          />
         </div>
       }
     >
       <div className="formgrid grid p-fluid">
-        {/* 🔹 Persona asociada */}
+        {/* 🔹 Persona asociada (solo clientes activos) */}
         <div className="field col-12 md:col-6">
           <label htmlFor="persona" className="font-bold">
-            Persona (Cliente)
+            Persona (Cliente Activo)
           </label>
           <Dropdown
             id="persona"
@@ -85,7 +84,11 @@ function ClienteModal({
               value: p.Id_Persona,
             }))}
             onChange={(e) => setCliente({ ...cliente, idPersona: e.value })}
-            placeholder="Seleccione una persona"
+            placeholder={
+              personas.length
+                ? 'Seleccione una persona activa'
+                : 'No hay clientes activos disponibles'
+            }
             className={submitted && !cliente.idPersona ? 'p-invalid' : ''}
             showClear
             filter
@@ -119,7 +122,7 @@ function ClienteModal({
             className={submitted && !cliente.idEstadoCliente ? 'p-invalid' : ''}
           />
 
-          {/* 🔹 Indicador de color */}
+          {/* 🔹 Indicador visual del estado */}
           {cliente.estado && (
             <div className="mt-2">
               <Tag
@@ -142,5 +145,3 @@ function ClienteModal({
     </Dialog>
   );
 }
-
-export default ClienteModal;

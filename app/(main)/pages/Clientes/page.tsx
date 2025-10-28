@@ -298,7 +298,11 @@ function ClientesPage() {
             header={header}
             responsiveLayout="scroll"
           >
-            <Column selectionMode="multiple" headerStyle={{ width: '3rem' }} />
+      <Column
+          selectionMode="multiple"
+          headerStyle={{ width: '3rem' }}
+          style={{ textAlign: 'center' }}
+        /> 
             <Column header="Nombre" body={personaTemplate} sortable />
             <Column
               field="estado"

@@ -39,6 +39,8 @@ const Dashboard = () => {
     const menu2 = useRef<Menu>(null);
     const [lineOptions, setLineOptions] = useState<ChartOptions>({});
     const { layoutConfig } = useContext(LayoutContext);
+    const [clientesActivos, setClientesActivos] = useState({ total: 0, porcentaje: 0 });
+
 
     const [encomiendas, setEncomiendas] = useState({ total: 0, porcentaje: 0 });
 
@@ -70,6 +72,42 @@ useEffect(() => {
     };
 
     cargarEncomiendas();
+}, []);
+
+
+
+useEffect(() => {
+    const cargarClientesActivos = async () => {
+        try {
+            // 🔹 Pedimos solo los clientes activos (estado=1)
+            const res = await fetch("/api/clientes?estado=1", { cache: "no-store" });
+            const data = await res.json();
+            const items = Array.isArray(data?.items) ? data.items : [];
+
+            const total = items.length;
+
+            // 📈 (opcional) cálculo de crecimiento mensual
+            const ahora = new Date();
+            const mesActual = ahora.getMonth();
+            const mesAnterior = mesActual === 0 ? 11 : mesActual - 1;
+
+            const esteMes = items.filter(
+                (c: any) => new Date(c.fecha_creacion || c.Fecha_Registro || "").getMonth() === mesActual
+            ).length;
+
+            const anterior = items.filter(
+                (c: any) => new Date(c.fecha_creacion || c.Fecha_Registro || "").getMonth() === mesAnterior
+            ).length;
+
+            const porcentaje = anterior > 0 ? Math.round(((esteMes - anterior) / anterior) * 100) : 100;
+
+            setClientesActivos({ total, porcentaje });
+        } catch (err) {
+            console.error("❌ Error cargando clientes activos:", err);
+        }
+    };
+
+    cargarClientesActivos();
 }, []);
 
 
@@ -147,15 +185,24 @@ useEffect(() => {
                 <div className="card mb-0">
                     <div className="flex justify-content-between mb-3">
                         <div>
-                            <span className="block text-500 font-medium mb-3">Clientes Activos</span>
-                            <div className="text-900 font-medium text-xl">2,830</div>
+                          <span className="block text-500 font-medium mb-3">Clientes Activos</span>
+                            <div className="text-900 font-medium text-xl">{clientesActivos.total}</div>
+
                         </div>
                         <div className="flex align-items-center justify-content-center bg-cyan-100 border-round" style={{ width: '2.5rem', height: '2.5rem' }}>
                             <i className="pi pi-users text-cyan-500 text-xl" />
                         </div>
                     </div>
-                    <span className="text-green-500 font-medium">+90 </span>
-                    <span className="text-500">registrados este mes</span>
+            <span
+  className={`font-medium ${
+    clientesActivos.porcentaje >= 0 ? 'text-green-500' : 'text-red-500'
+  }`}
+>
+  {clientesActivos.porcentaje >= 0 ? '+' : ''}
+  {clientesActivos.porcentaje}%
+</span>
+<span className="text-500"> vs. mes anterior</span>
+
                 </div>
             </div>
 
