@@ -59,9 +59,9 @@ const AppMenu = () => {
     // ===============================
     const adminMenu: AppMenuItem[] = [
         {
-            label: 'Menú',
+            label: '',
             items: puedeVer('global')
-                ? [{ label: 'Principal', icon: 'pi pi-fw pi-home', to: '/dashboard' }]
+                ? [{ label: 'Inicio', icon: 'pi pi-fw pi-home', to: '/dashboard' }]
                 : [],
         },
         {

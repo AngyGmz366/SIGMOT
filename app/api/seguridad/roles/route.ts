@@ -12,7 +12,7 @@ export async function GET() {
     nombre: r.nombre,
     descripcion: r.descripcion,
     }));
-    return NextResponse.json({ ok: true, data });
+    return NextResponse.json({ ok: true, data, items : data });
 
   } catch (error: any) {
     console.error('❌ Error en GET /api/seguridad/roles:', error);
