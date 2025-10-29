@@ -272,12 +272,12 @@ const MapaInteractivo: React.FC<Props> = ({ rutas }) => {
   // Crear el header personalizado
   const header = (
     <div className="pb-3">
-      <h2 className="text-xl font-bold">🗺️ Mapa de Rutas Terrestres</h2>
+      <h2 className="text-xl font-bold">🗺️ Mapa </h2>
       <div className="mt-2">
         <small className="text-gray-600">
-          🛣️ Rutas calculadas por <strong>OSRM</strong> - 
+          RUTAS <strong>SAENZ</strong> - 
           <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener noreferrer" className="text-primary ml-1">
-            OpenStreetMap
+            
           </a>
         </small>
       </div>

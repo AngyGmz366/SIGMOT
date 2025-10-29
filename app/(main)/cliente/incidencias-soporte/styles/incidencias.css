@@ -1,9 +1,82 @@
-.category-card {
-  transition: all 0.3s ease;
-  cursor: pointer;
-  min-height: 160px;
+.titulo-modulo {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #4b0082;
 }
-.category-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0px 4px 15px rgba(0,0,0,0.1);
+
+.form-card {
+  border-radius: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
 }
+
+.btn-incidencia {
+  background-color: #6a1b9a !important;
+  border: none !important;
+  color: white !important;
+  font-weight: 500;
+  border-radius: 10px !important;
+  padding: 0.6rem 1.5rem !important;
+}
+
+.btn-incidencia:hover {
+  background-color: #4a0072 !important;
+}
+
+/* ✅ Toasts SIGMOT */
+.p-toast.custom-toast {
+  z-index: 9999;
+}
+
+/* 🟢 Éxito */
+.p-toast-message-success {
+  background: #e8f5e9 !important;
+  border-left: 6px solid #43a047 !important;
+  color: #1b5e20 !important;
+}
+
+/* 🔴 Error */
+.p-toast-message-error {
+  background: #ffebee !important;
+  border-left: 6px solid #e53935 !important;
+  color: #b71c1c !important;
+}
+
+/* 🟡 Advertencia */
+.p-toast-message-warn {
+  background: #fff8e1 !important;
+  border-left: 6px solid #ffb300 !important;
+  color: #8c6d1f !important;
+}
+
+/* Animación */
+.p-toast .p-toast-message {
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  animation: toast-fade 0.3s ease;
+}
+
+@keyframes toast-fade {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+  .banner-resuelto {
+  background-color: #e9d5ff;
+  color: #4a148c;
+  border-left: 6px solid #6a1b9a;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+

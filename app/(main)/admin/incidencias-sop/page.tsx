@@ -1,89 +1,105 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import IncidenciasAdminTable from './components/IncidenciasAdminTable';
-import DetalleIncidencia from './components/DetalleIncidencia';
+import React, { useEffect, useState, useRef } from 'react';
+import { Toast } from 'primereact/toast';
+import { Card } from 'primereact/card';
+import { ProgressSpinner } from 'primereact/progressspinner';
+import ListaIncidenciasAdmin from './components/ListaIncidenciasAdmin';
+import ResponderModal from './components/ResponderModal';
+import axios from 'axios';
 
-export interface Incidencia {
-  id: number;
-  titulo: string;
-  categoria: string;
-  descripcion: string;
-  fecha: string;
-  estado: 'Pendiente' | 'En Progreso' | 'Resuelto';
-}
+export default function AdminIncidenciasPage() {
+  const [incidencias, setIncidencias] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
+  const [incidenciaSeleccionada, setIncidenciaSeleccionada] = useState<any>(null);
+  const toast = useRef<Toast>(null);
 
-const PageAdminIncidencias: React.FC = () => {
-  const [incidencias, setIncidencias] = useState<Incidencia[]>([]);
-  const [incidenciaSeleccionada, setIncidenciaSeleccionada] = useState<Incidencia | null>(null);
-  const [detalleVisible, setDetalleVisible] = useState(false);
-
-  // ✅ Cargar incidencias simuladas solo en el cliente
-  useEffect(() => {
-    const dummy: Incidencia[] = [
-      {
-        id: 1,
-        titulo: 'Problema con pago',
-        categoria: 'Pago',
-        descripcion: 'El pago no se procesó correctamente.',
-        fecha: '28/07/2025',
-        estado: 'Pendiente',
-      },
-      {
-        id: 2,
-        titulo: 'Error en reserva',
-        categoria: 'Reserva',
-        descripcion: 'Mi reserva no aparece en el sistema.',
-        fecha: '27/07/2025',
-        estado: 'En Progreso',
-      },
-      {
-        id: 3,
-        titulo: 'Consulta general',
-        categoria: 'Otro',
-        descripcion: '¿Cuál es el horario de atención?',
-        fecha: '25/07/2025',
-        estado: 'Resuelto',
-      },
-    ];
-    setIncidencias(dummy);
-  }, []);
-
-  const verDetalle = (incidencia: Incidencia) => {
-    setIncidenciaSeleccionada(incidencia);
-    setDetalleVisible(true);
+  // 🔹 Cargar incidencias desde la API
+  const cargarIncidencias = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get('/api/incidencias/admin');
+      if (res.data.ok) {
+        setIncidencias(res.data.data);
+      } else {
+        toast.current?.show({
+          severity: 'warn',
+          summary: 'Atención',
+          detail: res.data.message || 'No se pudieron cargar las incidencias.',
+          life: 3500,
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error al obtener incidencias:', error);
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Error al conectar con el servidor.',
+        life: 3500,
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const cambiarEstado = (id: number, nuevoEstado: Incidencia['estado']) => {
-    setIncidencias((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, estado: nuevoEstado } : i))
-    );
+  // 🔹 Inicializar al montar
+  useEffect(() => {
+    cargarIncidencias();
+  }, []);
+
+  // 🔹 Abrir modal con la incidencia seleccionada
+  const abrirModalResponder = (rowData: any) => {
+    console.log('📦 Incidencia seleccionada para responder:', rowData);
+    setIncidenciaSeleccionada(rowData);
+    setModalVisible(true);
+  };
+
+  // 🔹 Cerrar modal y refrescar lista
+  const cerrarModal = () => {
+    setModalVisible(false);
+    setIncidenciaSeleccionada(null);
+    cargarIncidencias();
   };
 
   return (
-    <div className="p-4 space-y-4">
-      {/* Encabezado */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h2 className="text-2xl font-bold text-gray-800">Soporte</h2>
-      </div>
+    <div className="p-4">
+      {/* 🔹 Toast SIGMOT */}
+      <Toast ref={toast} position="top-right" />
 
-      {/* Tabla de incidencias */}
-      <div className="shadow-md rounded-lg overflow-hidden bg-white p-2">
-        <IncidenciasAdminTable
-          incidencias={incidencias}
-          onVerDetalle={verDetalle}
-          onCambiarEstado={cambiarEstado}
-        />
-      </div>
+      {/* 🔹 Card principal */}
+      <Card
+        title="Gestión de Incidencias y Soporte Técnico"
+        className="shadow-2 border-round-lg p-3"
+      >
+        {loading ? (
+          <div
+            className="flex justify-content-center align-items-center"
+            style={{ minHeight: '220px' }}
+          >
+            <ProgressSpinner style={{ width: '50px', height: '50px' }} />
+          </div>
+        ) : incidencias.length > 0 ? (
+          <ListaIncidenciasAdmin
+            incidencias={incidencias}
+            onResponder={abrirModalResponder}
+          />
+        ) : (
+          <div className="text-center text-gray-500 p-4">
+            <i className="pi pi-info-circle text-2xl mb-3 text-gray-400"></i>
+            <p>No hay incidencias registradas.</p>
+          </div>
+        )}
+      </Card>
 
-      {/* Modal de detalle */}
-      <DetalleIncidencia
-        incidencia={incidenciaSeleccionada}
-        visible={detalleVisible}
-        onHide={() => setDetalleVisible(false)}
+      {/* 🔹 Modal de respuesta */}
+      <ResponderModal
+        visible={modalVisible}
+        onHide={cerrarModal}
+        incidenciaSeleccionada={incidenciaSeleccionada}
+        recargarIncidencias={cargarIncidencias}
+        idAdmin={1} // ⚙️ Puedes reemplazar por el admin logueado
       />
     </div>
   );
-};
-
-export default PageAdminIncidencias;
+}

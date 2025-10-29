@@ -6,9 +6,7 @@ import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
 import { Menu } from 'primereact/menu';
 import React, { useContext, useEffect, useRef, useState } from 'react';
-// Make sure the path and filename are correct and match the actual file location and casing
 import { LayoutContext } from '../../../layout/context/layoutcontext';
-
 import Link from 'next/link';
 import { ChartData, ChartOptions } from 'chart.js';
 
@@ -39,6 +37,10 @@ const Dashboard = () => {
     const menu2 = useRef<Menu>(null);
     const [lineOptions, setLineOptions] = useState<ChartOptions>({});
     const { layoutConfig } = useContext(LayoutContext);
+    
+    // Estado para almacenar el número real de rutas activas
+    const [rutasActivas, setRutasActivas] = useState<number>(0);
+    const [loading, setLoading] = useState<boolean>(true);
 
     const applyLightTheme = () => {
         setLineOptions({
@@ -64,8 +66,31 @@ const Dashboard = () => {
         });
     };
 
+    // Función para obtener las rutas activas desde tu endpoint
+    const obtenerRutasActivas = async () => {
+        try {
+            setLoading(true);
+            const response = await fetch('/api/rutas-publico');
+            const data = await response.json();
+            
+            if (data.items && Array.isArray(data.items)) {
+                setRutasActivas(data.items.length);
+            } else {
+                setRutasActivas(0);
+            }
+        } catch (error) {
+            console.error('Error al obtener rutas activas:', error);
+            setRutasActivas(0);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         layoutConfig.colorScheme === 'light' ? applyLightTheme() : applyDarkTheme();
+        
+        // Obtener rutas activas cuando el componente se monte
+        obtenerRutasActivas();
     }, [layoutConfig.colorScheme]);
 
     return (
@@ -123,14 +148,26 @@ const Dashboard = () => {
                     <div className="flex justify-content-between mb-3">
                         <div>
                             <span className="block text-500 font-medium mb-3">Rutas activas</span>
-                            <div className="text-900 font-medium text-xl">2</div>
+                            <div className="text-900 font-medium text-xl">
+                                {loading ? (
+                                    <i className="pi pi-spin pi-spinner" style={{ fontSize: '1.25rem' }} />
+                                ) : (
+                                    rutasActivas
+                                )}
+                            </div>
                         </div>
                         <div className="flex align-items-center justify-content-center bg-purple-100 border-round" style={{ width: '2.5rem', height: '2.5rem' }}>
                             <i className="pi pi-map text-purple-500 text-xl" />
                         </div>
                     </div>
-                    <span className="text-green-500 font-medium">+2 </span>
-                    <span className="text-500">nuevas rutas esta semana</span>
+                    {!loading && (
+                        <span className="text-500">
+                            {rutasActivas > 0 
+                                ? `${rutasActivas} ruta${rutasActivas !== 1 ? 's' : ''} en operación` 
+                                : 'No hay rutas activas'
+                            }
+                        </span>
+                    )}
                 </div>
             </div>
 
@@ -145,8 +182,6 @@ const Dashboard = () => {
                 <div className="card">
                     <h5>Accesos rápidos</h5>
                     <div className="flex flex-column gap-3">
-                        
-
                         <Link href="/reportes">
                             <Button
                                 label="Ver reportes"
@@ -159,14 +194,15 @@ const Dashboard = () => {
                         <Link href="/admin/incidencias-sop">
                             <Button label="Ver incidencias recientes" icon="pi pi-exclamation-circle" className="p-button-info" />
                         </Link>
-                        {/* NUEVO: Botón de Boletos */}
+                        
                         <Link href="/pages/Ventas">
                             <Button label="Gestionar boletos" icon="pi pi-ticket" className="p-button-help" style={{ backgroundColor: '#4f3ec0ff', border: 'none', width: '40%' }}/>
-                            
                         </Link>
+                        
                         <Link href="/cliente/rutas">
                             <Button label="Ver rutas activas" icon="pi pi-map" className="p-button-success" />
                         </Link>
+                        
                         <Link href="/admin/reservaciones">
                             <Button label="Programar viaje" icon="pi pi-calendar-plus" className="p-button-warning" />
                         </Link>
