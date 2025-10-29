@@ -19,9 +19,10 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 
   const conn = await db.getConnection();
   try {
-    const [resultSets]: any = await conn.query(`CALL mydb.sp_ticket_obtener(?);`, [id]);
-    const result = Array.isArray(resultSets) ? resultSets[0] : [];
-    const ticket = result?.[0];
+   const [resultSets]: any = await conn.query(`CALL mydb.sp_ticket_obtener(?);`, [id]);
+const result = Array.isArray(resultSets) ? resultSets[0] : [];
+const ticket = result?.[0];
+
     if (!ticket) return jsonError('Boleto no encontrado', 404);
 
     return json({ ok: true, item: ticket }, 200);

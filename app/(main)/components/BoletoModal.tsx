@@ -5,30 +5,17 @@ import { Dialog } from 'primereact/dialog';
 import { Button } from 'primereact/button';
 import { Dropdown } from 'primereact/dropdown';
 import { InputNumber } from 'primereact/inputnumber';
-import { InputText } from 'primereact/inputtext';
 import { Boleto } from '@/types/ventas';
-import { classNames } from 'primereact/utils';
-import { apiGet } from '@/lib/http'; 
-import axios from "axios"; 
-
-import {
-  getClientes,
-  getMetodosPago,
-  getEstadosTicket,
-  
-} from '@/modulos/boletos/servicios/ventas.servicios';
-
-import type { Opcion } from '@/modulos/boletos/servicios/ventas.servicios';
-
-
-
+import { apiGet } from '@/lib/http';
+import axios from 'axios';
+import { useCatalogos } from '@/lib/catalogos'; 
 
 type Props = {
   visible: boolean;
   onHide: () => void;
   boleto: Boleto;
-  setBoleto: (b: Boleto) => void;
-  onSave: (boleto: Boleto) => void | Promise<void>;
+  setBoleto: React.Dispatch<React.SetStateAction<Boleto>>;
+  onSave: (b: Boleto) => void | Promise<void>;
   submitted?: boolean;
 };
 
@@ -40,60 +27,33 @@ const BoletoDialog: React.FC<Props> = ({
   onSave,
   submitted = false,
 }) => {
-  // Catálogos
-  const [optClientes, setOptClientes] = useState<Opcion[]>([]);
-  const [optRutas, setOptRutas] = useState<Opcion[]>([]);
-  const [optViajes, setOptViajes] = useState<Opcion[]>([]);
-  const [optAsientos, setOptAsientos] = useState<Opcion[]>([]);
-  const [optMetodosPago, setOptMetodosPago] = useState<Opcion[]>([]);
-  const [optEstados, setOptEstados] = useState<Opcion[]>([]);
+  // ✅ Cargar catálogos base desde el hook global
+  const {
+    clientes: optClientes,
+    metodosPago: optMetodosPago,
+    estados: optEstados,
+    rutas: optRutas,
+    cargando,
+  } = useCatalogos();
+
+  // Catálogos dependientes
+  const [optViajes, setOptViajes] = useState<{ label: string; value: number }[]>([]);
+  const [optAsientos, setOptAsientos] = useState<{ label: string; value: number }[]>([]);
+  const [optHorarios, setOptHorarios] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
-
-// 🟨 Horarios
-const [optHorarios, setOptHorarios] = useState<string[]>([]);
-
+  // Selecciones
   const [rutaSeleccionadaId, setRutaSeleccionadaId] = useState<number | null>(null);
   const [viajeSeleccionadoId, setViajeSeleccionadoId] = useState<number | null>(null);
 
-  /* 🟩 Cargar rutas activas */
+  /* 🟩 Cargar viajes por ruta */
   useEffect(() => {
-    if (!visible) return;
+    if (!rutaSeleccionadaId) {
+      setOptViajes([]);
+      setViajeSeleccionadoId(null);
+      return;
+    }
     (async () => {
-      try {
-        const data = await apiGet<{ items: { id: number; label: string; value: number }[] }>(
-          '/api/rutas-activas'
-        );
-        const opts = (data.items || []).map((r) => ({
-          label: r.label,
-          value: r.id ?? r.value,
-        }));
-        setOptRutas(opts);
-      } catch (err) {
-        console.error('❌ Error cargando rutas activas:', err);
-        setOptRutas([]);
-      }
-    })();
-  }, [visible]);
-
-
-
-
-
-
-
-
-
-  
-
-  /* 🟨 Cargar viajes (unidades) por ruta */
-  useEffect(() => {
-    (async () => {
-      if (!rutaSeleccionadaId) {
-        setOptViajes([]);
-        setViajeSeleccionadoId(null);
-        return;
-      }
       try {
         const data = await apiGet<{
           items: { idViaje: number; unidad: string; fecha: string; horaSalida: string }[];
@@ -113,11 +73,11 @@ const [optHorarios, setOptHorarios] = useState<string[]>([]);
 
   /* 🟦 Cargar asientos por viaje */
   useEffect(() => {
+    if (!viajeSeleccionadoId) {
+      setOptAsientos([]);
+      return;
+    }
     (async () => {
-      if (!viajeSeleccionadoId) {
-        setOptAsientos([]);
-        return;
-      }
       try {
         const data = await apiGet<{ items: { id: number; numero: number }[] }>(
           `/api/asientos-por-viaje/${encodeURIComponent(String(viajeSeleccionadoId))}`
@@ -134,25 +94,29 @@ const [optHorarios, setOptHorarios] = useState<string[]>([]);
     })();
   }, [viajeSeleccionadoId]);
 
-  /* 🟧 Cargar clientes, métodos de pago y estados */
+  /* 🟢 Sincronizar valores iniciales al editar boleto */
   useEffect(() => {
-    if (!visible) return;
-    (async () => {
-      try {
-        const [clientes, metodos, estados] = await Promise.all([
-          getClientes(),
-          getMetodosPago(),
-          getEstadosTicket(),
-        ]);
-        setOptClientes(clientes);
-        setOptMetodosPago(metodos);
-        setOptEstados(estados);
-      } catch (err) {
-        console.error('❌ Error cargando catálogos base:', err);
-      }
-    })();
-  }, [visible]);
+    if (visible && boleto?.id) {
+      if (boleto.Id_Cliente_FK)
+        setBoleto((prev) => ({ ...prev, Id_Cliente_FK: Number(boleto.Id_Cliente_FK) }));
 
+      if (boleto.Id_Viaje_FK) {
+        setRutaSeleccionadaId(Number(boleto.Id_Viaje_FK));
+        setViajeSeleccionadoId(Number(boleto.Id_Viaje_FK));
+      }
+
+      if (boleto.Id_Asiento_FK)
+        setBoleto((prev) => ({ ...prev, Id_Asiento_FK: Number(boleto.Id_Asiento_FK) }));
+
+      if (boleto.Id_MetodoPago_FK)
+        setBoleto((prev) => ({ ...prev, Id_MetodoPago_FK: Number(boleto.Id_MetodoPago_FK) }));
+
+      if (boleto.Id_EstadoTicket_FK)
+        setBoleto((prev) => ({ ...prev, Id_EstadoTicket_FK: Number(boleto.Id_EstadoTicket_FK) }));
+    }
+  }, [visible, boleto]);
+
+  // 🧮 Calcular total
   const calcularTotal = () => {
     const precio = Number(boleto.precio) || 0;
     const descuento = Number(boleto.descuento || 0);
@@ -160,6 +124,7 @@ const [optHorarios, setOptHorarios] = useState<string[]>([]);
     return total < 0 ? 0 : total;
   };
 
+  // 🔘 Footer
   const dialogFooter = (
     <div className="flex justify-content-end gap-2">
       <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={onHide} />
@@ -199,72 +164,63 @@ const [optHorarios, setOptHorarios] = useState<string[]>([]);
             optionLabel="label"
             optionValue="value"
             onChange={(e) => setBoleto({ ...boleto, Id_Cliente_FK: e.value ?? null })}
-            placeholder="Seleccionar cliente"
+            placeholder={cargando ? 'Cargando...' : 'Seleccionar cliente'}
             filter
             showClear
+            disabled={cargando}
           />
         </div>
 
+        {/* Ruta */}
+        <div className="col-12 md:col-6">
+          <label className="font-bold">Ruta *</label>
+          <Dropdown
+            value={rutaSeleccionadaId ?? null}
+            options={optRutas}
+            optionLabel="label"
+            optionValue="value"
+            onChange={async (e) => {
+              const rutaId = e.value ?? null;
 
+              setRutaSeleccionadaId(rutaId);
+              setViajeSeleccionadoId(null);
+              setOptViajes([]);
+              setOptAsientos([]);
 
-{/* Ruta */}
-<div className="col-12 md:col-6">
-  <label className="font-bold">Ruta *</label>
-  <Dropdown
-    value={rutaSeleccionadaId ?? null}
-    options={optRutas}
-    optionLabel="label"
-    optionValue="value"
-    onChange={async (e) => {
-      const rutaId = e.value ?? null;
+              if (!rutaId) return;
 
-      setRutaSeleccionadaId(rutaId);
-      setViajeSeleccionadoId(null);
-      setOptViajes([]);
-      setOptAsientos([]);
+              try {
+                const { data } = await axios.get(`/api/boletos/rutas_precio/${rutaId}`);
+                setBoleto({ ...boleto, precio: data.precio ?? 0 });
+                setOptHorarios(data.horarios ?? []);
+              } catch (err) {
+                console.error('❌ Error obteniendo precio de ruta:', err);
+              }
+            }}
+            placeholder={cargando ? 'Cargando...' : 'Seleccionar ruta'}
+            filter
+            showClear
+            disabled={cargando}
+          />
 
-      if (!rutaId) return;
+          {optHorarios.length > 0 && (
+            <div className="mt-3">
+              <label htmlFor="horario" className="font-bold">
+                Horario disponible
+              </label>
+              <Dropdown
+                id="horario"
+                value={boleto.horario ?? null}
+                options={optHorarios.map((h) => ({ label: h, value: h }))}
+                onChange={(e) => setBoleto({ ...boleto, horario: e.value })}
+                placeholder="Seleccionar horario"
+                showClear
+              />
+            </div>
+          )}
+        </div>
 
-      try {
-        // 🔹 Llamada a la API local de boletos
-        const { data } = await axios.get(`/api/boletos/rutas_precio/${rutaId}`);
-
-        // ✅ Asigna el precio automáticamente
-        setBoleto({
-          ...boleto,
-          precio: data.precio ?? 0,
-        });
-
-        // ✅ Carga horarios si existen
-        setOptHorarios(data.horarios ?? []);
-      } catch (err) {
-        console.error("❌ Error obteniendo precio de ruta:", err);
-      }
-    }}
-    placeholder="Seleccionar ruta"
-    filter
-    showClear
-  />
-
-  {optHorarios.length > 0 && (
-    <div className="mt-3">
-      <label htmlFor="horario" className="font-bold">
-        Horario disponible
-      </label>
-      <Dropdown
-        id="horario"
-        value={boleto.horario ?? null}
-        options={optHorarios.map((h) => ({ label: h, value: h }))}
-        onChange={(e) => setBoleto({ ...boleto, horario: e.value })}
-        placeholder="Seleccionar horario"
-        showClear
-      />
-    </div>
-  )}
-</div>
-
-
-        {/* Viaje / Unidad */}
+        {/* Viaje */}
         <div className="col-12 md:col-6">
           <label className="font-bold">Unidad (Viaje) *</label>
           <Dropdown
@@ -300,18 +256,17 @@ const [optHorarios, setOptHorarios] = useState<string[]>([]);
         </div>
 
         {/* Precio / Descuento / Total */}
-     <div className="col-12 md:col-4">
-  <label className="font-bold">Precio *</label>
-  <InputNumber
-    value={boleto.precio ?? 0}
-    onValueChange={(e) => setBoleto({ ...boleto, precio: e.value ?? 0 })}
-    mode="currency"
-    currency="HNL"
-    locale="es-HN"
-    disabled  // 💡 si quieres que sea solo lectura (precio fijo de ruta)
-  />
-</div>
-
+        <div className="col-12 md:col-4">
+          <label className="font-bold">Precio *</label>
+          <InputNumber
+            value={boleto.precio ?? 0}
+            onValueChange={(e) => setBoleto({ ...boleto, precio: e.value ?? 0 })}
+            mode="currency"
+            currency="HNL"
+            locale="es-HN"
+            disabled
+          />
+        </div>
 
         <div className="col-12 md:col-4">
           <label className="font-bold">Descuento</label>
@@ -341,6 +296,7 @@ const [optHorarios, setOptHorarios] = useState<string[]>([]);
             placeholder="Seleccione método"
             filter
             showClear
+            disabled={cargando}
           />
         </div>
 
@@ -361,6 +317,7 @@ const [optHorarios, setOptHorarios] = useState<string[]>([]);
             placeholder="Seleccione estado"
             filter
             showClear={false}
+            disabled={cargando}
           />
         </div>
       </div>

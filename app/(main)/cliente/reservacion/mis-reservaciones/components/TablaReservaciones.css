@@ -1,0 +1,31 @@
+/* Contenedor del formulario de cancelación */
+.cancel-form-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 10px;
+}
+
+/* Textarea más agradable visualmente */
+.cancel-form-container .p-inputtextarea {
+  width: 100%;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  border-radius: 0.6rem;
+  background-color: #fafafa;
+}
+
+/* Botones pequeños y equilibrados */
+.btn-sm {
+  padding: 0.75rem 1.05rem !important;
+  font-size: 1rem !important;
+  border-radius: 6px !important;
+}
+
+/* Asegura buena proporción del cuadro modal */
+.p-dialog .p-dialog-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 1.5rem !important;
+}

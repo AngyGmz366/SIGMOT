@@ -83,26 +83,28 @@ export function mapTicketToBoleto(r: TicketRow): Boleto {
 }
 
 /* ===================== Catálogos ===================== */
-
-// Cache para clientes
+// Cache para clientes activos
 let clientesCache: Opcion[] | null = null;
 
 export async function getClientes(): Promise<Opcion[]> {
+  // 🔹 Si ya está cacheado, devolvemos lo mismo
   if (clientesCache && clientesCache.length > 0) {
     return clientesCache;
   }
 
-  const { data } = await http.get('/api/clientes');
+  // 🔹 Pedimos SOLO clientes activos (estado = 1)
+  const { data } = await http.get('/api/clientes?estado=1');
   const items = data?.items ?? [];
 
+  // 🔹 Mapeamos los clientes a formato { value, label }
   clientesCache = items.map((c: any) => ({
     value: c.id,
-    label: c.nombre,
+    label: c.nombre, // puedes agregar más info abajo si querés
   }));
 
-  // Siempre devolvemos un arreglo (aunque esté vacío)
   return clientesCache ?? [];
 }
+
 // ==================== RUTAS ACTIVAS (VIAJES) ====================
 
 export async function getViajes(): Promise<Opcion[]> {

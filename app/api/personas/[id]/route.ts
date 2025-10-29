@@ -1,12 +1,14 @@
 export const runtime = 'nodejs';
 import { db } from '@/lib/db_api';
 
+// Utility functions to return JSON responses
 function json(data: any, status = 200) {
   return new Response(JSON.stringify(data, null, 2), {
     status,
     headers: { 'Content-Type': 'application/json; charset=utf-8' },
   });
 }
+
 function jsonError(message: string, status = 500, extra?: any) {
   return json({ error: message, ...(extra ? { detail: extra } : {}) }, status);
 }
@@ -54,13 +56,29 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     municipio,
     tipo_persona,
     id_usuario_admin,
+    estado_persona,
   } = body;
 
   const conn = await db.getConnection();
   try {
     console.log('✏️ Actualizando persona ID:', id);
+    console.log('📤 Body recibido:', body);
 
-    await conn.query('CALL mydb.sp_personas_actualizar(?,?,?,?,?,?,?,?,?,?,?,?)', [
+    // ✅ Verificar que el estado sea numérico
+    let estadoId = estado_persona;
+    if (typeof estado_persona === 'string') {
+      const mapaEstados: Record<string, number> = {
+        ACTIVA: 1,
+        ELIMINADA: 2,
+        INACTIVA: 2,
+      };
+      estadoId = mapaEstados[estado_persona.toUpperCase()] ?? 1;
+    }
+
+    console.log('🔄 Estado convertido a ID:', estadoId);
+
+    // ✅ Llamada corregida (13 parámetros)
+    await conn.query('CALL mydb.sp_personas_actualizar(?,?,?,?,?,?,?,?,?,?,?,?,?)', [
       id,
       nombres,
       apellidos,
@@ -73,6 +91,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       municipio,
       tipo_persona,
       id_usuario_admin,
+      estadoId,
     ]);
 
     return json({ message: 'Persona actualizada correctamente', id }, 200);
@@ -84,18 +103,14 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
+
 /* ==============================================
    🔹 DELETE /api/personas/:id?idUsuarioAdmin=10
    ============================================== */
-export async function DELETE(req: Request, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params; // 👈 aquí esperas la promesa correctamente
-  const idPersona = Number(id);
-
-  const { searchParams } = new URL(req.url);
-  const idUsuarioAdmin = Number(searchParams.get('idUsuarioAdmin'));
-
-  if (!idPersona) {
-    return new Response(JSON.stringify({ error: 'ID de persona inválido' }), {
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+  const id = Number(params.id);
+  if (!id || isNaN(id)) {
+    return new Response(JSON.stringify({ ok: false, error: 'ID inválido' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -103,34 +118,18 @@ export async function DELETE(req: Request, context: { params: Promise<{ id: stri
 
   const conn = await db.getConnection();
   try {
-    console.log('🗑 Eliminando persona ID:', idPersona);
-    const [resultSets]: any = await conn.query(
-      'CALL mydb.sp_personas_eliminar(?, ?)',
-      [idPersona, idUsuarioAdmin]
-    );
-    await conn.query('DO 1'); // limpia resultsets abiertos
+    await conn.query('CALL mydb.sp_personas_eliminar(?, ?)', [id, 1]); // id, idUsuarioAdmin (ejemplo)
 
-    return new Response(
-      JSON.stringify({ message: 'Persona eliminada correctamente', id: idPersona }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ ok: true, message: 'Persona eliminada correctamente' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (e: any) {
-    // Manejo elegante de error de FK
-    if (e.code === 'ER_ROW_IS_REFERENCED_2') {
-      return new Response(
-        JSON.stringify({
-          error:
-            'No se puede eliminar la persona porque tiene registros asociados (clientes, encomiendas, etc.).',
-        }),
-        { status: 409, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-
     console.error('❌ Error en DELETE /personas/[id]:', e?.sqlMessage || e?.message);
-    return new Response(
-      JSON.stringify({ error: e?.sqlMessage || e?.message }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ ok: false, error: e?.sqlMessage || e?.message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } finally {
     conn.release();
   }

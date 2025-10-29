@@ -1,0 +1,88 @@
+/* Contenedor general */
+.form-wrapper {
+  padding: 2rem 3rem;
+  max-width: 1100px;
+  margin-left: 2rem;
+}
+
+/* Header */
+.header-reservacion {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+/* Tarjeta principal */
+.card-form {
+  background-color: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  padding: 2rem;
+}
+
+/* Panel lateral */
+.panel-lateral {
+  background-color: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Bloque de políticas */
+.politicas {
+  background-color: #f9fafb;
+  border-left: 4px solid #6366f1;
+  border-radius: 0.5rem;
+  padding: 1rem 1.5rem;
+}
+
+/* Inputs */
+.input-std,
+.p-dropdown,
+.p-inputtext,
+.p-calendar {
+  height: 3rem;
+  display: flex;
+  align-items: center;
+}
+
+/* Botones */
+.custom-button {
+  color: #6366F1 !important;
+  background-color: white !important;
+  border: 1px solid white !important;
+  transition: background-color 0.2s ease;
+}
+
+.custom-button:hover {
+  background-color: #f3f4f6 !important;
+}
+
+/* ================================
+   Campo de Precio (solo lectura)
+================================ */
+.input-precio {
+  width: 60%;
+  font-weight: 600;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+  border-radius: 0.4rem;
+  padding: 0.6rem 0.10rem;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input-precio:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+}
+
+.input-precio[readonly] {
+  background-color: #f9fafb;
+  cursor: not-allowed;
+}

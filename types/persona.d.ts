@@ -1,5 +1,6 @@
 // 📁 /types/persona.ts
 
+
 export interface Persona {
   Id_Persona: number;
   Nombres: string;
@@ -7,13 +8,16 @@ export interface Persona {
   DNI: string;
   Telefono: string;
   Fecha_Nacimiento: string;
-  Genero: string;        // Descripción (e.g., "Masculino")
-  TipoPersona: string;   // Descripción (e.g., "Cliente")
+  Genero: string | number;        // Descripción (e.g., "Masculino")
+  TipoPersona: string | number; // Descripción (e.g., "Cliente")
   Correo: string;
   Departamento: string;
   Municipio: string;
   Rol_Sistema?: string;
   Estado_Usuario?: string;
+  EstadoPersona?: string | number; // 
+
+  
 }
 
 /* =======================================
