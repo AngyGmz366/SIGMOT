@@ -25,20 +25,57 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
   const [rolUsuario, setRolUsuario] = useState<string>('Rol');
   const [foto, setFoto] = useState<string>('demo/images/default-user.png');
 
-  // 🧩 Cargar datos reales del usuario logueado
+    // 🧩 Cargar datos reales del usuario logueado
   useEffect(() => {
     const idUsuario = localStorage.getItem('idUsuario');
     if (!idUsuario) return;
 
     axios.get(`/api/usuarios/${idUsuario}`)
-      .then((res) => {
+      .then(async (res) => {
         if (res.data.ok) {
           const user = res.data.data;
+          console.log('🧩 Datos del usuario:', user);
+
           const nombreCompleto = `${user.nombre || ''} ${user.apellido || ''}`.trim();
           const rolLimpio = (user.rol || '').charAt(0).toUpperCase() + (user.rol || '').slice(1).toLowerCase();
+
           setNombreUsuario(nombreCompleto || 'Usuario');
           setRolUsuario(rolLimpio || 'Usuario');
           setFoto(user.fotoPerfil || 'demo/images/default-user.png');
+
+          // 🟣 Buscar el ID del rol por su nombre
+          let idRol: number | null = null;
+          try {
+            const rolesResp = await axios.get('/api/seguridad/roles');
+            if (rolesResp.data.ok) {
+              const roles = rolesResp.data.data;
+              const rolEncontrado = roles.find((r: any) => 
+                r.nombre.toLowerCase() === rolLimpio.toLowerCase()
+              );
+              if (rolEncontrado) idRol = rolEncontrado.id;
+            }
+          } catch (err) {
+            console.error('❌ Error al obtener roles:', err);
+          }
+
+          // 🔹 Obtener permisos del rol actual
+          if (idRol) {
+            axios.get(`/api/seguridad/permisos?rol=${idRol}`)
+              .then((resp) => {
+                if (resp.data.ok && Array.isArray(resp.data.data)) {
+                  console.log('✅ Permisos cargados para el rol:', rolLimpio, resp.data.data);
+                  localStorage.setItem('permisosUsuario', JSON.stringify(resp.data.data));
+                  // 🔁 Dispara evento para que AppMenu se actualice al instante
+                  window.dispatchEvent(new Event('permisos-actualizados'));
+
+                } else {
+                  console.warn('⚠️ Respuesta inesperada de permisos:', resp.data);
+                }
+              })
+              .catch((err) => console.error('❌ Error al cargar permisos:', err));
+          } else {
+            console.warn('⚠️ No se pudo identificar el ID del rol');
+          }
 
           // Guardar en localStorage (por si se recarga la página)
           localStorage.setItem('nombreUsuario', nombreCompleto);
@@ -48,6 +85,8 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
       })
       .catch((err) => console.error('Error al cargar datos de usuario:', err));
   }, []);
+
+
 
   useImperativeHandle(ref, () => ({
     menubutton: menubuttonRef.current,
