@@ -34,17 +34,6 @@ export default function RutaSelector({ formData, setFormData }: any) {
             dateFormat="dd/mm/yy"
           />
         </div>
-
-        <div>
-          <label className="block mb-2 font-medium">Hora</label>
-          <Dropdown
-            value={formData.hora}
-            options={horas.map(h => ({label: h, value: h}))}
-            onChange={(e) => setFormData({...formData, hora: e.value})}
-            placeholder="Seleccione hora"
-            className="w-full"
-          />
-        </div>
       </div>
     </>
   );
