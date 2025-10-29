@@ -1,0 +1,42 @@
+@use "@/styles/variables" as *;
+
+.rutas {
+  padding: 6rem 2rem 4rem;
+  text-align: center;
+  background: #eaf0ff;
+
+  h1 {
+    color: #000048;
+    margin-bottom: 2rem;
+  }
+
+  .tabla {
+    overflow-x: auto;
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      max-width: 1000px;
+      margin: 0 auto;
+      background: $white;
+      border-radius: $radius;
+      box-shadow: $shadow;
+    }
+
+    th {
+      background: #E0DB77;
+      color: $white;
+      padding: 1rem;
+    }
+
+    td {
+      padding: 1rem;
+      border-bottom: 1px solid #eee;
+    }
+
+    tr:hover {
+      background: #D7EDFC;
+    }
+  }
+}
+

@@ -1,0 +1,81 @@
+@use "@/styles/variables" as *;
+
+.nosotros {
+  padding-top: 6rem;
+  text-align: center;
+  background: $white;
+  color: $dark;
+
+  .section {
+    padding: 4rem 2rem;
+
+    h1 {
+      color: #000048;
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+
+    p {
+      max-width: 800px;
+      margin: 0 auto;
+      line-height: 1.8;
+    }
+
+    .brand {
+      color: #000048;
+      font-weight: bold;
+    }
+  }
+
+  .misionvision {
+    background: #eaf0ff;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2rem;
+    padding: 4rem 2rem;
+
+    div {
+      background: $white;
+      border-radius: $radius;
+      box-shadow: $shadow;
+      padding: 2rem;
+      flex: 1 1 300px;
+      max-width: 400px;
+
+      h2 {
+        color: #000048;
+      }
+
+      p {
+        line-height: 1.6;
+      }
+    }
+  }
+
+  .stats {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 3rem;
+    padding: 4rem 2rem;
+
+    div {
+      background: $white;
+      border-radius: $radius;
+      box-shadow: $shadow;
+      padding: 2rem;
+      text-align: center;
+
+      h3 {
+        color: #000048;
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      span {
+        color: $gray;
+      }
+    }
+  }
+}
