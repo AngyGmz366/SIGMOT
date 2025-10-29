@@ -3,10 +3,13 @@ import { getSafeConnection } from '@/lib/db_api';
 
 export const runtime = 'nodejs';
 
-/* ===== GET: listar todos los clientes ===== */
+/* ============================================
+   🔹 GET: listar todos los clientes
+   Soporta ?estado=1 o ?estado=2 (FK del catálogo)
+============================================ */
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const estado = url.searchParams.get('estado'); // puede ser Activo, Inactivo o null
+  const estado = url.searchParams.get('estado'); // puede ser 1 (ACTIVO), 2 (INACTIVO) o null
 
   const conn = await getSafeConnection();
   try {
@@ -20,21 +23,22 @@ export async function GET(req: Request) {
           p.Apellidos,
           ''
         ) AS nombre,
-        c.Estado
+        e.Estado_Cliente AS estado,
+        e.Id_EstadoCliente_PK AS id_estado_cliente
       FROM TBL_CLIENTES c
-      LEFT JOIN TBL_PERSONAS p ON p.Id_Persona_PK = c.Id_Persona_FK
-      ${estado && estado !== 'Todos' ? 'WHERE c.Estado = ?' : ''}
+      JOIN TBL_PERSONAS p ON p.Id_Persona_PK = c.Id_Persona_FK
+      JOIN TBL_ESTADO_CLIENTE e ON e.Id_EstadoCliente_PK = c.Id_EstadoCliente_FK
+      ${estado && estado !== 'Todos' ? 'WHERE c.Id_EstadoCliente_FK = ?' : ''}
       ORDER BY nombre ASC
       LIMIT 500
     `;
 
-    const [rows]: any = await conn.query(query, estado && estado !== 'Todos' ? [estado] : []);
+    const [rows]: any = await conn.query(
+      query,
+      estado && estado !== 'Todos' ? [estado] : []
+    );
 
-   return new Response(JSON.stringify({ items: rows }, null, 2), {
-  status: 200,
-  headers: { 'Content-Type': 'application/json; charset=utf-8' },
-});
-
+    return NextResponse.json({ items: rows }, { status: 200 });
   } catch (err: any) {
     console.error('❌ GET /api/clientes:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
@@ -43,17 +47,22 @@ export async function GET(req: Request) {
   }
 }
 
-
-/* ===== POST: crear nuevo cliente ===== */
+/* ============================================
+   🔹 POST: crear nuevo cliente
+============================================ */
 export async function POST(req: Request) {
-  const { Id_Persona_FK, Estado } = await req.json();
+  const { Id_Persona_FK, Id_EstadoCliente_FK } = await req.json();
 
-  if (!Id_Persona_FK || !Estado)
-    return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 });
+  if (!Id_Persona_FK || !Id_EstadoCliente_FK) {
+    return NextResponse.json(
+      { error: 'Faltan campos requeridos (Id_Persona_FK, Id_EstadoCliente_FK)' },
+      { status: 400 }
+    );
+  }
 
   const conn = await getSafeConnection();
   try {
-    // 🔹 Asignar rol Cliente automáticamente
+    // 🔹 Asegurar que la persona tenga el rol de "Cliente"
     await conn.query(
       `UPDATE TBL_MS_USUARIO
        SET Id_Rol_FK = 3
@@ -61,21 +70,21 @@ export async function POST(req: Request) {
       [Id_Persona_FK]
     );
 
-    // 🔹 Llamar al SP para crear cliente
+    // 🔹 Crear cliente usando SP
     const [result]: any = await conn.query(
-      'CALL mydb.sp_clientes_crear(?, ?)',
-      [Id_Persona_FK, Estado]
+      `CALL mydb.sp_clientes_crear(?, ?)`,
+      [Id_Persona_FK, Id_EstadoCliente_FK]
     );
 
-    const resRow = Array.isArray(result[0]) ? result[0][0] : result[0];
+    const msg =
+      Array.isArray(result[0]) && result[0][0]?.Mensaje
+        ? result[0][0].Mensaje
+        : 'Cliente creado correctamente';
 
-    return NextResponse.json(
-      { message: 'Cliente creado correctamente', result: resRow },
-      { status: 201 }
-    );
+    return NextResponse.json({ message: msg }, { status: 201 });
   } catch (err: any) {
     console.error('❌ POST /api/clientes:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: err.sqlMessage || err.message }, { status: 500 });
   } finally {
     conn.release();
   }

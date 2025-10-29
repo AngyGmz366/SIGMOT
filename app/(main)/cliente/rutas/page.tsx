@@ -54,13 +54,20 @@ export default function PageRutas() {
   }, []);
 
   // 🔹 Acción al presionar "Reservar"
-  const onReservar = async (r: RutaPublica) => {
-    console.log("🎫 Reservando ruta:", r);
-    setRutaSeleccionada(r);
+const onReservar = async (r: RutaPublica) => {
+  // Aquí guardás la ruta seleccionada antes de redirigir
+  localStorage.setItem('rutaSeleccionada', JSON.stringify({
+    idRuta: r.id,
+    nombre: `${r.origen} → ${r.destino}`,
+    origen: r.origen,
+    destino: r.destino,
+    precio: r.precio,
+  }));
 
-    await new Promise((res) => setTimeout(res, 400));
-    router.push("/cliente/reservacion");
-  };
+  // Luego redirigís
+  router.push("/cliente/reservacion/nueva");
+};
+
 
   // 🔹 Manejar selección de ruta (solo para mostrar info)
   const onSeleccionarRuta = (r: RutaPublica) => {

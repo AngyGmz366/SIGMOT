@@ -5,146 +5,111 @@ import FormReservacion from "./components/FormReservacion";
 import { Dialog } from "primereact/dialog";
 import { ReservacionBase } from "./components/types";
 import { Toast } from "primereact/toast";
+
 import "primereact/resources/themes/lara-light-indigo/theme.css";
 import "primereact/resources/primereact.min.css";
 import "primeicons/primeicons.css";
 import "primeflex/primeflex.css";
 
-/* =======================
-   🔗 Helpers HTTP
-======================= */
+/* Helpers HTTP */
 async function apiGet<T>(url: string): Promise<T> {
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
-
 async function apiDelete(url: string): Promise<void> {
   const res = await fetch(url, { method: "DELETE" });
   if (!res.ok) throw new Error(await res.text());
 }
-
 async function apiPost<T>(url: string, body: any): Promise<T> {
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error || "Error al guardar");
+  return json;
 }
-
 async function apiPut<T>(url: string, body: any): Promise<T> {
   const res = await fetch(url, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error || "Error al actualizar");
+  return json;
 }
 
-/* =======================
-   🌐 Componente principal
-======================= */
+/* Componente principal */
 export default function ReservacionesPage() {
   const [reservaciones, setReservaciones] = useState<ReservacionBase[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingReserva, setEditingReserva] = useState<ReservacionBase | null>(null);
   const toast = useRef<Toast>(null);
 
-  /* 🟢 Carga inicial */
-  useEffect(() => {
-    (async () => {
-      try {
-        const data = await apiGet<{ items: ReservacionBase[] }>("/api/reservas?limit=50");
-        setReservaciones(Array.isArray(data?.items) ? data.items : []);
-      } catch (err) {
-        console.error("Error cargando reservaciones:", err);
-        toast.current?.show({
-          severity: "warn",
-          summary: "Aviso",
-          detail: "No se pudieron cargar las reservaciones desde el servidor.",
-          life: 3000,
-        });
-      }
-    })();
-  }, []);
-
-  /* 🟡 Crear o editar */
-  const handleSave = async (data: ReservacionBase) => {
+  /* 🔁 Función para recargar la lista */
+  const cargarReservaciones = async () => {
     try {
-
-      if (data.tipo === 'viaje') {
-      data.id_encomienda = null;
-      data.costo = null;
-    } else if (data.tipo === 'encomienda') {
-      data.id_viaje = null;
-      data.id_asiento = null;
-    }
-
-      if (editingReserva && editingReserva.id && !data.dni) {
-      data.dni = editingReserva.dni;
-    }
-
-    // 'id_encomienda' is not declared on ReservacionBase; use a narrow any-cast only for that property access
-    if (editingReserva && editingReserva.id && data.tipo === 'encomienda' && !(data as any).id_encomienda) {
-      (data as any).id_encomienda = (editingReserva as any).id_encomienda ?? editingReserva.id;
-    }
-
-      if (editingReserva && editingReserva.id) {
-        // 🔁 Actualizar
-        await apiPut(`/api/reservas/${encodeURIComponent(editingReserva.id)}`, data);
-        setReservaciones((prev) =>
-          prev.map((r) => (r.id === editingReserva.id ? { ...r, ...data } : r))
-        );
-        showSuccess("Reservación actualizada correctamente");
-      } else {
-        // 🆕 Crear
-        const res = await apiPost<{ id: string }>("/api/reservas", data);
-        const nueva = { ...data, id: res.id || Date.now().toString() };
-        setReservaciones((prev) => [...prev, nueva]);
-        showSuccess("Reservación creada correctamente");
-      }
+      const data = await apiGet<{ items: ReservacionBase[] }>("/api/reservas?limit=50");
+      setReservaciones(Array.isArray(data?.items) ? data.items : []);
     } catch (err) {
-      console.error("Error guardando reservación:", err);
-      toast.current?.show({
-        severity: "error",
-        summary: "Error",
-        detail: "No se pudo guardar la reservación. Verifique los datos.",
-        life: 3000,
-      });
-    } finally {
-      setShowForm(false);
-      setEditingReserva(null); // 🔹 Limpia modo edición
+      console.error("Error cargando reservaciones:", err);
+      showToast("warn", "No se pudieron cargar las reservaciones.");
     }
   };
 
-  /* 🔴 Eliminar */
+  /* 🟢 Carga inicial */
+  useEffect(() => {
+    cargarReservaciones();
+  }, []);
+
+  /* Guardar (crear o actualizar) */
+  const handleSave = async (data: ReservacionBase) => {
+    try {
+      if (!data.tipo) data.tipo = "viaje";
+      if (!data.dni) throw new Error("El DNI es obligatorio");
+
+      const cleanData = {
+        ...data,
+        fecha: data.fecha ? new Date(data.fecha).toISOString() : new Date().toISOString(),
+      };
+
+      if (editingReserva && editingReserva.id) {
+        await apiPut(`/api/reservas/${encodeURIComponent(editingReserva.id)}`, cleanData);
+        showToast("success", "Reservación actualizada correctamente");
+      } else {
+        await apiPost("/api/reservas", cleanData);
+        showToast("success", "Reservación creada correctamente");
+      }
+
+      // 🔄 Recargar datos actualizados desde el servidor
+      await cargarReservaciones();
+    } catch (err: any) {
+      console.error("Error guardando reservación:", err);
+      showToast("error", err.message || "No se pudo guardar la reservación.");
+    } finally {
+      setShowForm(false);
+      setEditingReserva(null);
+    }
+  };
+
+  /* Eliminar */
   const handleDelete = async (id: string) => {
     try {
       await apiDelete(`/api/reservas/${encodeURIComponent(id)}`);
-      setReservaciones((prev) => prev.filter((r) => r.id !== id));
-      showSuccess("Reservación eliminada correctamente");
-    } catch (err) {
-      console.error("Error eliminando en API:", err);
-      toast.current?.show({
-        severity: "warn",
-        summary: "Aviso",
-        detail: "No se pudo eliminar en el servidor. Se eliminó localmente.",
-        life: 3000,
-      });
-      setReservaciones((prev) => prev.filter((r) => r.id !== id));
+      showToast("success", "Reservación eliminada correctamente");
+      // 🔄 Recargar después de eliminar
+      await cargarReservaciones();
+    } catch (err: any) {
+      console.error("Error eliminando reservación:", err);
+      showToast("error", err.message || "No se pudo eliminar la reservación.");
     }
   };
 
-  const showSuccess = (message: string) => {
-    toast.current?.show({
-      severity: "success",
-      summary: "Éxito",
-      detail: message,
-      life: 3000,
-    });
+  const showToast = (severity: "success" | "error" | "warn", message: string) => {
+    toast.current?.show({ severity, summary: severity.toUpperCase(), detail: message, life: 3000 });
   };
 
   return (
@@ -155,21 +120,19 @@ export default function ReservacionesPage() {
         reservaciones={reservaciones}
         onDelete={handleDelete}
         onAdd={async (reserva) => {
-  if (reserva) {
-    try {
-      // 🔹 Llama al detalle para obtener todos los datos (dni, ids, etc.)
-      const full = await apiGet<ReservacionBase>(`/api/reservas/${reserva.id}`);
-      setEditingReserva(full); // 👈 aquí guardas la versión completa
-      setShowForm(true);
-    } catch (err) {
-      console.error('Error obteniendo detalle de la reserva:', err);
-    }
-  } else {
-    setEditingReserva(null);
-    setShowForm(true);
-  }
-}}
-
+          if (reserva) {
+            try {
+              const full = await apiGet<ReservacionBase>(`/api/reservas/${reserva.id}`);
+              setEditingReserva(full);
+              setShowForm(true);
+            } catch {
+              showToast("error", "No se pudo obtener el detalle de la reserva.");
+            }
+          } else {
+            setEditingReserva(null);
+            setShowForm(true);
+          }
+        }}
       />
 
       <Dialog
@@ -183,7 +146,7 @@ export default function ReservacionesPage() {
         breakpoints={{ "960px": "75vw", "640px": "90vw" }}
       >
         <FormReservacion
-          initialData={editingReserva ?? undefined} // 👈 pasa la reserva completa
+          initialData={editingReserva ?? undefined}
           onSave={handleSave}
           onCancel={() => {
             setShowForm(false);

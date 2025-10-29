@@ -9,13 +9,9 @@ import { Column } from 'primereact/column';
 import { InputText } from 'primereact/inputtext';
 import { FilterMatchMode } from 'primereact/api';
 import PersonaModal from '@/app/(main)/components/PersonaModal';
-
+import { Tag } from 'primereact/tag';
 import { Persona } from '@/types/persona';
-import {
-  cargarPersonas,
-  guardarPersona,
-  eliminarPersona ,
-} from '@/modulos/personas/controlador/personas.controlador';
+import { cargarPersonas, guardarPersona, eliminarPersona } from '@/modulos/personas/controlador/personas.controlador';
 
 export default function PersonasPage() {
   const toast = useRef<Toast>(null);
@@ -30,19 +26,21 @@ export default function PersonasPage() {
 
   const [personaDialogVisible, setPersonaDialogVisible] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [persona, setPersona] = useState<Persona>({
-    Id_Persona: 0,
-    Nombres: '',
-    Apellidos: '',
-    DNI: '',
-    Telefono: '',
-    Fecha_Nacimiento: '',
-    Genero: '',
-    TipoPersona: '',
-    Correo: '',
-    Departamento: '',
-    Municipio: '',
-  });
+ const [persona, setPersona] = useState<Persona>({
+  Id_Persona: 0,
+  Nombres: '',
+  Apellidos: '',
+  DNI: '',
+  Telefono: '',
+  Fecha_Nacimiento: '',
+  Genero: '',           
+  TipoPersona: '',
+  EstadoPersona: 1,     
+  Correo: '',
+  Departamento: '',
+  Municipio: '',
+});
+
 
   /* ============================
      🔹 Cargar personas
@@ -71,6 +69,7 @@ export default function PersonasPage() {
   ============================ */
   const savePersona = async () => {
     setSubmitted(true);
+
     if (!persona.Nombres?.trim() || !persona.Apellidos?.trim()) {
       toast.current?.show({
         severity: 'warn',
@@ -82,7 +81,9 @@ export default function PersonasPage() {
     }
 
     try {
-      await guardarPersona(persona);
+      console.log('Persona a guardar:', persona);
+      await guardarPersona(persona); // Verifica si aquí estás enviando `EstadoPersona`
+
       toast.current?.show({
         severity: 'success',
         summary: persona.Id_Persona ? 'Actualizada' : 'Creada',
@@ -91,6 +92,7 @@ export default function PersonasPage() {
           : 'Persona registrada correctamente',
         life: 3000,
       });
+
       setPersonaDialogVisible(false);
       cargarLista();
     } catch (e: any) {
@@ -104,11 +106,15 @@ export default function PersonasPage() {
     }
   };
 
-const eliminarSeleccionadas = async () => {
+  /* ============================
+     🔹 Eliminar seleccionadas
+  ============================ */
+ const eliminarSeleccionadas = async () => {
   if (!selectedPersonas || selectedPersonas.length === 0) return;
 
   try {
-    const idUsuarioAdmin = 8; // ✅ este funciona y deja bitácora
+    const idUsuarioAdmin = 8;
+
     for (const p of selectedPersonas) {
       await eliminarPersona(p.Id_Persona, idUsuarioAdmin);
     }
@@ -120,7 +126,10 @@ const eliminarSeleccionadas = async () => {
       life: 3000,
     });
 
-    await cargarPersonas();
+    // ✅ Recargar inmediatamente la lista desde el backend
+    await cargarLista();
+
+    // ✅ Limpiar selección
     setSelectedPersonas(null);
   } catch (err: any) {
     console.error('❌ Error al eliminar:', err);
@@ -133,12 +142,29 @@ const eliminarSeleccionadas = async () => {
   }
 };
 
+
   /* ============================
      🔹 Body Templates
   ============================ */
-  const correoBodyTemplate = (rowData: Persona) => (
-    <span>{rowData.Correo || '—'}</span>
-  );
+const correoBodyTemplate = (rowData: Persona) => {
+  return <span>{rowData.Correo || '—'}</span>;
+};
+
+
+
+const estadoPersonaTemplate = (rowData: Persona) => {
+  const estado = (rowData.Estado_Usuario || '').toUpperCase();
+
+  if (estado === 'ACTIVA') {
+    return <Tag value="Activa" severity="success" icon="pi pi-check-circle" />;
+  } else if (estado === 'ELIMINADA' || estado === 'INACTIVA') {
+    return <Tag value="Eliminada" severity="danger" icon="pi pi-times-circle" />;
+  }
+
+  // En caso de no tener estado definido
+  return <Tag value="N/A" severity="warning" icon="pi pi-exclamation-triangle" />;
+};
+
 
   const actionBodyTemplate = (rowData: Persona) => (
     <div className="flex gap-2">
@@ -147,11 +173,22 @@ const eliminarSeleccionadas = async () => {
         rounded
         text
         severity="warning"
-        onClick={() => {
-          setPersona(rowData);
-          setSubmitted(false);
-          setPersonaDialogVisible(true);
-        }}
+      onClick={() => {
+  const tipoPersonaMap: Record<string, number> = { Cliente: 1, Empleado: 2 };
+  const generoMap: Record<string, number> = { Masculino: 1, Femenino: 2 };
+  const estadoMap: Record<string, number> = { ACTIVA: 1, ELIMINADA: 2 };
+
+  setPersona({
+    ...rowData,
+    Genero: generoMap[rowData.Genero as keyof typeof generoMap] ?? '',
+    TipoPersona: tipoPersonaMap[rowData.TipoPersona as keyof typeof tipoPersonaMap] ?? '',
+    EstadoPersona: estadoMap[rowData.Estado_Usuario?.toUpperCase() || 'ACTIVA'] ?? 1,
+  });
+
+  setSubmitted(false);
+  setPersonaDialogVisible(true);
+}}
+
         tooltip="Editar"
         tooltipOptions={{ position: 'top' }}
         aria-label="Editar persona"
@@ -159,9 +196,6 @@ const eliminarSeleccionadas = async () => {
     </div>
   );
 
-  /* ============================
-     🔹 Header y Toolbars
-  ============================ */
   const header = (
     <div className="flex flex-wrap align-items-center justify-content-between gap-2">
       <h4 className="m-0">Gestión de Personas</h4>
@@ -216,9 +250,6 @@ const eliminarSeleccionadas = async () => {
     </div>
   );
 
-  /* ============================
-     🔹 Render principal
-  ============================ */
   return (
     <div className="grid crud-demo">
       <div className="col-12">
@@ -241,27 +272,18 @@ const eliminarSeleccionadas = async () => {
             emptyMessage="No se encontraron personas."
             selectionMode="multiple"
           >
-            <Column selectionMode="multiple" headerStyle={{ width: '3rem' }} />
+         <Column
+             selectionMode="multiple"
+             headerStyle={{ width: '3rem' }}
+             style={{ textAlign: 'center' }}
+           />
             <Column field="Nombres" header="Nombres" sortable />
             <Column field="Apellidos" header="Apellidos" sortable />
             <Column field="DNI" header="DNI" sortable />
             <Column field="Telefono" header="Teléfono" sortable />
-            <Column
-              field="Correo"
-              header="Correo Electrónico"
-              body={correoBodyTemplate}
-              sortable
-            />
-            <Column field="Genero" header="Género" sortable />
-            <Column field="TipoPersona" header="Tipo Persona" sortable />
-            <Column field="Departamento" header="Departamento" sortable />
-            <Column field="Municipio" header="Municipio" sortable />
-            <Column
-              body={actionBodyTemplate}
-              header="Acciones"
-              exportable={false}
-              style={{ minWidth: '8rem' }}
-            />
+            <Column field="Correo" header="Correo Electrónico" body={correoBodyTemplate} sortable />
+            <Column body={estadoPersonaTemplate} header="Estado" />
+            <Column body={actionBodyTemplate} header="Acciones" exportable={false} style={{ minWidth: '8rem' }} />
           </DataTable>
 
           <PersonaModal

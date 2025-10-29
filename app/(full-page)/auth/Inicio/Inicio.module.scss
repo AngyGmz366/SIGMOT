@@ -1,0 +1,283 @@
+@use "@/styles/variables" as *;
+
+.inicio {
+  font-family: 'Segoe UI', sans-serif;
+  color: #222;
+  scroll-behavior: smooth;
+}
+
+/* Hero principal */
+.hero {
+  background: linear-gradient(180deg, #000048 70%, #c6dbff);
+  color: white;
+  text-align: center;
+  padding: 10rem 2rem 6rem;
+
+  .heroContent {
+    max-width: 800px;
+    margin: 0 auto;
+
+    /* 🔹 Nuevo: logo centrado arriba del título */
+    .logo {
+      width: 130px;
+      height: auto;
+      margin: 0 auto 1.5rem;
+      animation: fadeIn 1.5s ease, float 5s ease-in-out infinite;
+      filter: drop-shadow(0 2px 4px rgba(255, 255, 255, 0.4));
+    }
+
+    h2 {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      color: #ffffff;
+    }
+
+    p {
+      font-size: 1.2rem;
+      margin-bottom: 2rem;
+      line-height: 1.6;
+      color: #e9e9ff;
+    }
+
+    .heroButton {
+      background: white;
+      color: #000048;
+      padding: 0.8rem 2rem;
+      border-radius: 30px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: background 0.3s ease;
+
+      &:hover {
+        background: #c6dbff;
+        color: #000048;
+      }
+    }
+  }
+}
+
+/* 🔹 Animaciones del logo */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* Nuestras Unidades */
+.unidades {
+  padding: 5rem 2rem;
+  text-align: center;
+  background: #f7f9ff;
+
+  h2 {
+    color: #000048;
+    margin-bottom: 2rem;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+
+    .card {
+      position: relative;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.4s ease, box-shadow 0.4s ease;
+
+      &:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+
+        img {
+          transform: scale(1.1);
+          filter: brightness(0.8);
+        }
+
+        p {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Imagen con animación */
+      img {
+        width: 100%;
+        height: 350px;
+        object-fit: cover;
+        transition: transform 0.6s ease, filter 0.4s ease;
+      }
+
+      /* Texto descriptivo animado */
+      p {
+        position: absolute;
+        bottom: 1rem;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-weight: 600;
+        color: #ffffff;
+        background: rgba(0, 0, 72, 0.65);
+        padding: 0.7rem 1rem;
+        border-radius: 0 0 12px 12px;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.4s ease;
+      }
+    }
+  }
+}
+
+/* Servicios / Por qué elegirnos */
+.servicios {
+  background: #eaf0ff;
+  padding: 5rem 2rem;
+  text-align: center;
+
+  h2 {
+    color: #000048;
+    margin-bottom: 2rem;
+  }
+
+  .serviciosGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+
+    .servicio {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      transition: all 0.35s ease;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+
+      &:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 8px 20px rgba(0, 0, 72, 0.15);
+        border: 1px solid #000048;
+
+        i {
+          transform: rotate(10deg) scale(1.1);
+          color: #000048;
+        }
+      }
+
+      i {
+        font-size: 2.5rem;
+        color: #000048;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+      }
+
+      h3 {
+        color: #000048;
+        margin-bottom: 0.5rem;
+        transition: color 0.3s ease;
+      }
+
+      p {
+        color: #444;
+        font-size: 0.95rem;
+      }
+
+      /* Efecto de halo azul sutil */
+      &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 12px;
+        background: radial-gradient(circle at center, rgba(0, 0, 72, 0.05) 0%, transparent 70%);
+        opacity: 0;
+        transition: opacity 0.4s ease;
+      }
+
+      &:hover::after {
+        opacity: 1;
+      }
+    }
+  }
+}
+
+/* Contacto y Horarios */
+.contacto {
+  background: white;
+  padding: 4rem 2rem;
+
+  .contactoWrapper {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 3rem;
+    text-align: center;
+
+    .horarios,
+    .info {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem 3rem;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+
+      h3 {
+        color: #000048;
+        margin-bottom: 1rem;
+      }
+
+      p {
+        margin: 0.3rem 0;
+        color: #333;
+      }
+
+      i {
+        color: #000048;
+        margin-right: 0.5rem;
+      }
+    }
+  }
+}
+
+/* Ajustes responsivos */
+@media (max-width: 768px) {
+  .hero {
+    padding-top: 8rem;
+
+    .heroContent {
+      h2 {
+        font-size: 2.3rem;
+      }
+      p {
+        font-size: 1rem;
+      }
+    }
+  }
+
+  .unidades,
+  .servicios,
+  .contacto {
+    padding: 3rem 1rem;
+  }
+
+  .heroContent .logo {
+    width: 100px;
+    margin-bottom: 1rem;
+  }
+}

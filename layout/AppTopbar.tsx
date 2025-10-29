@@ -10,6 +10,7 @@ import { Button } from 'primereact/button';
 import { Menu } from 'primereact/menu';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
+import axios from 'axios';
 import { logoutClient } from '@/lib/auth/logoutClient';
 
 const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
@@ -22,16 +23,30 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
 
   const [nombreUsuario, setNombreUsuario] = useState<string>('Usuario');
   const [rolUsuario, setRolUsuario] = useState<string>('Rol');
-  const [foto, setFoto] = useState<string>('/demo/images/gato.jpg');
+  const [foto, setFoto] = useState<string>('demo/images/default-user.png');
 
+  // 🧩 Cargar datos reales del usuario logueado
   useEffect(() => {
-    // 🧩 Simulación de datos (puedes cambiar por localStorage o API real)
-    const nombre = localStorage.getItem('nombreUsuario') || 'Axel Sierra';
-    const rol = localStorage.getItem('rolUsuario') || 'Administrador';
-    const fotoLocal = localStorage.getItem('fotoUsuario') || '/demo/images/gato.jpg';
-    setNombreUsuario(nombre);
-    setRolUsuario(rol);
-    setFoto(fotoLocal);
+    const idUsuario = localStorage.getItem('idUsuario');
+    if (!idUsuario) return;
+
+    axios.get(`/api/usuarios/${idUsuario}`)
+      .then((res) => {
+        if (res.data.ok) {
+          const user = res.data.data;
+          const nombreCompleto = `${user.nombre || ''} ${user.apellido || ''}`.trim();
+          const rolLimpio = (user.rol || '').charAt(0).toUpperCase() + (user.rol || '').slice(1).toLowerCase();
+          setNombreUsuario(nombreCompleto || 'Usuario');
+          setRolUsuario(rolLimpio || 'Usuario');
+          setFoto(user.fotoPerfil || 'demo/images/default-user.png');
+
+          // Guardar en localStorage (por si se recarga la página)
+          localStorage.setItem('nombreUsuario', nombreCompleto);
+          localStorage.setItem('rolUsuario', user.rol || 'Usuario');
+          localStorage.setItem('fotoUsuario', user.fotoPerfil || 'demo/images/default-user.png');
+        }
+      })
+      .catch((err) => console.error('Error al cargar datos de usuario:', err));
   }, []);
 
   useImperativeHandle(ref, () => ({
@@ -40,9 +55,7 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
     topbarmenubutton: topbarmenubuttonRef.current,
   }));
 
- 
- // Cerrar sesión con confirmación elegante (SweetAlert2)
-  
+  // 🔒 Cerrar sesión
   const cerrarSesion = async () => {
     const Swal = (await import('sweetalert2')).default;
     const { signOut } = await import('firebase/auth');
@@ -53,7 +66,7 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
       text: 'Tu sesión actual se cerrará y deberás volver a iniciar.',
       icon: 'question',
       showCancelButton: true,
-      confirmButtonColor: '#6366F1', // Morado SIGMOT
+      confirmButtonColor: '#6366F1',
       cancelButtonColor: '#d33',
       confirmButtonText: 'Sí, cerrar sesión',
       cancelButtonText: 'Cancelar',
@@ -62,17 +75,9 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          // 🔹 Cerrar sesión en Firebase (si aplica)
-          try {
-            await signOut(auth);
-          } catch {
-            // Si no estaba logueado con Firebase, continuar normalmente
-          }
-
-          // 🔹 Llamada al backend para cerrar sesión y registrar bitácora
+          await signOut(auth).catch(() => {});
           await fetch('/api/auth/logout', { method: 'POST' });
 
-          // 🔹 Elimina token y datos locales
           Cookies.remove('app_token');
           [
             'idUsuario',
@@ -85,7 +90,6 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
           ].forEach((k) => localStorage.removeItem(k));
           sessionStorage.clear();
 
-          // 🔹 Mensaje de éxito
           await Swal.fire({
             title: 'Sesión cerrada',
             text: 'Has salido del sistema correctamente.',
@@ -95,7 +99,6 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
             showConfirmButton: false,
           });
 
-          // 🔹 Redirección limpia
           router.replace('/auth/Inicio');
         } catch (error) {
           console.error('Error al cerrar sesión:', error);
@@ -110,20 +113,20 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
     });
   };
 
-
-
-  // ⚙️ Menú con cabecera personalizada
+  // ⚙️ Menú superior
   const items = [
     {
       template: () => (
-        <div className="p-3 border-bottom-1 surface-border flex align-items-center gap-3 menu-header">
+        <div className="p-3 border-bottom-1 surface-border flex align-items-center gap-3 menu-header"   onClick={() => router.push('/configuracion/perfil')}
+  >
           <img
-            src={foto}
+            src={foto || 'demo/images/default-user.png'}
             alt="Avatar"
             className="border-circle"
             width={48}
             height={48}
             style={{ objectFit: 'cover' }}
+            onError={(e) => (e.currentTarget.src = 'demo/images/default-user.png')}
           />
           <div className="flex flex-column">
             <span className="font-bold text-900">{nombreUsuario}</span>
@@ -153,7 +156,6 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
 
   return (
     <div className="layout-topbar">
-      {/* 🔹 Logo */}
       <Link
         href="/dashboard"
         className="layout-topbar-logo"
@@ -166,7 +168,7 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
         />
       </Link>
 
-      {/* 🔹 Botón para abrir menú lateral */}
+      {/* Botón menú lateral */}
       <button
         ref={menubuttonRef}
         type="button"
@@ -176,27 +178,25 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
         <i className="pi pi-bars" />
       </button>
 
-      {/* 🔹 Menú superior derecho */}
+      {/* Menú derecho */}
       <div
         ref={topbarmenuRef}
         className={classNames('layout-topbar-menu', {
           'layout-topbar-menu-mobile-active': layoutState.profileSidebarVisible,
         })}
       >
-        {/* ⚙️ Botón de configuración con menú */}
         <button
-        ref={topbarmenubuttonRef}
-        type="button"
-        className="layout-topbar-button p-link"
-        onClick={(e) => menuRef.current?.toggle(e)}
-        aria-controls="config_menu"
-        aria-haspopup="true"
+          ref={topbarmenubuttonRef}
+          type="button"
+          className="layout-topbar-button p-link"
+          onClick={(e) => menuRef.current?.toggle(e)}
+          aria-controls="config_menu"
+          aria-haspopup="true"
         >
-        <i className="pi pi-cog layout-menuitem-icon"></i>
+          <i className="pi pi-cog layout-menuitem-icon"></i>
         </button>
 
         <Menu model={items} popup ref={menuRef} id="config_menu" style={{ minWidth: '230px' }} />
-
       </div>
     </div>
   );

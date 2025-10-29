@@ -1,103 +1,83 @@
-'use client';
-import { InputNumber } from 'primereact/inputnumber';
-import { useState } from 'react';
+import React from "react";
+import { Card } from "primereact/card";
+import { Badge } from "primereact/badge";
+import { Tooltip } from "primereact/tooltip";
+import "./AsientosBus.css";
 
-export default function AsientoSelector({ formData, setFormData }: any) {
-  const [disponibles] = useState<number[]>(
-    Array.from({ length: 40 }, (_, i) => i + 1)
-      .filter(n => ![4, 13, 17, 25, 33].includes(n)) // Asientos ocupados de ejemplo
-  );
+interface Asiento {
+  numero: number;
+  ocupado: boolean;
+}
 
-  const totalAsientos = 40;
+interface AsientosBusProps {
+  asientos: Asiento[];
+}
 
-  const generarMapaBus = () => {
-    const filas: JSX.Element[] = [];
-
-    for (let fila = 0; fila < Math.ceil(totalAsientos / 4); fila++) {
-      const asientoIzq1 = fila * 4 + 1;
-      const asientoIzq2 = fila * 4 + 2;
-      const asientoDer1 = fila * 4 + 3;
-      const asientoDer2 = fila * 4 + 4;
-
-      const celdaAsiento = (numero: number) => {
-        const disponible = disponibles.includes(numero);
-        const seleccionado = numero === formData.asiento;
-        return (
-          <button
-            key={numero}
-            className={`
-              w-10 h-10 rounded-lg text-sm font-semibold
-              flex items-center justify-center border
-              ${seleccionado ? 'bg-blue-500 text-white' :
-                disponible ? 'bg-green-500 text-white hover:bg-green-600' :
-                'bg-red-500 text-white cursor-not-allowed'}
-            `}
-            onClick={() => disponible && setFormData({ ...formData, asiento: numero })}
-            disabled={!disponible}
-          >
-            {numero}
-          </button>
-        );
-      };
-
-      filas.push(
-        <div key={fila} className="grid grid-cols-5 gap-2 justify-items-center">
-          {asientoIzq1 <= totalAsientos ? celdaAsiento(asientoIzq1) : <div />}
-          {asientoIzq2 <= totalAsientos ? celdaAsiento(asientoIzq2) : <div />}
-          <div className="w-10 h-10" /> {/* Pasillo */}
-          {asientoDer1 <= totalAsientos ? celdaAsiento(asientoDer1) : <div />}
-          {asientoDer2 <= totalAsientos ? celdaAsiento(asientoDer2) : <div />}
-        </div>
-      );
-    }
-
-    return filas;
-  };
+const AsientosBus: React.FC<AsientosBusProps> = ({ asientos }) => {
+  // Distribución de asientos con pasillo
+  const filas = [
+    [1, 2, null, 3, 4],
+    [5, 6, null, 7, 8],
+    [9, 10, null, 11, 12],
+    [13, 14, null, 15, 16],
+    [17, 18, null, 19, 20],
+    [21, null, null, null, null]
+  ];
 
   return (
-    <div className="space-y-5">
-      <div>
-        <label className="block mb-2 font-medium">Selección de Asiento</label>
-        <InputNumber
-          value={formData.asiento}
-          onValueChange={(e) => setFormData({ ...formData, asiento: e.value })}
-          className="w-full"
-          placeholder="Número de asiento"
-          min={1}
-          max={40}
-        />
-      </div>
+    <Card title="Asientos Disponibles" className="shadow-2">
+      <div className="bus-layout">
+        {/* Conductor */}
+        <div className="conductor-area">
+          <span className="emoji-bus">🚌</span>
+          <span className="texto-conductor">Conductor</span>
+        </div>
 
-      {/* Conductor */}
-      <div className="flex justify-center items-center mb-4">
-        <div className="flex flex-col items-center">
-          <div className="w-12 h-12 bg-yellow-300 flex justify-center items-center rounded-full shadow">
-            🚌
-          </div>
-          <span className="text-sm mt-1 text-gray-600">Conductor</span>
+        {/* Filas de asientos */}
+        <div className="asientos-container">
+          {filas.map((fila, i) =>
+            fila.map((num, j) => {
+              if (num === null) {
+                return <div key={`p-${i}-${j}`} className="pasillo"></div>;
+              }
+
+              const asiento = asientos.find((a) => a.numero === num);
+              const ocupado = asiento?.ocupado ?? false;
+
+              return (
+                <div
+                  key={num}
+                  className={`asiento ${ocupado ? "ocupado" : "disponible"}`}
+                  data-pr-tooltip={`Asiento ${num} - ${
+                    ocupado ? "Ocupado" : "Disponible"
+                  }`}
+                  data-pr-position="top"
+                >
+                  {num}
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 
-      {/* Mapa de asientos */}
-      <div className="flex flex-col gap-2 items-center">
-        {generarMapaBus()}
-      </div>
+      {/* Tooltip */}
+      <Tooltip target=".asiento" />
 
       {/* Leyenda */}
-      <div className="flex gap-4 mt-4 text-sm justify-center">
-        <div className="flex items-center gap-1">
-          <div className="w-4 h-4 bg-blue-500 rounded-sm" />
-          <span>Seleccionado</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-4 h-4 bg-green-500 rounded-sm" />
-          <span>Disponible</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-4 h-4 bg-red-500 rounded-sm" />
-          <span>Ocupado</span>
-        </div>
+      <div className="leyenda">
+        <Badge
+          value="Disponible"
+          style={{
+            backgroundColor: "#c14242ff",
+            color: "#fff",
+            marginRight: "8px"
+          }}
+        />
+        <Badge value="Ocupado" severity="danger" />
       </div>
-    </div>
+    </Card>
   );
-}
+};
+
+export default AsientosBus;

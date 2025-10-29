@@ -24,6 +24,7 @@ import esLocale from '@fullcalendar/core/locales/es';
 import { Tooltip } from 'primereact/tooltip';
 import { Accordion, AccordionTab } from 'primereact/accordion';
 import { Badge } from 'primereact/badge';
+import { OverlayPanel } from 'primereact/overlaypanel';
 import { listarUnidades } from '@/modulos/unidades/servicios/unidades.servicios';
 import { obtenerTiposMantenimiento } from '@/modulos/mantenimientos/servicios/tipoMantenimiento.servicios';
 import { obtenerEstadosMantenimiento } from '@/modulos/mantenimientos/servicios/estadoMantenimiento.servicios';
@@ -87,7 +88,7 @@ const MantenimientoTransporte = () => {
                     taller: m.taller || '',
                     descripcion: m.descripcion || '',
                     repuestos: m.repuestos || '',
-                    costo: m.costo || 0,
+                    costo: parseFloat(m.costo) || 0,
                 }));
 
                 setServicios(transformados);
@@ -131,7 +132,6 @@ const MantenimientoTransporte = () => {
             clear: 'Limpiar'
         });
     }, []);
-
     useEffect(() => {
         const hoy = new Date();
         const hoySinHora = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
@@ -139,32 +139,104 @@ const MantenimientoTransporte = () => {
         const nuevoResumen = { verde: 0, amarillo: 0, rojo: 0 };
 
         servicios.forEach((s) => {
-            const fechaServicio = new Date(s.fecha);
-            const fechaServicioSinHora = new Date(fechaServicio.getFullYear(), fechaServicio.getMonth(), fechaServicio.getDate());
-            const diferenciaDias = Math.floor((fechaServicioSinHora.getTime() - hoySinHora.getTime()) / (1000 * 60 * 60 * 24));
+            // ============================
+            // 🔸 FECHAS PROGRAMADAS (solo si NO hay fechaRealizada)
+            // ============================
+            if (!s.fechaRealizada && s.fecha) {
+                const fechaServicio = new Date(s.fecha);
+                const fechaServicioSinHora = new Date(
+                    fechaServicio.getFullYear(),
+                    fechaServicio.getMonth(),
+                    fechaServicio.getDate()
+                );
+                const diferenciaDias = Math.floor(
+                    (fechaServicioSinHora.getTime() - hoySinHora.getTime()) / (1000 * 60 * 60 * 24)
+                );
 
-            if (diferenciaDias > 7) {
-                nuevoResumen.verde++;
-                nuevasAlertas.push({ ...s, prioridad: 'lejos', tipo: 'fecha', diasRestantes: diferenciaDias });
-            } else if (diferenciaDias >= 3 && diferenciaDias <= 7) {
-                nuevoResumen.amarillo++;
-                nuevasAlertas.push({ ...s, prioridad: 'proxima', tipo: 'fecha', diasRestantes: diferenciaDias });
-            } else if (diferenciaDias >= 0 && diferenciaDias < 3) {
-                nuevoResumen.rojo++;
-                nuevasAlertas.push({ ...s, prioridad: 'urgente', tipo: 'fecha', diasRestantes: diferenciaDias });
-            } else if (diferenciaDias < 0) {
-                nuevoResumen.rojo++;
-                nuevasAlertas.push({ ...s, prioridad: 'vencido', tipo: 'fecha', diasRestantes: diferenciaDias });
+                if (diferenciaDias > 7) {
+                    nuevoResumen.verde++;
+                    nuevasAlertas.push({
+                        ...s,
+                        prioridad: 'lejos',
+                        tipo: 'fecha',
+                        diasRestantes: diferenciaDias,
+                        mensaje: `Mantenimiento programado para el ${fechaServicioSinHora.toLocaleDateString('es-HN')}`,
+                    });
+                } else if (diferenciaDias >= 3 && diferenciaDias <= 7) {
+                    nuevoResumen.amarillo++;
+                    nuevasAlertas.push({
+                        ...s,
+                        prioridad: 'proxima',
+                        tipo: 'fecha',
+                        diasRestantes: diferenciaDias,
+                        mensaje: `Mantenimiento próximo en ${diferenciaDias} días (${fechaServicioSinHora.toLocaleDateString('es-HN')})`,
+                    });
+                } else if (diferenciaDias >= 0 && diferenciaDias < 3) {
+                    nuevoResumen.rojo++;
+                    nuevasAlertas.push({
+                        ...s,
+                        prioridad: 'urgente',
+                        tipo: 'fecha',
+                        diasRestantes: diferenciaDias,
+                        mensaje: `¡Mantenimiento urgente! programado para ${fechaServicioSinHora.toLocaleDateString('es-HN')}`,
+                    });
+                } else if (diferenciaDias < 0) {
+                    nuevoResumen.rojo++;
+                    nuevasAlertas.push({
+                        ...s,
+                        prioridad: 'vencido',
+                        tipo: 'fecha',
+                        diasRestantes: diferenciaDias,
+                        mensaje: `Mantenimiento vencido desde ${Math.abs(diferenciaDias)} días`,
+                    });
+                }
             }
 
-            if (s.kilometraje <= 200) {
-                nuevasAlertas.push({ ...s, prioridad: 'proxima', tipo: 'kilometraje', kilometrosRestantes: 200 });
+            // ============================
+            // 🔹 PRÓXIMO MANTENIMIENTO (SIEMPRE)
+            // ============================
+            if (s.proximoMantenimiento) {
+                const fechaProx = new Date(s.proximoMantenimiento);
+                const fechaProxSinHora = new Date(
+                    fechaProx.getFullYear(),
+                    fechaProx.getMonth(),
+                    fechaProx.getDate()
+                );
+                const diferenciaProx = Math.floor(
+                    (fechaProxSinHora.getTime() - hoySinHora.getTime()) / (1000 * 60 * 60 * 24)
+                );
+
+                let prioridad = '';
+                let mensaje = '';
+
+                if (diferenciaProx < 0) {
+                    prioridad = 'azul-vencido';
+                    mensaje = `El próximo mantenimiento está vencido desde hace ${Math.abs(diferenciaProx)} días`;
+                } else if (diferenciaProx <= 10) {
+                    prioridad = 'azul-cercano';
+                    mensaje = `Debe realizar el próximo mantenimiento en ${diferenciaProx} días (${fechaProxSinHora.toLocaleDateString('es-HN')})`;
+                } else if (diferenciaProx <= 30) {
+                    prioridad = 'azul-normal';
+                    mensaje = `El próximo mantenimiento será en ${diferenciaProx} días (${fechaProxSinHora.toLocaleDateString('es-HN')})`;
+                } else {
+                    prioridad = 'azul-lejano';
+                    mensaje = `El próximo mantenimiento está programado para el ${fechaProxSinHora.toLocaleDateString('es-HN')}`;
+                }
+
+                nuevasAlertas.push({
+                    ...s,
+                    prioridad,
+                    tipo: 'proximo',
+                    diasRestantes: diferenciaProx,
+                    mensaje,
+                });
             }
         });
 
         setAlertas(nuevasAlertas);
-        setResumen(nuevoResumen);
+        setResumen(nuevoResumen); // 👈 este resumen solo considera "fecha programada", como antes
     }, [servicios]);
+
 
     const openNew = () => {
         setServicio(emptyServicio);
@@ -202,7 +274,7 @@ const MantenimientoTransporte = () => {
             }
             acc[key].servicios.push(servicio);
             acc[key].totalServicios++;
-            acc[key].costoTotal += servicio.costo || 0;
+            acc[key].costoTotal += parseFloat(servicio.costo) || 0;
 
             // Encontrar el último servicio (más reciente)
             if (!acc[key].ultimoServicio || new Date(servicio.fecha) > new Date(acc[key].ultimoServicio.fecha)) {
@@ -539,7 +611,7 @@ const MantenimientoTransporte = () => {
                 return <Badge value={estado} severity="secondary" />;
         }
     };
-
+    const op = useRef<OverlayPanel>(null);
 
     const servicioDialogFooter = (
         <>
@@ -582,6 +654,244 @@ const MantenimientoTransporte = () => {
                         </div>
                     }
                 />
+                {/* 🔔 Botón de notificaciones mejorado */}
+                <div className="flex justify-content-end mb-3 relative">
+                    <Button
+                        icon="pi pi-bell"
+                        rounded
+                        text
+                        style={{
+                            backgroundColor: '#094293',
+                            color: 'white',
+                            width: '3rem',
+                            height: '3rem',
+                            position: 'relative',
+                        }}
+                        className={alertas.length > 0 ? 'bell-animate' : ''}
+                        aria-label="Notificaciones"
+                        onClick={(e) => op.current?.toggle(e)}
+                    />
+
+                    {/* 🔢 Contador de alertas filtradas (únicamente tipo 'fecha') */}
+                    {alertas.length > 0 && (
+                        <Badge
+                            value={alertas.length}
+                            severity="danger"
+                            style={{
+                                position: 'absolute',
+                                top: '-6px',
+                                right: '-6px',
+                                fontSize: '0.85rem',
+                                backgroundColor: '#0061a9',
+                                color: 'white',
+                                width: '1.8rem',
+                                height: '1.8rem',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: '700',
+                                boxShadow: '0 0 6px rgba(0,0,0,0.2)',
+                            }}
+                        />
+                    )}
+                    <OverlayPanel ref={op} showCloseIcon dismissable>
+                        <div
+                            style={{
+                                minWidth: '360px',
+                                maxWidth: '400px',
+                                maxHeight: '420px',
+                                overflowY: 'auto',
+                                paddingRight: '0.5rem',
+                            }}
+                        >
+                            <h6 className="mb-3 text-primary font-bold flex align-items-center gap-2">
+                                <i className="pi pi-exclamation-triangle text-yellow-500"></i>
+                                Alertas de Mantenimiento
+                            </h6>
+
+                            {alertas.length === 0 ? (
+                                <p className="text-center text-500">No hay alertas pendientes 🚘</p>
+                            ) : (
+                                <>
+                                    {/* 🔸 SECCIÓN: Mantenimientos Programados */}
+                                    <h6 className="mt-2 mb-2 text-700">Fechas Programadas</h6>
+                                    {alertas
+                                        .filter((a) => a.tipo === 'fecha')
+                                        .map((alerta, i) => {
+                                            const vencida = alerta.diasRestantes < 0;
+                                            const color = vencida
+                                                ? '#ef4444'
+                                                : alerta.diasRestantes < 3
+                                                    ? '#f59e0b'
+                                                    : '#22c55e';
+                                            const estado = vencida ? '⏰ VENCIDA' : '🟢 ACTIVA';
+                                            const mensaje = `${alerta.vehiculo} (${alerta.placa}) • ${alerta.tipoServicio}`;
+                                            const fechaFormateada = alerta.fecha
+                                                ? new Date(alerta.fecha).toLocaleDateString('es-HN')
+                                                : '-';
+
+                                            return (
+                                                <div
+                                                    key={`fecha-${i}`}
+                                                    className="p-2 mb-2 border-round shadow-1 flex flex-column"
+                                                    style={{
+                                                        borderLeft: `5px solid ${color}`,
+                                                        backgroundColor: '#f9fafb',
+                                                    }}
+                                                >
+                                                    <div className="flex align-items-center justify-content-between">
+                                                        <div className="flex align-items-center gap-2">
+                                                            <i
+                                                                className="pi pi-exclamation-circle"
+                                                                style={{ color, fontSize: '1.2rem' }}
+                                                            />
+                                                            <span
+                                                                style={{
+                                                                    fontSize: '0.9rem',
+                                                                    fontWeight: '500',
+                                                                    color: '#374151',
+                                                                }}
+                                                            >
+                                                                {mensaje}
+                                                            </span>
+                                                        </div>
+                                                        <span
+                                                            style={{
+                                                                fontSize: '0.75rem',
+                                                                fontWeight: 'bold',
+                                                                color: vencida ? '#dc2626' : '#16a34a',
+                                                            }}
+                                                        >
+                                                            {estado}
+                                                        </span>
+                                                    </div>
+                                                    <small
+                                                        className="ml-3 text-500"
+                                                        style={{ fontSize: '0.8rem', color: '#6b7280' }}
+                                                    >
+                                                        {vencida
+                                                            ? `Vencida hace ${Math.abs(alerta.diasRestantes)} días`
+                                                            : `En ${alerta.diasRestantes} días`}
+                                                    </small>
+                                                    {/* 🗓️ Mostrar fecha programada */}
+                                                    {alerta.fecha && (
+                                                        <small
+                                                            className="ml-3 text-500"
+                                                            style={{
+                                                                fontSize: '0.8rem',
+                                                                color: '#374151',
+                                                                fontStyle: 'italic',
+                                                            }}
+                                                        >
+                                                            Fecha programada: {fechaFormateada}
+                                                        </small>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    {/* 🔹 SECCIÓN: Próximos Mantenimientos */}
+                                    <h6 className="mt-4 mb-2 text-700">Próximos Mantenimientos</h6>
+                                    {alertas
+                                        .filter((a) => a.tipo === 'proximo')
+                                        .map((alerta, i) => {
+                                            let color = '#3b82f6'; // azul base
+                                            let fondo = '#eff6ff';
+                                            let estado = '🔷 PRÓXIMO';
+
+                                            switch (alerta.prioridad) {
+                                                case 'azul-vencido':
+                                                    color = '#1e3a8a';
+                                                    fondo = '#e0e7ff';
+                                                    estado = '🔵 VENCIDO';
+                                                    break;
+                                                case 'azul-cercano':
+                                                    color = '#2563eb';
+                                                    fondo = '#dbeafe';
+                                                    estado = '🔷 CERCANO';
+                                                    break;
+                                                case 'azul-normal':
+                                                    color = '#3b82f6';
+                                                    fondo = '#e0f2fe';
+                                                    estado = '🔹 PROGRAMADO';
+                                                    break;
+                                                case 'azul-lejano':
+                                                    color = '#93c5fd';
+                                                    fondo = '#f0f9ff';
+                                                    estado = '⚪ LEJANO';
+                                                    break;
+                                                default:
+                                                    break;
+                                            }
+
+                                            const mensaje = `${alerta.vehiculo} (${alerta.placa}) • ${alerta.tipoServicio}`;
+                                            const fechaProx = alerta.proximoMantenimiento
+                                                ? new Date(alerta.proximoMantenimiento).toLocaleDateString('es-HN')
+                                                : '-';
+
+                                            return (
+                                                <div
+                                                    key={`prox-${i}`}
+                                                    className="p-2 mb-2 border-round shadow-1 flex flex-column"
+                                                    style={{
+                                                        borderLeft: `5px solid ${color}`,
+                                                        backgroundColor: fondo,
+                                                    }}
+                                                >
+                                                    <div className="flex align-items-center justify-content-between">
+                                                        <div className="flex align-items-center gap-2">
+                                                            <i className="pi pi-wrench" style={{ color, fontSize: '1.2rem' }} />
+                                                            <span
+                                                                style={{
+                                                                    fontSize: '0.9rem',
+                                                                    fontWeight: '500',
+                                                                    color: '#1e3a8a',
+                                                                }}
+                                                            >
+                                                                {mensaje}
+                                                            </span>
+                                                        </div>
+                                                        <span
+                                                            style={{
+                                                                fontSize: '0.75rem',
+                                                                fontWeight: 'bold',
+                                                                color,
+                                                            }}
+                                                        >
+                                                            {estado}
+                                                        </span>
+                                                    </div>
+                                                    <small
+                                                        className="ml-3 text-500"
+                                                        style={{ fontSize: '0.8rem', color: color }}
+                                                    >
+                                                        {alerta.diasRestantes < 0
+                                                            ? `Vencido hace ${Math.abs(alerta.diasRestantes)} días`
+                                                            : `En ${alerta.diasRestantes} días`}
+                                                    </small>
+                                                    {/* 🗓️ Mostrar próxima fecha */}
+                                                    {alerta.proximoMantenimiento && (
+                                                        <small
+                                                            className="ml-3 text-500"
+                                                            style={{
+                                                                fontSize: '0.8rem',
+                                                                color,
+                                                                fontStyle: 'italic',
+                                                            }}
+                                                        >
+                                                            Próximo mantenimiento: {fechaProx}
+                                                        </small>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+
+                                </>
+                            )}
+                        </div>
+                    </OverlayPanel>
+
+                </div>
 
                 <div className="card">
                     <h5>Resumen de Mantenimientos</h5>
@@ -626,71 +936,6 @@ const MantenimientoTransporte = () => {
                             </div>
                         </div>
                     </div>
-                </div>
-
-                {/* ALERTAS */}
-                <div className="card">
-                    <h5>Alertas</h5>
-                    {alertas.length === 0 ? (
-                        <div className="p-3 border-round" style={{ backgroundColor: '#f0f9ff', border: '2px solid #0ea5e9' }}>
-                            <p className="m-0" style={{ color: '#0369a1' }}>
-                                ℹ️ No hay alertas pendientes.
-                            </p>
-                        </div>
-                    ) : (
-                        alertas
-                            .filter((alerta) => alerta.tipo === 'fecha')
-                            .map((alerta, index) => {
-                                let mensaje = '';
-                                const estadoTexto = alerta.estado === 'Completado' ? ' (Completado)' : ' (Pendiente)';
-
-                                if (alerta.diasRestantes < 0) {
-                                    mensaje = `⚠️ ¡VENCIDO! El ${alerta.vehiculo} (${alerta.placa}) tiene un ${alerta.tipoServicio} vencido desde hace ${Math.abs(alerta.diasRestantes)} días${estadoTexto}. Fecha: ${formatearFechaAlerta(alerta.fecha)}.`;
-                                } else if (alerta.diasRestantes === 0) {
-                                    mensaje = `🚨 ¡HOY! El ${alerta.vehiculo} (${alerta.placa}) tiene un ${alerta.tipoServicio} programado para hoy${estadoTexto} a las ${formatearFechaAlerta(alerta.fecha)}.`;
-                                } else if (alerta.diasRestantes === 1) {
-                                    mensaje = `⚡ ¡MAÑANA! El ${alerta.vehiculo} (${alerta.placa}) tiene un ${alerta.tipoServicio} programado para mañana${estadoTexto}: ${formatearFechaAlerta(alerta.fecha)}.`;
-                                } else if (alerta.diasRestantes < 3) {
-                                    mensaje = `🔴 El ${alerta.vehiculo} (${alerta.placa}) tiene un ${alerta.tipoServicio} en ${alerta.diasRestantes} días${estadoTexto}: ${formatearFechaAlerta(alerta.fecha)}.`;
-                                } else if (alerta.diasRestantes <= 7) {
-                                    mensaje = `🟡 El ${alerta.vehiculo} (${alerta.placa}) tiene un ${alerta.tipoServicio} en ${alerta.diasRestantes} días${estadoTexto}: ${formatearFechaAlerta(alerta.fecha)}.`;
-                                } else {
-                                    mensaje = `🟢 El ${alerta.vehiculo} (${alerta.placa}) tiene un ${alerta.tipoServicio} programado en ${alerta.diasRestantes} días${estadoTexto}: ${formatearFechaAlerta(alerta.fecha)}.`;
-                                }
-
-                                let bgColor = '';
-                                let borderColor = '';
-                                let textColor = '';
-
-                                if (alerta.diasRestantes < 3) {
-                                    bgColor = '#fee2e2';
-                                    borderColor = '#ef4444';
-                                    textColor = '#991b1b';
-                                } else if (alerta.diasRestantes >= 3 && alerta.diasRestantes <= 7) {
-                                    bgColor = '#fef3c7';
-                                    borderColor = '#f59e0b';
-                                    textColor = '#92400e';
-                                } else {
-                                    bgColor = '#dcfce7';
-                                    borderColor = '#22c55e';
-                                    textColor = '#166534';
-                                }
-
-                                return (
-                                    <div
-                                        key={index}
-                                        className="p-3 mb-2 border-round shadow-1"
-                                        style={{
-                                            backgroundColor: bgColor,
-                                            border: `2px solid ${borderColor}`,
-                                            color: textColor
-                                        }}
-                                    >
-                                        <p className="m-0 font-medium">{mensaje}</p>
-                                    </div>
-                                );
-                            })
-                    )}
                 </div>
 
                 {/* TABLA DE SERVICIOS */}
@@ -958,27 +1203,12 @@ const MantenimientoTransporte = () => {
                     <Calendar
                         id="proximoMantenimiento"
                         value={servicio.proximoMantenimiento}
-                        onChange={(e) => {
-                            const seleccionada = e.value;
-                            const fechaProgramada = servicio.fecha;
-
-                            if (fechaProgramada && seleccionada && seleccionada <= fechaProgramada) {
-                                toast.current?.show({
-                                    severity: 'warn',
-                                    summary: 'Fecha inválida',
-                                    detail: 'La fecha del próximo mantenimiento debe ser mayor a la programada.',
-                                    life: 4000,
-                                });
-                                return;
-                            }
-
-                            setServicio({ ...servicio, proximoMantenimiento: seleccionada });
-                        }}
                         dateFormat="yy-mm-dd"
                         showIcon
                         className="w-full"
-                        required
+                        disabled
                     />
+
                 </div>
 
                 {/* 🧭 Kilometraje */}
@@ -987,13 +1217,38 @@ const MantenimientoTransporte = () => {
                     <InputNumber
                         id="kilometraje"
                         value={servicio.kilometraje}
-                        onValueChange={(e) =>
-                            setServicio({ ...servicio, kilometraje: e.value || 0 })
-                        }
+                        onValueChange={(e) => {
+                            const nuevoKm = e.value || 0;
+                            let nuevaFechaProx = servicio.proximoMantenimiento;
+
+                            if (servicio.fecha) {
+                                const base = new Date(servicio.fecha);
+
+                                // 📅 Lógica automática según kilometraje
+                                if (nuevoKm > 5000 && nuevoKm <= 10000) {
+                                    base.setDate(base.getDate() + 20); // +20 días
+                                } else if (nuevoKm > 10000 && nuevoKm <= 20000) {
+                                    base.setDate(base.getDate() + 15); // +15 días
+                                } else if (nuevoKm > 20000) {
+                                    base.setDate(base.getDate() + 10); // +10 días
+                                } else {
+                                    base.setDate(base.getDate() + 5); // Por defecto +5 días
+                                }
+
+                                nuevaFechaProx = base;
+                            }
+
+                            setServicio({
+                                ...servicio,
+                                kilometraje: nuevoKm,
+                                proximoMantenimiento: nuevaFechaProx,
+                            });
+                        }}
                         min={0}
                         placeholder="Ej. 150000"
                         className="w-full"
                     />
+
                 </div>
 
                 {/* 🏷️ Estado del mantenimiento */}

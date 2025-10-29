@@ -1,4 +1,3 @@
-// controlador/clientes.controlador.ts
 import type { Cliente } from '@/types/persona';
 import * as servicios from '@/modulos/clientes/servicios/clientes.servicios';
 
@@ -7,42 +6,51 @@ import * as servicios from '@/modulos/clientes/servicios/clientes.servicios';
 ========================= */
 export async function cargarClientes(): Promise<Cliente[]> {
   try {
-    const data = await servicios.listarClientes();
-    return data;
+    const clientes = await servicios.listarClientes();
+    return clientes ?? [];
   } catch (err: any) {
     console.error('❌ Error en cargarClientes:', err);
-    throw new Error(err.message || 'Error al listar clientes');
+    throw new Error(err?.message || 'Error al listar clientes');
   }
 }
 
 /* =========================
-   🔹 Guardar cliente
+   🔹 Guardar cliente (crear o actualizar)
 ========================= */
 export async function guardarCliente(cliente: Cliente): Promise<void> {
   try {
+    // Validación mínima
+    if (!cliente.idPersona) {
+      throw new Error('El cliente debe tener una persona asociada');
+    }
+
     if (cliente.id && Number(cliente.id) > 0) {
+      // ✅ Actualizar cliente existente
       await servicios.actualizarCliente(Number(cliente.id), {
-        estado: cliente.estado,
+        idEstadoCliente: cliente.idEstadoCliente,
       });
     } else {
+      // ✅ Crear nuevo cliente
       await servicios.crearCliente({
         idPersona: Number(cliente.idPersona),
-        estado: cliente.estado,
+        idEstadoCliente: cliente.idEstadoCliente,
       });
     }
   } catch (err: any) {
     console.error('❌ Error en guardarCliente:', err);
-    throw new Error(err.message || 'Error al guardar cliente');
+    throw new Error(err?.message || 'Error al guardar cliente');
   }
 }
+
 /* =========================
-   🔹 BORRAR CLIENTE (soft delete)
+   🔹 Desactivar cliente (soft delete)
 ========================= */
 export async function borrarCliente(id: number): Promise<void> {
   try {
+    if (!id) throw new Error('ID de cliente no válido');
     await servicios.eliminarCliente(id);
   } catch (err: any) {
     console.error('❌ Error en borrarCliente:', err);
-    throw new Error(err.message || 'Error al desactivar cliente');
+    throw new Error(err?.message || 'Error al desactivar cliente');
   }
 }

@@ -13,10 +13,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { searchParams } = new URL(req.url);
+    const searchParams = new URL(req.url).searchParams;
     const placa = searchParams.get('placa'); // si viene ?placa=HAA-1234
-    const id = Number(params.id);
-
+    const { id } = params;
     let query: string;
     let values: any[];
 
@@ -24,7 +23,7 @@ export async function GET(
       // 🔹 Buscar por número de placa
       query = `CALL sp_mantenimiento_obtener(NULL, ?);`;
       values = [placa];
-    } else if (!isNaN(id) && id > 0) {
+    } else if (!isNaN(Number(id)) && Number(id) > 0) {
       // 🔹 Buscar por ID
       query = `CALL sp_mantenimiento_obtener(?, NULL);`;
       values = [id];

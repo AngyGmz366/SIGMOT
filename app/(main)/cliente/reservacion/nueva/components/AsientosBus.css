@@ -1,0 +1,85 @@
+.bus-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.conductor-area {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.emoji-bus {
+  font-size: 2rem;
+  display: block;
+}
+
+.texto-conductor {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.asientos-container {
+  display: grid;
+  grid-template-columns: repeat(5, 48px);
+  gap: 10px;
+  justify-content: center;
+}
+
+.asiento {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: default;
+  transition: transform 0.2s ease-in-out;
+}
+
+.asiento.disponible {
+  background-color: #42c18a; /* Morado */
+  color: white;
+}
+
+.asiento.ocupado {
+  background-color: #dc3545; /* Rojo */
+  color: white;
+}
+
+.asiento:hover {
+  transform: scale(1.05);
+}
+
+.pasillo {
+  width: 48px;
+  height: 48px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+}
+
+.leyenda {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+/* Responsivo */
+@media (max-width: 500px) {
+  .asientos-container {
+    grid-template-columns: repeat(5, 38px);
+    gap: 6px;
+  }
+
+  .asiento {
+    width: 38px;
+    height: 38px;
+    font-size: 0.8rem;
+  }
+
+  .pasillo {
+    width: 38px;
+    height: 38px;
+  }
+}

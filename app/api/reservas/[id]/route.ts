@@ -31,6 +31,8 @@ const mapRow = (r: any) => ({
   fecha: r.Fecha_Reserva,
 });
 
+
+
 // ==============================
 //  GET /api/reservas/[id]
 // ==============================
@@ -44,34 +46,34 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   try {
     const [rows]: any = await conn.query(
       `SELECT 
-         r.Id_Reserva_PK,
-         c.Id_Cliente_PK AS IdCliente,
-         p.DNI,
-         CONCAT(p.Nombres, ' ', p.Apellidos) AS Cliente,
-         r.Tipo_Reserva AS Tipo,
-         r.Id_Viaje_FK,
-         r.Id_Asiento_FK,
-         r.Id_Encomienda_FK,
-         e.Costo,
-         CONCAT(rt.Origen, ' → ', rt.Destino) AS Ruta,
-         CONCAT('Placa ', u.Numero_Placa, ' / ', u.Marca_Unidad) AS Unidad,
-         CASE 
-           WHEN r.Tipo_Reserva = 'VIAJE' THEN CONCAT('Asiento ', a.Numero_Asiento)
-           WHEN r.Tipo_Reserva = 'ENCOMIENDA' THEN CONCAT('Costo ', e.Costo, ' Lps')
-           ELSE NULL
-         END AS Asiento_Peso,
-         r.Estado,
-         r.Fecha_Reserva
-       FROM mydb.TBL_RESERVACIONES r
-       LEFT JOIN mydb.TBL_CLIENTES c ON c.Id_Cliente_PK = r.Id_Cliente_FK
-       LEFT JOIN mydb.TBL_PERSONAS p ON p.Id_Persona_PK = c.Id_Persona_FK
-       LEFT JOIN mydb.TBL_VIAJES v ON v.Id_Viaje_PK = r.Id_Viaje_FK
-       LEFT JOIN mydb.TBL_ASIENTOS a ON a.Id_Asiento_PK = r.Id_Asiento_FK
-       LEFT JOIN mydb.TBL_ENCOMIENDAS e ON e.Id_Encomiendas_PK = r.Id_Encomienda_FK
-       LEFT JOIN mydb.TBL_RUTAS rt ON rt.Id_Ruta_PK = COALESCE(v.Id_Rutas_FK, e.Id_Viaje_FK)
-       LEFT JOIN mydb.TBL_UNIDADES u ON u.Id_Unidad_PK = COALESCE(v.Id_Unidad_FK, e.Id_Viaje_FK)
-       WHERE r.Id_Reserva_PK = ? LIMIT 1;`,
-      [id]
+     r.Id_Reserva_PK,
+     c.Id_Cliente_PK AS IdCliente,
+     p.DNI,
+     CONCAT(p.Nombres, ' ', p.Apellidos) AS Cliente,
+     r.Tipo_Reserva AS Tipo,
+     r.Id_Viaje_FK,
+     r.Id_Asiento_FK,
+     r.Id_Encomienda_FK,
+     e.Costo,
+     CONCAT(rt.Origen, ' → ', rt.Destino) AS Ruta,
+     CONCAT('Placa ', u.Numero_Placa, ' / ', u.Marca_Unidad) AS Unidad,
+     CASE 
+       WHEN r.Tipo_Reserva = 'VIAJE' THEN CONCAT('Asiento ', a.Numero_Asiento)
+       WHEN r.Tipo_Reserva = 'ENCOMIENDA' THEN CONCAT('Costo ', e.Costo, ' Lps')
+       ELSE NULL
+     END AS Asiento_Peso,
+     r.Estado,
+     r.Fecha_Reserva
+   FROM mydb.TBL_RESERVACIONES r
+   LEFT JOIN mydb.TBL_CLIENTES c ON c.Id_Cliente_PK = r.Id_Cliente_FK
+   LEFT JOIN mydb.TBL_PERSONAS p ON p.Id_Persona_PK = c.Id_Persona_FK
+   LEFT JOIN mydb.TBL_ASIENTOS a ON a.Id_Asiento_PK = r.Id_Asiento_FK
+   LEFT JOIN mydb.TBL_ENCOMIENDAS e ON e.Id_Encomiendas_PK = r.Id_Encomienda_FK
+   LEFT JOIN mydb.TBL_VIAJES v ON v.Id_Viaje_PK = COALESCE(r.Id_Viaje_FK, e.Id_VIaje_FK)
+   LEFT JOIN mydb.TBL_RUTAS rt ON rt.Id_Ruta_PK = v.Id_Rutas_FK
+   LEFT JOIN mydb.TBL_UNIDADES u ON u.Id_Unidad_PK = v.Id_Unidad_FK
+   WHERE r.Id_Reserva_PK = ? LIMIT 1;`,
+  [id]
     );
 
     const data = normalizeCallResult(rows);
@@ -106,6 +108,13 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   const estado       = upperOrNull(body?.estado); // PENDIENTE/CONFIRMADA/CANCELADA
   const tipo         = upperOrNull(body?.tipo);   // VIAJE/ENCOMIENDA
 
+  console.log("DEBUG tipo:", tipo, "idEncomienda:", idEncomienda);
+
+
+  if (tipo === 'ENCOMIENDA' && idEncomienda == null) {
+  console.warn(`⚠️ id_encomienda no enviado, el SP la creará automáticamente.`);
+}
+
   if (!dni) {
     return NextResponse.json({ error: 'dni es obligatorio' }, { status: 400 });
   }
@@ -115,9 +124,6 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
   if (tipo === 'VIAJE' && idViaje == null) {
     return NextResponse.json({ error: 'id_viaje es obligatorio cuando tipo=VIAJE' }, { status: 400 });
-  }
-  if (tipo === 'ENCOMIENDA' && idEncomienda == null) {
-    return NextResponse.json({ error: 'id_encomienda es obligatorio cuando tipo=ENCOMIENDA' }, { status: 400 });
   }
 
   const conn = await db.getConnection();

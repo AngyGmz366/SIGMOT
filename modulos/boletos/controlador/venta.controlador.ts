@@ -10,7 +10,7 @@
 
 import type { VentaItem, Boleto, Encomienda } from '@/types/ventas';
 import type { Opcion } from '../servicios/ventas.servicios';
-
+import type { CrearBoletoResponse } from '@/modulos/boletos/servicios/ventas.servicios';
 import {
   crearBoleto,
   actualizarBoleto,
@@ -111,26 +111,38 @@ export async function upsertBoletoAPI(
   itemsActuales: VentaItem[]
 ): Promise<{ items: VentaItem[]; created: boolean; item: Boleto }> {
   const copia = [...itemsActuales];
-  const b: Boleto = {
-    ...boleto,
-    total: calcularTotal(boleto.precio, boleto.descuento),
-  };
+  const b: Boleto = { ...boleto, total: calcularTotal(boleto.precio, boleto.descuento) };
 
   if (b.id) {
-    // UPDATE
     await actualizarBoleto(b.id, b);
     const idx = copia.findIndex((i) => i.id === b.id);
     if (idx >= 0) copia[idx] = b;
     return { items: copia, created: false, item: b };
   } else {
-    // INSERT
-    const res = await crearBoleto(b);
-    b.id = res.Id_Ticket_PK;
-    b.Codigo_Ticket = res.Codigo_Ticket;
+    // ✅ NO tipar como CrearBoletoResponse; normalizamos
+    const res = await crearBoleto(b) as unknown;
+
+    // Normalizador: soporta respuesta nueva {Id_Ticket_PK, Codigo_Ticket}
+    // y vieja {id, message}
+    const { Id_Ticket_PK, Codigo_Ticket } = (() => {
+      // @ts-ignore inspection dinámica
+      if (res && typeof res === 'object' && 'Id_Ticket_PK' in res) {
+        // @ts-ignore
+        return { Id_Ticket_PK: Number(res.Id_Ticket_PK), Codigo_Ticket: String(res.Codigo_Ticket ?? '') };
+      }
+      // @ts-ignore
+      const id = Number((res as any)?.id ?? 0);
+      return { Id_Ticket_PK: id, Codigo_Ticket: '' };
+    })();
+
+    b.id = Id_Ticket_PK;
+    b.Codigo_Ticket = Codigo_Ticket;
+
     copia.push(b);
     return { items: copia, created: true, item: b };
   }
 }
+
 
 /** Inserta o actualiza una encomienda (local, sin API aún). */
 export function upsertEncomienda(

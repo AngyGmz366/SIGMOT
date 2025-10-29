@@ -21,23 +21,24 @@ export type Boleto = VentaItem & {
   cliente: string;
   cedula: string;
   telefono: string;
-  fecha: string; 
-  origen: string;   // ✅ nuevo
+  fecha: string;
+  origen: string;
   destino: string;
-  destino: string;
-  asiento: string;
+  asiento: string;      
   autobus: string;
   horaSalida: string;
   horaLlegada: string;
+  horario?: string | null;  
+  precio: number;
+
 
   // 🔗 FKs (únicos que vamos a usar para persistencia)
   Id_Cliente_FK?: number | null;
   Id_Viaje_FK?: number | null;
-  Id_Asiento_FK?: number | null;      // 👈 agregado para relación asiento
-  Id_Unidad_FK?: number | null;       // 👈 si quieres guardar autobús directo
+  Id_Asiento_FK?: number | null;
+  Id_Unidad_FK?: number | null;
   Id_PuntoVenta_FK?: number | null;
-Id_MetodoPago_FK?: number | null;
-
+  Id_MetodoPago_FK?: number | null;
   Id_EstadoTicket_FK?: number | null;
   Codigo_Ticket?: string;
 };
@@ -78,4 +79,8 @@ export type Encomienda = VentaItem & {
 export type Opcion = {
   label: string;
   value: string | number;
+  extra?: {
+    precio?: number;
+    horarios?: string[];
+  };
 };

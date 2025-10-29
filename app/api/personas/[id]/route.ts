@@ -1,12 +1,14 @@
 export const runtime = 'nodejs';
 import { db } from '@/lib/db_api';
 
+// Utility functions to return JSON responses
 function json(data: any, status = 200) {
   return new Response(JSON.stringify(data, null, 2), {
     status,
     headers: { 'Content-Type': 'application/json; charset=utf-8' },
   });
 }
+
 function jsonError(message: string, status = 500, extra?: any) {
   return json({ error: message, ...(extra ? { detail: extra } : {}) }, status);
 }
@@ -54,13 +56,29 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     municipio,
     tipo_persona,
     id_usuario_admin,
+    estado_persona,
   } = body;
 
   const conn = await db.getConnection();
   try {
     console.log('✏️ Actualizando persona ID:', id);
+    console.log('📤 Body recibido:', body);
 
-    await conn.query('CALL mydb.sp_personas_actualizar(?,?,?,?,?,?,?,?,?,?,?,?)', [
+    // ✅ Verificar que el estado sea numérico
+    let estadoId = estado_persona;
+    if (typeof estado_persona === 'string') {
+      const mapaEstados: Record<string, number> = {
+        ACTIVA: 1,
+        ELIMINADA: 2,
+        INACTIVA: 2,
+      };
+      estadoId = mapaEstados[estado_persona.toUpperCase()] ?? 1;
+    }
+
+    console.log('🔄 Estado convertido a ID:', estadoId);
+
+    // ✅ Llamada corregida (13 parámetros)
+    await conn.query('CALL mydb.sp_personas_actualizar(?,?,?,?,?,?,?,?,?,?,?,?,?)', [
       id,
       nombres,
       apellidos,
@@ -73,6 +91,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       municipio,
       tipo_persona,
       id_usuario_admin,
+      estadoId,
     ]);
 
     return json({ message: 'Persona actualizada correctamente', id }, 200);
@@ -84,30 +103,33 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
+
 /* ==============================================
    🔹 DELETE /api/personas/:id?idUsuarioAdmin=10
    ============================================== */
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   const id = Number(params.id);
-  const { searchParams } = new URL(req.url);
-  const idUsuarioAdmin = Number(searchParams.get('idUsuarioAdmin'));
-
-  if (!id || !idUsuarioAdmin) {
-    return jsonError('Parámetros inválidos', 400);
+  if (!id || isNaN(id)) {
+    return new Response(JSON.stringify({ ok: false, error: 'ID inválido' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   const conn = await db.getConnection();
   try {
-    console.log('🗑 Eliminando persona ID:', id);
+    await conn.query('CALL mydb.sp_personas_eliminar(?, ?)', [id, 1]); // id, idUsuarioAdmin (ejemplo)
 
-    // ⚙️ Ejecutar SP y limpiar resultados
-    const [resultSets]: any = await conn.query('CALL mydb.sp_personas_eliminar(?, ?)', [id, idUsuarioAdmin]);
-    await conn.query('DO 1'); // fuerza cierre de result set si hay más de uno
-
-    return json({ message: 'Persona eliminada correctamente', id }, 200);
+    return new Response(JSON.stringify({ ok: true, message: 'Persona eliminada correctamente' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (e: any) {
-    console.error('❌ Error en DELETE /personas/[id]:', e);
-    return jsonError(e?.sqlMessage || e?.message || 'Error al eliminar persona', 500);
+    console.error('❌ Error en DELETE /personas/[id]:', e?.sqlMessage || e?.message);
+    return new Response(JSON.stringify({ ok: false, error: e?.sqlMessage || e?.message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } finally {
     conn.release();
   }

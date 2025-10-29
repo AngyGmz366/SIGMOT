@@ -37,10 +37,84 @@ const Dashboard = () => {
     const menu2 = useRef<Menu>(null);
     const [lineOptions, setLineOptions] = useState<ChartOptions>({});
     const { layoutConfig } = useContext(LayoutContext);
+
     
     // Estado para almacenar el número real de rutas activas
     const [rutasActivas, setRutasActivas] = useState<number>(0);
     const [loading, setLoading] = useState<boolean>(true);
+
+    const [clientesActivos, setClientesActivos] = useState({ total: 0, porcentaje: 0 });
+
+
+    const [encomiendas, setEncomiendas] = useState({ total: 0, porcentaje: 0 });
+
+useEffect(() => {
+    const cargarEncomiendas = async () => {
+        try {
+            // ✅ Usa tu API existente
+            const res = await fetch("/api/reservas?tipo=ENCOMIENDA&limit=1000", { cache: "no-store" });
+            const data = await res.json();
+            const items = Array.isArray(data?.items) ? data.items : [];
+
+            const total = items.length;
+
+            // 📊 Calculamos % de crecimiento mensual
+            const ahora = new Date();
+            const mesActual = ahora.getMonth();
+            const mesAnterior = mesActual === 0 ? 11 : mesActual - 1;
+
+            const esteMes = items.filter((e: { fecha: string }) => new Date(e.fecha).getMonth() === mesActual).length;
+            const anterior = items.filter((e: { fecha: string }) => new Date(e.fecha).getMonth() === mesAnterior).length;
+
+
+            const porcentaje = anterior > 0 ? Math.round(((esteMes - anterior) / anterior) * 100) : 100;
+
+            setEncomiendas({ total, porcentaje });
+        } catch (err) {
+            console.error("Error cargando encomiendas:", err);
+        }
+    };
+
+    cargarEncomiendas();
+}, []);
+
+
+
+useEffect(() => {
+    const cargarClientesActivos = async () => {
+        try {
+            // 🔹 Pedimos solo los clientes activos (estado=1)
+            const res = await fetch("/api/clientes?estado=1", { cache: "no-store" });
+            const data = await res.json();
+            const items = Array.isArray(data?.items) ? data.items : [];
+
+            const total = items.length;
+
+            // 📈 (opcional) cálculo de crecimiento mensual
+            const ahora = new Date();
+            const mesActual = ahora.getMonth();
+            const mesAnterior = mesActual === 0 ? 11 : mesActual - 1;
+
+            const esteMes = items.filter(
+                (c: any) => new Date(c.fecha_creacion || c.Fecha_Registro || "").getMonth() === mesActual
+            ).length;
+
+            const anterior = items.filter(
+                (c: any) => new Date(c.fecha_creacion || c.Fecha_Registro || "").getMonth() === mesAnterior
+            ).length;
+
+            const porcentaje = anterior > 0 ? Math.round(((esteMes - anterior) / anterior) * 100) : 100;
+
+            setClientesActivos({ total, porcentaje });
+        } catch (err) {
+            console.error("❌ Error cargando clientes activos:", err);
+        }
+    };
+
+    cargarClientesActivos();
+}, []);
+
+
 
     const applyLightTheme = () => {
         setLineOptions({
@@ -112,34 +186,51 @@ const Dashboard = () => {
             </div>
 
             <div className="col-12 lg:col-6 xl:col-3">
-                <div className="card mb-0">
-                    <div className="flex justify-content-between mb-3">
-                        <div>
-                            <span className="block text-500 font-medium mb-3">Encomiendas</span>
-                            <div className="text-900 font-medium text-xl">350</div>
-                        </div>
-                        <div className="flex align-items-center justify-content-center bg-orange-100 border-round" style={{ width: '2.5rem', height: '2.5rem' }}>
-                            <i className="pi pi-box text-orange-500 text-xl" />
-                        </div>
-                    </div>
-                    <span className="text-green-500 font-medium">+25% </span>
-                    <span className="text-500">vs. mes anterior</span>
-                </div>
-            </div>
+  <div className="card mb-0">
+    <div className="flex justify-content-between mb-3">
+      <div>
+        <span className="block text-500 font-medium mb-3">Encomiendas</span>
+        <div className="text-900 font-medium text-xl">{encomiendas.total}</div>
+      </div>
+      <div className="flex align-items-center justify-content-center bg-orange-100 border-round" style={{ width: '2.5rem', height: '2.5rem' }}>
+        <i className="pi pi-box text-orange-500 text-xl" />
+      </div>
+    </div>
+    <span
+      className={`font-medium ${
+        encomiendas.porcentaje >= 0 ? 'text-green-500' : 'text-red-500'
+      }`}
+    >
+      {encomiendas.porcentaje >= 0 ? '+' : ''}
+      {encomiendas.porcentaje}%
+    </span>
+    <span className="text-500"> vs. mes anterior</span>
+  </div>
+</div>
+
 
             <div className="col-12 lg:col-6 xl:col-3">
                 <div className="card mb-0">
                     <div className="flex justify-content-between mb-3">
                         <div>
-                            <span className="block text-500 font-medium mb-3">Clientes Activos</span>
-                            <div className="text-900 font-medium text-xl">2,830</div>
+                          <span className="block text-500 font-medium mb-3">Clientes Activos</span>
+                            <div className="text-900 font-medium text-xl">{clientesActivos.total}</div>
+
                         </div>
                         <div className="flex align-items-center justify-content-center bg-cyan-100 border-round" style={{ width: '2.5rem', height: '2.5rem' }}>
                             <i className="pi pi-users text-cyan-500 text-xl" />
                         </div>
                     </div>
-                    <span className="text-green-500 font-medium">+90 </span>
-                    <span className="text-500">registrados este mes</span>
+            <span
+  className={`font-medium ${
+    clientesActivos.porcentaje >= 0 ? 'text-green-500' : 'text-red-500'
+  }`}
+>
+  {clientesActivos.porcentaje >= 0 ? '+' : ''}
+  {clientesActivos.porcentaje}%
+</span>
+<span className="text-500"> vs. mes anterior</span>
+
                 </div>
             </div>
 

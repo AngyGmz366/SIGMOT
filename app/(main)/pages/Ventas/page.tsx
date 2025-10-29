@@ -123,16 +123,21 @@ export default function VentasPage() {
   });
 
   // Cargar tickets al montar
-  useEffect(() => {
-    (async () => {
-      try {
-        const tickets = await listarBoletos();
-        setVentaItems(tickets);
-      } catch (err) {
-        console.error('❌ Error cargando tickets:', err);
-      }
-    })();
-  }, []);
+
+useEffect(() => {
+  (async () => {
+    try {
+      const tickets = await listarBoletos();
+      setVentaItems(tickets);
+    } catch (err) {
+      console.error('❌ Error cargando tickets:', err);
+
+      
+    }
+  })();
+}, []);
+
+
 
   // Guardar (crear/editar) boleto
   const saveBoleto = async (b: Boleto) => {
@@ -162,8 +167,10 @@ const payload: Partial<Boleto> = {
   Id_Cliente_FK: Number(b.Id_Cliente_FK),
   Id_PuntoVenta_FK: b.Id_PuntoVenta_FK ?? 1,
   Id_MetodoPago_FK: Number(b.Id_MetodoPago_FK),
-  Id_EstadoTicket_FK: Number(b.Id_EstadoTicket_FK) ?? 1, // ✅ importante
+  Id_EstadoTicket_FK: Number(b.Id_EstadoTicket_FK) ?? 1,
+  Id_Asiento_FK: Number(b.Id_Asiento_FK), // ✅ nuevo
 };
+
 
 
 
@@ -234,6 +241,38 @@ const eliminarSeleccionados = async () => {
   const filteredItems = ventaItems.filter((item) =>
     currentMode === 'boleto' ? isBoleto(item) : isEncomienda(item)
   );
+
+  // 💧 Limpia el formulario del boleto
+const limpiarBoleto = () => {
+  setBoleto({
+    id: null,
+    tipoVenta: 'boleto',
+    cliente: '',
+    cedula: '',
+    telefono: '',
+    origen: '',
+    destino: '',
+    asiento: '',
+    autobus: '',
+    horaSalida: '',
+    horaLlegada: '',
+    fecha: '',
+    precio: 0,
+    descuento: 0,
+    total: 0,
+    estado: 'vendido',
+    metodoPago: 'efectivo',
+    Id_Cliente_FK: null,
+    Id_Viaje_FK: null,
+    Id_Asiento_FK: null,
+    Id_Unidad_FK: null,
+    Id_PuntoVenta_FK: null,
+    Id_MetodoPago_FK: null,
+    Id_EstadoTicket_FK: null,
+    Codigo_Ticket: '',
+  });
+};
+
 
   const openNew = () => {
     if (currentMode === 'boleto') {
@@ -314,27 +353,41 @@ const eliminarSeleccionados = async () => {
     );
   };
 
-  const estadoBodyTemplate = (rowData: VentaItem) => {
-    const estado =
-      rowData.estado || (rowData.tipoVenta === 'encomienda' ? 'enviado' : 'vendido');
-    const getSeverity = (e: string) => {
-      switch (e) {
-        case 'vendido':
-        case 'entregado':
-          return 'success';
-        case 'reservado':
-        case 'en_transito':
-          return 'warning';
-        case 'cancelado':
-          return 'danger';
-        case 'enviado':
-          return 'info';
-        default:
-          return 'info';
-      }
-    };
-    return <Tag value={estado.toUpperCase().replace('_', ' ')} severity={getSeverity(estado)} />;
+const estadoBodyTemplate = (rowData: VentaItem) => {
+  const estadoRaw =
+    (rowData.estado || (rowData.tipoVenta === 'encomienda' ? 'enviado' : 'vendido'))
+      .toLowerCase()
+      .trim();
+
+  const getSeverity = (estado: string) => {
+    switch (estado) {
+      case 'pagado':
+      case 'vendido':
+      case 'entregado':
+        return 'success';   // 💚 verde
+      case 'pendiente':
+      case 'reservado':
+      case 'en_transito':
+        return 'warning';   // 🟡 amarillo
+      case 'cancelado':
+      case 'reembolsado':
+        return 'danger';    // 🔴 rojo
+      case 'enviado':
+        return 'info';      // 🔵 azul
+      default:
+        return 'secondary'; // ⚫ gris por defecto
+    }
   };
+
+  return (
+    <Tag
+      value={estadoRaw.toUpperCase().replace('_', ' ')}
+      severity={getSeverity(estadoRaw)}
+      style={{ minWidth: '7rem', textAlign: 'center', fontWeight: 600 }}
+    />
+  );
+};
+
 
 const metodoPagoBodyTemplate = (rowData: VentaItem) => {
   const metodo = (rowData.metodoPago || '').toLowerCase().trim();
@@ -399,6 +452,9 @@ const metodoPagoBodyTemplate = (rowData: VentaItem) => {
 
 
 const editItem = async (item: VentaItem) => {
+
+  console.log("🎯 Resultado del SP (full):");
+
   if (!item?.id) {
     toast.current?.show({
       severity: 'warn',
@@ -541,9 +597,17 @@ const editItem = async (item: VentaItem) => {
             responsiveLayout="scroll"
             emptyMessage={`No se encontraron ${
               currentMode === 'boleto' ? 'boletos' : 'encomiendas'
+              
             }.`}
           >
-            <Column selectionMode="multiple" headerStyle={{ width: '3rem' }} exportable={false} />
+            
+            {/* ✅ Columna de selección múltiple */}
+  <Column
+    selectionMode="multiple"
+    headerStyle={{ width: '3rem' }}
+    style={{ textAlign: 'center' }}
+  />
+
 
             <Column
               field="tipoVenta"
@@ -651,14 +715,20 @@ const editItem = async (item: VentaItem) => {
             />
           </DataTable>
 
-          <BoletoDialog
-            visible={boletoDialogVisible}
-            onHide={() => setBoletoDialogVisible(false)}
-            boleto={boleto}
-            setBoleto={setBoleto}
-            onSave={saveBoleto}
-            submitted={submitted}
-          />
+     <BoletoDialog
+  key={boletoDialogVisible ? (boleto.id ?? 'nuevo') : 'cerrado'} // 🧠 Fuerza remount
+  visible={boletoDialogVisible}
+  onHide={() => {
+    limpiarBoleto();
+    setBoletoDialogVisible(false);
+  }}
+  boleto={boleto}
+  setBoleto={setBoleto}
+  onSave={saveBoleto}
+  submitted={submitted}
+/>
+
+
 
           {/* Descomenta cuando tengas encomiendas conectadas */}
           {/* <EncomiendaDialog
