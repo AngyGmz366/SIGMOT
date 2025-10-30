@@ -10,12 +10,12 @@ const pool = db;
 ============================================================ */
 export async function GET(
   req: Request,
-  context: { params: { id: string } } // Corregido: uso de `context.params` en lugar de `params` directo
+  { params }: { params: { id: string } } // Asegúrate de usar `context.params` correctamente
 ) {
   try {
     const searchParams = new URL(req.url).searchParams;
     const placa = searchParams.get('placa'); // si viene ?placa=HAA-1234
-    const { id } = context.params; // Correcto: acceso a params a través de context.params
+    const { id } = params; // Accediendo correctamente a los parámetros con `params`
     let query: string;
     let values: any[];
 
@@ -44,6 +44,7 @@ export async function GET(
     return NextResponse.json({ error: 'Error al obtener mantenimiento.' }, { status: 500 });
   }
 }
+
 
 /* ============================================================
    PUT → Actualizar mantenimiento
