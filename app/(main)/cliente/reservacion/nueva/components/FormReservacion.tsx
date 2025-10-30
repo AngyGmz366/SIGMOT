@@ -154,9 +154,25 @@ useEffect(() => {
       fecha: fechaSQL,
     };
 
+    // 🔹 OBTENER TOKEN DE USUARIO LOGUEADO (sin tocar login)
+    let headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    try {
+      const { getAuth } = await import('firebase/auth');
+      const firebaseAuth = getAuth();
+      const user = firebaseAuth.currentUser;
+      if (user) {
+        const token = await user.getIdToken();
+        headers['Authorization'] = `Bearer ${token}`;
+      } else {
+        console.warn('⚠️ Usuario no autenticado en Firebase');
+      }
+    } catch (e) {
+      console.warn('⚠️ No se pudo obtener token de Firebase', e);
+    }
+
     const res = await fetch('/api/clientes/reservas/viaje', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(payload),
     });
 
@@ -201,6 +217,7 @@ useEffect(() => {
     });
   }
 };
+
 
   const handleCancelar = () => setShowConfirmDialog(false);
 
