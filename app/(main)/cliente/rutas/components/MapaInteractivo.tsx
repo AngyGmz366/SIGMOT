@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useRef } from "react";
-import L from "leaflet";  // Importación correcta de Leaflet
+import L from "leaflet";
 import { Card } from "primereact/card";
 import "leaflet/dist/leaflet.css";
 import { RutaPublica } from "../Types/rutas.types";
