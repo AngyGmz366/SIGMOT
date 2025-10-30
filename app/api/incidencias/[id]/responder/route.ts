@@ -6,13 +6,7 @@ import fs from "fs";
 import { Readable } from "stream";
 import { IncomingMessage } from "http";
 
-export const config = {
-  runtime: 'nodejs', // Especifica que esta ruta se ejecutará en un entorno Node.js
-  api: {
-    bodyParser: false, // Desactiva el bodyParser para que puedas procesar archivos grandes
-  },
-};
-
+export const runtime = "nodejs"
 
 // 🔹 Convierte el objeto Request de Next.js en IncomingMessage (requerido por formidable)
 async function requestToIncomingMessage(req: Request): Promise<IncomingMessage> {
