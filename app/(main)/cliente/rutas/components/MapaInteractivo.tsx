@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useRef } from "react";
-import L from "leaflet";
+import L from "leaflet";  // Importación correcta de Leaflet
 import { Card } from "primereact/card";
 import "leaflet/dist/leaflet.css";
 import { RutaPublica } from "../Types/rutas.types";
@@ -122,7 +122,7 @@ const MapaInteractivo: React.FC<Props> = ({ rutas }) => {
     rutas.forEach(async (r, idx) => {
       if (!r.coordenadas || r.coordenadas.length < 2) return;
 
-      const coords = r.coordenadas.map((p) => [p.lat, p.lng]) as [number, number][];
+      const coords = r.coordenadas.map((p) => [p.lat, p.lng]) as [number, number][]; 
       const inicio = coords[0];
       const fin = coords[coords.length - 1];
       
@@ -156,17 +156,7 @@ const MapaInteractivo: React.FC<Props> = ({ rutas }) => {
         const inicioIcon = L.divIcon({
           className: 'custom-marker',
           html: `
-            <div style="
-              background: ${color};
-              color: white;
-              padding: 6px 10px;
-              border-radius: 16px;
-              font-weight: 600;
-              font-size: 11px;
-              border: 2px solid white;
-              box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            ">
+            <div style="background: ${color}; color: white; padding: 6px 10px; border-radius: 16px; font-weight: 600; font-size: 11px; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
               ▲ ${r.origen}
             </div>
           `,
@@ -190,17 +180,7 @@ const MapaInteractivo: React.FC<Props> = ({ rutas }) => {
         const destinoIcon = L.divIcon({
           className: 'custom-marker',
           html: `
-            <div style="
-              background: #28a745;
-              color: white;
-              padding: 6px 10px;
-              border-radius: 16px;
-              font-weight: 600;
-              font-size: 11px;
-              border: 2px solid white;
-              box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            ">
+            <div style="background: #28a745; color: white; padding: 6px 10px; border-radius: 16px; font-weight: 600; font-size: 11px; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
               ● ${r.destino}
             </div>
           `,
