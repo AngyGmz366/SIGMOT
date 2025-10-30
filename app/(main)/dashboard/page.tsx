@@ -7,6 +7,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { LayoutContext } from '../../../layout/context/layoutcontext';
 import Link from 'next/link';
 import { ChartData, ChartOptions } from 'chart.js';
+import axios from 'axios';
 
 const lineData: ChartData = {
   labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul'],
@@ -33,28 +34,77 @@ const lineData: ChartData = {
 const Dashboard = () => {
   const { layoutConfig } = useContext(LayoutContext);
 
-  // 🔹 Estados globales
+  // 🔹 Estados
+  const [isLoading, setIsLoading] = useState(true);
   const [rol, setRol] = useState<string | null>(null);
+  const [nombreUsuario, setNombreUsuario] = useState<string>('Usuario');
   const [lineOptions, setLineOptions] = useState<ChartOptions>({});
   const [rutasActivas, setRutasActivas] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
   const [clientesActivos, setClientesActivos] = useState({ total: 0, porcentaje: 0 });
   const [encomiendas, setEncomiendas] = useState({ total: 0, porcentaje: 0 });
   const [saludo, setSaludo] = useState<string>('');
-  const [nombreUsuario, setNombreUsuario] = useState<string>('Administrador');
 
-  // 🔹 Efecto inicial
+  // 🔹 Cargar datos del usuario desde la API
   useEffect(() => {
-    const rolStorage = localStorage.getItem('rolUsuario');
-    const nombre = localStorage.getItem('nombreUsuario') || 'Administrador';
-    setRol(rolStorage);
-    setNombreUsuario(nombre);
+    const cargarDatosUsuario = async () => {
+      try {
+        const idUsuario = localStorage.getItem('idUsuario');
+        
+        if (!idUsuario) {
+          // Si no hay ID, usar datos de localStorage como fallback
+          const rolStorage = localStorage.getItem('rolUsuario');
+          const nombreStorage = localStorage.getItem('nombreUsuario') || 'Usuario';
+          
+          setRol(rolStorage);
+          setNombreUsuario(nombreStorage);
+          setIsLoading(false);
+          return;
+        }
+
+        // Cargar desde API
+        const response = await axios.get(`/api/usuarios/${idUsuario}`);
+        
+        if (response.data.ok) {
+          const user = response.data.data;
+          const nombreCompleto = `${user.nombre || ''} ${user.apellido || ''}`.trim();
+          const rolLimpio = (user.rol || '').charAt(0).toUpperCase() + (user.rol || '').slice(1).toLowerCase();
+
+          // Actualizar estados
+          setNombreUsuario(nombreCompleto || 'Usuario');
+          setRol(rolLimpio || 'Usuario');
+
+          // Guardar en localStorage para futuras sesiones
+          localStorage.setItem('nombreUsuario', nombreCompleto);
+          localStorage.setItem('rolUsuario', rolLimpio);
+          localStorage.setItem('fotoUsuario', user.fotoPerfil || 'demo/images/default-user.png');
+
+          console.log('✅ Datos del usuario cargados:', { nombreCompleto, rolLimpio });
+        }
+      } catch (error) {
+        console.error('❌ Error al cargar datos del usuario:', error);
+        
+        // Fallback a localStorage
+        const rolStorage = localStorage.getItem('rolUsuario');
+        const nombreStorage = localStorage.getItem('nombreUsuario') || 'Usuario';
+        
+        setRol(rolStorage);
+        setNombreUsuario(nombreStorage);
+      } finally {
+        // Esperar mínimo 1.5 segundos para mostrar la animación
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 1500);
+      }
+    };
 
     // Saludo dinámico
     const horas = new Date().getHours();
     if (horas >= 5 && horas < 12) setSaludo('Buenos días');
     else if (horas >= 12 && horas < 18) setSaludo('Buenas tardes');
     else setSaludo('Buenas noches');
+
+    cargarDatosUsuario();
   }, []);
 
   // 🔹 Configuración de tema gráfico
@@ -142,8 +192,166 @@ const Dashboard = () => {
     cargarClientes();
   }, []);
 
-  // Si no hay rol todavía, no renderizar
-  if (rol === null) return null;
+  // 🚌 Pantalla de carga con animación de buses
+  if (isLoading) {
+    return (
+      <div className="loading-screen">
+        <div className="loading-content">
+          {/* Ícono de autobús */}
+          <div className="bus-animation">
+            <svg className="bus-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+              <path fill="currentColor" d="M488 128h-8V80c0-44.8-99.2-80-224-80S32 35.2 32 80v48h-8c-13.25 0-24 10.74-24 24v80c0 13.25 10.75 24 24 24h8v160c0 17.67 14.33 32 32 32v32c0 17.67 14.33 32 32 32h32c17.67 0 32-14.33 32-32v-32h192v32c0 17.67 14.33 32 32 32h32c17.67 0 32-14.33 32-32v-32c17.67 0 32-14.33 32-32V256h8c13.25 0 24-10.75 24-24v-80c0-13.26-10.75-24-24-24zM112 400c-17.67 0-32-14.33-32-32s14.33-32 32-32 32 14.33 32 32-14.33 32-32 32zm16-112H64V192h64v96zm48 0V192h192v96H176zm272 112c-17.67 0-32-14.33-32-32s14.33-32 32-32 32 14.33 32 32-14.33 32-32 32zm16-112h-64V192h64v96zM80 80c0-17.6 71.6-48 176-48s176 30.4 176 48v48H80V80z"/>
+            </svg>
+            <div className="road"></div>
+          </div>
+          
+          {/* Texto de carga */}
+          <h2 className="loading-title">Transportes Saenz</h2>
+          <p className="loading-subtitle">Cargando...</p>
+          
+          {/* Spinner */}
+          <div className="loading-spinner">
+            <i className="pi pi-spin pi-spinner"></i>
+          </div>
+        </div>
+
+        <style jsx>{`
+          .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7db9e8 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+          }
+
+          .loading-content {
+            text-align: center;
+            color: white;
+          }
+
+          .bus-animation {
+            position: relative;
+            width: 250px;
+            height: 140px;
+            margin: 0 auto 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .bus-icon {
+            width: 100px;
+            height: 100px;
+            color: white;
+            animation: busMove 2.5s ease-in-out infinite;
+            filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.3));
+          }
+
+          .road {
+            position: absolute;
+            bottom: 15px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: repeating-linear-gradient(
+              to right,
+              rgba(255, 255, 255, 0.8) 0px,
+              rgba(255, 255, 255, 0.8) 30px,
+              transparent 30px,
+              transparent 60px
+            );
+            animation: roadMove 1.5s linear infinite;
+            border-radius: 2px;
+          }
+
+          @keyframes busMove {
+            0%, 100% {
+              transform: translateX(-25px) translateY(0px);
+            }
+            25% {
+              transform: translateX(-10px) translateY(-3px);
+            }
+            50% {
+              transform: translateX(25px) translateY(0px);
+            }
+            75% {
+              transform: translateX(10px) translateY(-3px);
+            }
+          }
+
+          @keyframes roadMove {
+            0% {
+              background-position: 0 0;
+            }
+            100% {
+              background-position: 60px 0;
+            }
+          }
+
+          .loading-title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            animation: fadeInUp 0.8s ease-out;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            letter-spacing: 1px;
+          }
+
+          .loading-subtitle {
+            font-size: 1.2rem;
+            opacity: 0.95;
+            margin-bottom: 30px;
+            animation: fadeInUp 1s ease-out;
+            font-weight: 300;
+          }
+
+          .loading-spinner {
+            font-size: 2.2rem;
+            animation: fadeIn 1.2s ease-out;
+            opacity: 0.9;
+          }
+
+          @keyframes fadeInUp {
+            from {
+              opacity: 0;
+              transform: translateY(20px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+
+          @keyframes fadeIn {
+            from {
+              opacity: 0;
+            }
+            to {
+              opacity: 0.9;
+            }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  // Si no hay rol después de cargar, mostrar error
+  if (!rol) {
+    return (
+      <div className="flex align-items-center justify-content-center min-h-screen">
+        <div className="text-center">
+          <i className="pi pi-exclamation-triangle text-5xl text-red-500 mb-3"></i>
+          <h3>No se pudo cargar la información del usuario</h3>
+          <p className="text-600">Por favor, inicia sesión nuevamente.</p>
+        </div>
+      </div>
+    );
+  }
 
   // ===================================================
   // 🟢 DASHBOARD CLIENTE / USUARIO
@@ -248,10 +456,8 @@ const Dashboard = () => {
           {saludo}, {nombreUsuario} 
         </h2>
         <p className="text-600 text-lg mb-1">
-          Bienvenido al panel administrativo de{' '}
-          Transportes Saenz.
+          Bienvenido al panel administrativo de Transportes Saenz.
         </p>
-        
       </div>
 
       {/* Tarjetas métricas */}
