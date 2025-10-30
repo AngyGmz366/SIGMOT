@@ -10,12 +10,12 @@ const pool = db;
 ============================================================ */
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } } // Tipo correcto para el parámetro "id"
+  { params }: { params: { id: string } } // Usa el `params` en este formato correcto
 ) {
   try {
     const searchParams = new URL(req.url).searchParams;
     const placa = searchParams.get('placa'); // si viene ?placa=HAA-1234
-    const { id } = params; // El id ahora es un string, pero lo convertimos cuando es necesario
+    const { id } = params; // Ahora `params.id` es un string
     let query: string;
     let values: any[];
 
@@ -45,14 +45,13 @@ export async function GET(
   }
 }
 
-
 /* ============================================================
    PUT → Actualizar mantenimiento
    Llama al SP: sp_mantenimiento_actualizar
 ============================================================ */
 export async function PUT(
     req: Request,
-    { params }: { params: { id: string } } // Tipo correcto para el parámetro "id"
+    { params }: { params: { id: string } } // Usa el `params` en este formato correcto
 ) {
     try {
         const id = Number(params.id); // Convertimos el id de string a número
@@ -104,7 +103,7 @@ export async function PUT(
 ============================================================ */
 export async function DELETE(
     req: Request,
-    { params }: { params: { id: string } } // Tipo correcto para el parámetro "id"
+    { params }: { params: { id: string } } // Usa el `params` en este formato correcto
 ) {
     try {
         const id = Number(params.id); // Convertimos el id de string a número
