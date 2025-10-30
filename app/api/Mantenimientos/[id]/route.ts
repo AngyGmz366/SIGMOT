@@ -10,12 +10,12 @@ const pool = db;
 ============================================================ */
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } } // Tipo correcto para el parámetro "id"
 ) {
   try {
     const searchParams = new URL(req.url).searchParams;
     const placa = searchParams.get('placa'); // si viene ?placa=HAA-1234
-    const { id } = params;
+    const { id } = params; // El id ahora es un string, pero lo convertimos cuando es necesario
     let query: string;
     let values: any[];
 
@@ -24,7 +24,7 @@ export async function GET(
       query = `CALL sp_mantenimiento_obtener(NULL, ?);`;
       values = [placa];
     } else if (!isNaN(Number(id)) && Number(id) > 0) {
-      // 🔹 Buscar por ID
+      // 🔹 Buscar por ID (convertimos el id a número)
       query = `CALL sp_mantenimiento_obtener(?, NULL);`;
       values = [id];
     } else {
@@ -52,10 +52,10 @@ export async function GET(
 ============================================================ */
 export async function PUT(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: { id: string } } // Tipo correcto para el parámetro "id"
 ) {
     try {
-        const id = Number(params.id);
+        const id = Number(params.id); // Convertimos el id de string a número
         const body = await req.json();
 
         const {
@@ -104,10 +104,10 @@ export async function PUT(
 ============================================================ */
 export async function DELETE(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: { id: string } } // Tipo correcto para el parámetro "id"
 ) {
     try {
-        const id = Number(params.id);
+        const id = Number(params.id); // Convertimos el id de string a número
         const [rows]: any = await pool.query(`CALL sp_mantenimiento_eliminar(?);`, [id]);
         const result = rows[0]?.[0] || {};
         return NextResponse.json({
