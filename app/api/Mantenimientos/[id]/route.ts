@@ -10,12 +10,12 @@ const pool = db;
 ============================================================ */
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } } // Usa el `params` en este formato correcto
+  context: { params: { id: string } } // Corregido: uso de `context.params` en lugar de `params` directo
 ) {
   try {
     const searchParams = new URL(req.url).searchParams;
     const placa = searchParams.get('placa'); // si viene ?placa=HAA-1234
-    const { id } = params; // Ahora `params.id` es un string
+    const { id } = context.params; // Correcto: acceso a params a través de context.params
     let query: string;
     let values: any[];
 
@@ -51,10 +51,10 @@ export async function GET(
 ============================================================ */
 export async function PUT(
     req: Request,
-    { params }: { params: { id: string } } // Usa el `params` en este formato correcto
+    context: { params: { id: string } } // Corregido: uso de `context.params` en lugar de `params` directo
 ) {
     try {
-        const id = Number(params.id); // Convertimos el id de string a número
+        const id = Number(context.params.id); // Convertimos el id de string a número
         const body = await req.json();
 
         const {
@@ -103,10 +103,10 @@ export async function PUT(
 ============================================================ */
 export async function DELETE(
     req: Request,
-    { params }: { params: { id: string } } // Usa el `params` en este formato correcto
+    context: { params: { id: string } } // Corregido: uso de `context.params` en lugar de `params` directo
 ) {
     try {
-        const id = Number(params.id); // Convertimos el id de string a número
+        const id = Number(context.params.id); // Convertimos el id de string a número
         const [rows]: any = await pool.query(`CALL sp_mantenimiento_eliminar(?);`, [id]);
         const result = rows[0]?.[0] || {};
         return NextResponse.json({
