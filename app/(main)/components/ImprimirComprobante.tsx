@@ -1,15 +1,21 @@
-// components/ImprimirComprobante.tsx
 import React from 'react';
+import { Venta, Boleto, Encomienda } from '@/types/ventas'; // Asegúrate de importar los tipos
 import { QRCodeSVG } from 'qrcode.react';
-import { Venta } from '@/types/ventas';
 
 interface ComprobantePrintProps {
   item: Venta;
 }
 
 const ImprimirComprobante: React.FC<ComprobantePrintProps> = ({ item }) => {
-  // Datos para el QR: id, cliente, fecha, total y estado
-  const qrData = `VentaID:${item.id}|Cliente:${item.cliente}|Fecha:${item.fecha}|Total:${item.total}|Estado:${item.estado}`;
+  let qrData = '';
+
+  if (item.tipoVenta === 'boleto') {
+    const boleto = item as Boleto;  // Asegúrate de hacer el cast correctamente
+    qrData = `VentaID:${boleto.id}|Cliente:${boleto.cliente}|Fecha:${boleto.fecha}|Total:${boleto.total}|Estado:${boleto.estado}`;
+  } else if (item.tipoVenta === 'encomienda') {
+    const encomienda = item as Encomienda;  // Asegúrate de hacer el cast correctamente
+    qrData = `VentaID:${encomienda.id}|Remitente:${encomienda.remitente}|Destinatario:${encomienda.destinatario}|Origen:${encomienda.origen}|Destino:${encomienda.destino}|Fecha:${encomienda.fecha}|Estado:${encomienda.estado}`;
+  }
 
   return (
     <div className="p-4" style={{ fontFamily: 'Arial, sans-serif', maxWidth: '400px', margin: '0 auto' }}>
@@ -22,37 +28,20 @@ const ImprimirComprobante: React.FC<ComprobantePrintProps> = ({ item }) => {
         <div className="grid grid-cols-2 gap-2 mb-4">
           <div>
             <p className="font-semibold">Cliente:</p>
-            <p>{item.cliente}</p>
+            <p>{item.tipoVenta === 'boleto' ? (item as Boleto).cliente : (item as Encomienda).remitente}</p>
           </div>
           <div>
             <p className="font-semibold">Fecha:</p>
-            <p>{new Date(item.fecha).toLocaleString()}</p>
+            <p>{item.fecha}</p>
           </div>
-
-          <div className="col-span-2">
-            <p className="font-semibold">Productos:</p>
-            <ul className="list-disc ml-5">
-              {item.productos.map(p => (
-                <li key={p.productoId}>
-                  {p.nombre} x {p.cantidad} @ ${p.precioUnitario.toFixed(2)} = ${p.subtotal.toFixed(2)}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <p className="font-semibold">Estado:</p>
-            <p className="capitalize">{item.estado}</p>
-          </div>
-          <div>
-            <p className="font-semibold">Método de Pago:</p>
-            <p className="capitalize">{item.metodoPago}</p>
-          </div>
+          {/* Aquí puedes agregar más propiedades dependiendo de si es Boleto o Encomienda */}
         </div>
 
-        <div className="border-t-2 border-gray-800 pt-2 mt-2 flex justify-between font-semibold text-lg">
-          <span>Total a pagar:</span>
-          <span>${item.total?.toFixed(2) || '0.00'}</span>
+        <div className="border-t-2 border-gray-800 pt-2 mt-2 font-bold">
+          <div className="flex justify-between">
+            <span>Total:</span>
+            <span>HNL {item.total?.toFixed(2) || '0.00'}</span>
+          </div>
         </div>
 
         <div className="mt-4 text-center">

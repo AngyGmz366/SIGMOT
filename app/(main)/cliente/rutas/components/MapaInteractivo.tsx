@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useRef } from "react";
-import L from "leaflet";
+import * as L from "leaflet";
 import { Card } from "primereact/card";
 import "leaflet/dist/leaflet.css";
 import { RutaPublica } from "../Types/rutas.types";
@@ -19,8 +19,8 @@ interface Props {
 
 const MapaInteractivo: React.FC<Props> = ({ rutas }) => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const layersRef = useRef<L.Layer[]>([]);
+  const mapRef = useRef<any>(null); // ✅ Usar any para el mapa
+  const layersRef = useRef<any[]>([]); // ✅ Usar any para las capas
 
   // 🔹 Función para obtener ruta real usando OSRM
   const obtenerRutaReal = async (origen: [number, number], destino: [number, number]) => {
@@ -43,7 +43,7 @@ const MapaInteractivo: React.FC<Props> = ({ rutas }) => {
   const limpiarCapas = () => {
     if (!mapRef.current) return;
     
-    layersRef.current.forEach(layer => {
+    layersRef.current.forEach((layer: any) => {
       mapRef.current?.removeLayer(layer);
     });
     layersRef.current = [];
@@ -79,7 +79,7 @@ const MapaInteractivo: React.FC<Props> = ({ rutas }) => {
     limpiarCapas();
 
     const colores = ["#007bff", "#e91e63", "#ff9800", "#28a745", "#9c27b0"];
-    const allCoords: L.LatLng[] = [];
+    const allCoords: any[] = []; // ✅ Usar any para coordenadas
 
     // 🚗 Procesar cada ruta
     rutas.forEach(async (ruta, idx) => {
@@ -123,13 +123,13 @@ const MapaInteractivo: React.FC<Props> = ({ rutas }) => {
         // 📍 Marcador INICIO
         const inicioIcon = L.divIcon({
           className: 'custom-marker',
-          html: `
+          html: ` 
             <div style="background: ${color}; color: white; padding: 6px 10px; border-radius: 16px; font-weight: 600; font-size: 11px; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
               ▲ ${ruta.origen}
             </div>
           `,
-          iconSize: [100, 30] as [number, number],
-          iconAnchor: [50, 15] as [number, number]
+          iconSize: [100, 30],
+          iconAnchor: [50, 15]
         });
 
         const inicioMarker = L.marker([inicio[0], inicio[1]], { icon: inicioIcon })
@@ -154,8 +154,8 @@ const MapaInteractivo: React.FC<Props> = ({ rutas }) => {
               ● ${ruta.destino}
             </div>
           `,
-          iconSize: [100, 30] as [number, number],
-          iconAnchor: [50, 15] as [number, number]
+          iconSize: [100, 30],
+          iconAnchor: [50, 15]
         });
 
         const destinoMarker = L.marker([fin[0], fin[1]], { icon: destinoIcon })
@@ -214,7 +214,7 @@ const MapaInteractivo: React.FC<Props> = ({ rutas }) => {
       const bounds = L.latLngBounds(allCoords);
       setTimeout(() => {
         map.fitBounds(bounds, { 
-          padding: [40, 40] as [number, number],
+          padding: [40, 40],
           maxZoom: 10
         });
       }, 1000);
