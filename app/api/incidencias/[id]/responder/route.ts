@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import nodemailer from "nodemailer";
 import formidable from "formidable";
-import fs from "fs";
-import { Readable } from "stream";
 import { IncomingMessage } from "http";
+import { Readable } from "stream";
 
-export const runtime = "nodejs"
+// Actualización: configuración correcta para Next.js 13+
+export const runtime = "nodejs"; // Define que esta ruta se ejecutará en Node.js
 
 // 🔹 Convierte el objeto Request de Next.js en IncomingMessage (requerido por formidable)
 async function requestToIncomingMessage(req: Request): Promise<IncomingMessage> {
