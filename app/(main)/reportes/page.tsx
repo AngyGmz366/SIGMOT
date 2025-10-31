@@ -18,7 +18,6 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend, ChartOptions, ChartData 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
-
 ChartJS.register(ArcElement, Tooltip, Legend, ChartDataLabels);
 
 // Interfaces
@@ -528,35 +527,89 @@ function cerrarDetalle() {
     <Button label="Nuevo Reporte" icon="pi pi-plus" className="btn-verde" onClick={abrirNuevo} />
   );
 
-  const estadisticas = [
-    { titulo: 'Ventas del día', valor: 'L. 12,500' },
-    { titulo: 'Boletos vendidos', valor: '342' },
-    { titulo: 'Ocupación promedio', valor: '78%' }
-  ];
+      const estadisticas = [
+        { titulo: 'Ventas del día', valor: 'L. 12,500' },
+        { titulo: 'Boletos vendidos', valor: '342' },
+        { titulo: 'Ocupación promedio', valor: '78%' }
+      ];
 
-  const datosGrafico = {
-    labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May'],
-    datasets: [
-      {
-        label: 'Ventas mensuales (L)',
-        data: [12000, 15000, 11000, 17000, 14500],
-        backgroundColor: '#6366f1',
+      const datosGrafico = {
+        labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May'],
+        datasets: [
+          {
+            label: 'Ventas mensuales (L)',
+            data: [12000, 15000, 11000, 17000, 14500],
+            backgroundColor: '#6366f1',
+          }
+        ]
+      };
+
+      const opcionesGrafico = {
+        responsive: true,
+        plugins: {
+          legend: { display: true },
+          tooltip: { mode: 'index', intersect: false }
+        },
+        scales: {
+          y: { beginAtZero: true },
+          x: { grid: { display: false } }
+        }
+      };
+
+      const [unidades, setUnidades] = useState<any[]>([]);
+      const [boletos, setBoletos] = useState<any[]>([]);
+
+      useEffect(() => {
+        const fetchUnidades = async () => {
+          try {
+            const res = await fetch('/api/reportes/unidades');
+            const json = await res.json();
+            if (json.ok) {
+              setUnidades(json.data);
+              console.log('📊 Reportes de unidades cargados:', json.data);
+            } else {
+              console.error('⚠️ Error desde backend:', json.error);
+            }
+          } catch (err) {
+            console.error('❌ Error al conectar con el backend de reportes:', err);
+          }
+        };
+        fetchUnidades();
+      }, []);
+
+      // 🔹 Cargar datos desde backend
+  useEffect(() => {
+    const fetchBoletos = async () => {
+      try {
+        const res = await fetch('/api/reportes/boletos');
+        const json = await res.json();
+
+        if (json.ok) {
+          setBoletos(json.data);
+          console.log('🎟️ Reportes de boletos cargados:', json.data);
+        } else {
+          console.error('⚠️ Error desde backend:', json.error);
+          toast.current?.show({
+            severity: 'warn',
+            summary: 'Advertencia',
+            detail: 'Error al obtener los reportes de boletos.',
+            life: 3000,
+          });
+        }
+      } catch (err) {
+        console.error('❌ Error al conectar con el backend de reportes:', err);
+        toast.current?.show({
+          severity: 'error',
+          summary: 'Error de conexión',
+          detail: 'No se pudo conectar con el servidor.',
+          life: 3000,
+        });
       }
-    ]
-  };
+    };
+    fetchBoletos();
+  }, []);
 
-  const opcionesGrafico = {
-    responsive: true,
-    plugins: {
-      legend: { display: true },
-      tooltip: { mode: 'index', intersect: false }
-    },
-    scales: {
-      y: { beginAtZero: true },
-      x: { grid: { display: false } }
-    }
-  };
-
+      
   return (
     <div className="p-6 space-y-6">
       <h2 className="text-2xl font-bold mb-4">Reportes Generales</h2>
@@ -741,19 +794,21 @@ function cerrarDetalle() {
     {/* ================== Sección: Reportes de Boletos ================== */}
 
         <ReportTable
-          title="Reportes de Boletos"
-          data={[]}
-          columns={[
-            { field: 'tipo', header: 'Tipo' },
-            { field: 'cliente', header: 'Cliente' },
-            { field: 'origen', header: 'Origen' },
-            { field: 'destino', header: 'Destino' },
-            { field: 'fecha', header: 'Fecha' },
-            { field: 'estado', header: 'Estado' },
-            { field: 'metodo_pago', header: 'Metodo de Pago' },
-            { field: 'total', header: 'Total (L)' },
-          ]}
-          onView={(row) => abrirDetalle('Boletos', row)}
+        title="Reportes de Boletos"
+        data={boletos} // conectado al backend
+        columns={[
+          { field: 'Codigo_Ticket', header: 'Código' },
+          { field: 'Cliente', header: 'Cliente' },
+          { field: 'Origen', header: 'Origen' },
+          { field: 'Destino', header: 'Destino' },
+          { field: 'Autobus', header: 'Unidad' },
+          { field: 'Numero_Asiento', header: 'Asiento' },
+          { field: 'MetodoPago', header: 'Método de Pago' },
+          { field: 'Estado', header: 'Estado' },
+          { field: 'Precio_Total', header: 'Precio (Lps)' },
+          { field: 'Fecha_Hora_Compra', header: 'Fecha de Compra' },
+        ]}
+        onView={(row) => console.log('🔎 Detalle boleto:', row)}
         />
           {/* ==================== Reportes de Ventas / Facturación ==================== */}
       <ReportTable
@@ -853,21 +908,21 @@ function cerrarDetalle() {
       />
 
       {/* ==================== Reportes de Unidades ==================== */}
-      <ReportTable
-        title="Reportes de Unidades"
-        data={[]}
-        columns={[
-          { field: 'placa',  header: 'Placa' },
-          { field: 'marca',  header: 'Marca' },
-          { field: 'modelo', header: 'Modelo' },
-          { field: 'asientos', header: 'Asientos' },
-          { field: 'descripcion', header: 'Descripción' },
-          { field: 'anio',   header: 'Año' },
-
-        ]}
-        onView={(row) => abrirDetalle('Vehículos', row)}
+          <ReportTable
+          title="Reportes de Unidades"
+          data={unidades} // ✅ conectado al backend
+          columns={[
+            { field: 'placa', header: 'Placa' },
+            { field: 'marca', header: 'Marca' },
+            { field: 'modelo', header: 'Modelo' },
+            { field: 'asientos', header: 'Asientos' },
+            { field: 'descripcion', header: 'Descripción' },
+            { field: 'anio', header: 'Año' },
+            { field: 'estado', header: 'Estado' },
+          ]}
+          onView={(row) => abrirDetalle('Vehículos', row)}
       />
-
+      
       {/* ==================== Reportes de Clientes ==================== */}
       <ReportTable
         title="Reportes de Clientes"
