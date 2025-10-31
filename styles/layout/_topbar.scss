@@ -257,42 +257,46 @@
   color: #0f4ea5 !important;
 }
 
-/* 📱 Ajuste visual móvil (logo centrado arriba, íconos debajo) */
+/* ============================================================
+📱 Ajuste visual fino para móviles (logo + menú en una sola línea)
+============================================================ */
 @media (max-width: 768px) {
   .layout-topbar {
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: auto;
-    padding: 0.6rem 1rem;
-    gap: 0.4rem;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    height: 4.5rem !important;
+    padding: 0 1rem !important;
   }
 
   .layout-topbar-logo {
-    order: 1;
-    justify-content: center;
-    width: 100%;
-    margin-bottom: 0.3rem;
+    justify-content: flex-start !important;
+    width: auto !important;
+    margin: 0 !important;
   }
 
   .layout-topbar-logo img {
-    height: 2.2rem;
+    height: 2rem !important;
   }
 
   .layout-topbar-menu {
-    order: 2;
+    order: 3;
     display: flex;
-    justify-content: center;
-    gap: 0.6rem;
-    margin: 0;
-    padding: 0;
-    background: transparent;
-    box-shadow: none;
+    align-items: center;
+    justify-content: flex-end;
+    background: transparent !important;
+    box-shadow: none !important;
+    position: static !important;
   }
 
   .layout-topbar-button {
-    width: 42px;
-    height: 42px;
-    background: transparent;
+    width: 40px !important;
+    height: 40px !important;
+    background: transparent !important;
+  }
+
+  .layout-topbar-button i {
+    font-size: 1.2rem !important;
+    color: #0f4ea5 !important;
   }
 }
