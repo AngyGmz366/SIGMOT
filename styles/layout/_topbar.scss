@@ -197,7 +197,7 @@
 
 /* 🔧 Ajustes visuales del OverlayPanel de notificaciones */
 .p-overlaypanel {
-    margin-top: 1rem !important; // separa un poco el panel de la campanita
+    margin-top: 1rem !important;
     border-radius: 12px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
     overflow: hidden;
@@ -207,9 +207,9 @@
     }
 
     .p-overlaypanel-close {
-        top: 0.4rem !important; // mueve el botón de cerrar hacia abajo
-        right: 0.6rem !important; // ajusta posición horizontal
-        background-color: #3b3b98 !important; // color morado SIGMOT
+        top: 0.4rem !important;
+        right: 0.6rem !important;
+        background-color: #3b3b98 !important;
         color: #fff !important;
         border-radius: 50%;
         width: 1.6rem;
@@ -229,4 +229,70 @@
             font-size: 0.9rem;
         }
     }
+}
+
+/* ============================================================
+✅ FIX VISUAL COMPLEMENTARIO SIGMOT (sin modificar lo anterior)
+============================================================ */
+
+/* Alineación precisa en escritorio */
+.layout-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Centrado de íconos dentro del topbar */
+.layout-topbar-menu,
+.layout-topbar-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Iconos equilibrados visualmente */
+.layout-topbar-button i {
+  vertical-align: middle;
+  font-size: 1.3rem;
+  color: #0f4ea5 !important;
+}
+
+/* 📱 Ajuste visual móvil (logo centrado arriba, íconos debajo) */
+@media (max-width: 768px) {
+  .layout-topbar {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: auto;
+    padding: 0.6rem 1rem;
+    gap: 0.4rem;
+  }
+
+  .layout-topbar-logo {
+    order: 1;
+    justify-content: center;
+    width: 100%;
+    margin-bottom: 0.3rem;
+  }
+
+  .layout-topbar-logo img {
+    height: 2.2rem;
+  }
+
+  .layout-topbar-menu {
+    order: 2;
+    display: flex;
+    justify-content: center;
+    gap: 0.6rem;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .layout-topbar-button {
+    width: 42px;
+    height: 42px;
+    background: transparent;
+  }
 }
