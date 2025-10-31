@@ -72,6 +72,6 @@
     "typescript": "^5.3.3"
   },
   "engines": {
-    "node": "16.x"
+    "node": ">=18.0.0"
   }
 }
