@@ -1,5 +1,7 @@
+export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { getSafeConnection } from '@/lib/db_api';
+
 
 export const runtime = 'nodejs';
 

@@ -6,7 +6,6 @@ export type VentaItem = {
   precio: number;
   descuento: number;
   total: number;
-
   estado: string;
   metodoPago: string;
 };
@@ -21,16 +20,14 @@ export type Boleto = VentaItem & {
   cliente: string;
   cedula: string;
   telefono: string;
-  fecha: string;
   origen: string;
   destino: string;
-  asiento: string;      
+  asiento: string;
   autobus: string;
   horaSalida: string;
   horaLlegada: string;
-  horario?: string | null;  
+  horario?: string | null;
   precio: number;
-
 
   // 🔗 FKs (únicos que vamos a usar para persistencia)
   Id_Cliente_FK?: number | null;
@@ -67,7 +64,7 @@ export type Encomienda = VentaItem & {
   Id_Origen_FK?: number | null;
   Id_Destino_FK?: number | null;
   Id_PuntoVenta_FK?: number | null;
- metodoPago?: string;  // 👈 acepta cualquier string
+  metodoPago?: string;  // Acepta cualquier string
 
   Id_EstadoEncomienda_FK?: number | null;
   Codigo_Encomienda?: string;
@@ -84,3 +81,8 @@ export type Opcion = {
     horarios?: string[];
   };
 };
+
+// ----------------------
+// Venta: Unión de Boleto y Encomienda
+// ----------------------
+export type Venta = Boleto | Encomienda;

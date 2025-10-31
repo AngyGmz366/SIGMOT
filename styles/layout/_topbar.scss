@@ -197,7 +197,7 @@
 
 /* 🔧 Ajustes visuales del OverlayPanel de notificaciones */
 .p-overlaypanel {
-    margin-top: 1rem !important; // separa un poco el panel de la campanita
+    margin-top: 1rem !important;
     border-radius: 12px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
     overflow: hidden;
@@ -207,9 +207,9 @@
     }
 
     .p-overlaypanel-close {
-        top: 0.4rem !important; // mueve el botón de cerrar hacia abajo
-        right: 0.6rem !important; // ajusta posición horizontal
-        background-color: #3b3b98 !important; // color morado SIGMOT
+        top: 0.4rem !important;
+        right: 0.6rem !important;
+        background-color: #3b3b98 !important;
         color: #fff !important;
         border-radius: 50%;
         width: 1.6rem;
@@ -229,4 +229,107 @@
             font-size: 0.9rem;
         }
     }
+}
+
+/* ============================================================
+✅ FIX VISUAL COMPLEMENTARIO SIGMOT (sin modificar lo anterior)
+============================================================ */
+
+/* Alineación precisa en escritorio */
+.layout-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Centrado de íconos dentro del topbar */
+.layout-topbar-menu,
+.layout-topbar-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Iconos equilibrados visualmente */
+.layout-topbar-button i {
+  vertical-align: middle;
+  font-size: 1.3rem;
+  color: #0f4ea5 !important;
+}
+
+/* ============================================================
+📱 Ajuste visual fino para móviles (logo + menú en una sola línea)
+============================================================ */
+@media (max-width: 768px) {
+  .layout-topbar {
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    height: 4.5rem !important;
+    padding: 0 1rem !important;
+  }
+
+  .layout-topbar-logo {
+    justify-content: flex-start !important;
+    width: auto !important;
+    margin: 1 !important;
+  }
+
+  .layout-topbar-logo img {
+    height: 3rem !important;
+  }
+
+  .layout-topbar-menu {
+    order: 3;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    background: transparent !important;
+    box-shadow: none !important;
+    position: static !important;
+  }
+
+  .layout-topbar-button {
+    width: 40px !important;
+    height: 40px !important;
+    background: transparent !important;
+  }
+
+  .layout-topbar-button i {
+    font-size: 1.2rem !important;
+    color: #0f4ea5 !important;
+  }
+  
+}
+/* ============================================================
+🛠️ FIX: Mostrar tuerca (⚙️) también en móvil
+============================================================ */
+@media (max-width: 768px) {
+  /* Forzamos visibilidad del contenedor de la tuerca */
+  .layout-topbar-menu {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    position: static !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Ajuste visual del botón de tuerca */
+  .layout-topbar-menu .layout-topbar-button {
+    display: flex !important;
+    width: 40px !important;
+    height: 40px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 50% !important;
+    background: transparent !important;
+  }
+
+  .layout-topbar-menu .layout-topbar-button i {
+    color: #0f4ea5 !important;
+    font-size: 1.3rem !important;
+  }
 }

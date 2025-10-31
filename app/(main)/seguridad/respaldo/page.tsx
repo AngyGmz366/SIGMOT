@@ -1,6 +1,5 @@
 'use client';
 
-/* eslint-disable @next/next/no-img-element */
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from 'primereact/button';
 import { Dropdown } from 'primereact/dropdown';
@@ -22,33 +21,22 @@ export default function BackupRestoreSIGMOT() {
   const [selectedBackup, setSelectedBackup] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Obtener los respaldos disponibles desde la API o el servidor
   useEffect(() => {
-    // ✅ Ejecuta solo en cliente
     if (typeof window === 'undefined') return;
 
-    const ejemplos: BackupItem[] = [
-      {
-        label: 'SIGMOT-2025-08-08-12-09-23.sql',
-        value: 'SIGMOT-2025-08-08-12-09-23.sql',
-        fecha: '2025-08-08T12:09:23',
-        tamano: 5242880,
-      },
-      {
-        label: 'SIGMOT-2025-08-05-21-00-00.sql',
-        value: 'SIGMOT-2025-08-05-21-00-00.sql',
-        fecha: '2025-08-05T21:00:00',
-        tamano: 10485760,
-      },
-      {
-        label: 'SIGMOT-2025-08-01-09-00-00.sql',
-        value: 'SIGMOT-2025-08-01-09-00-00.sql',
-        fecha: '2025-08-01T09:00:00',
-        tamano: 2097152,
-      },
-    ];
+    const fetchBackups = async () => {
+      try {
+        const response = await fetch('/api/seguridad//respaldos');  // Suponiendo que tienes un endpoint para obtener los respaldos disponibles
+        const data = await response.json();
+        setBackups(data.backups);  // Se espera que la API devuelva una lista de respaldos
+        setSelectedBackup(data.backups[0]?.value ?? null);  // Selecciona el primer respaldo por defecto
+      } catch (error) {
+        console.error('Error al cargar los respaldos:', error);
+      }
+    };
 
-    setBackups(ejemplos);
-    setSelectedBackup(ejemplos[0]?.value ?? null);
+    fetchBackups();
   }, []);
 
   const formatFecha = (fecha: string) => {
@@ -64,15 +52,22 @@ export default function BackupRestoreSIGMOT() {
     return `${mb.toFixed(2)} MB`;
   };
 
+  // Crear el respaldo
   const crearBackup = async () => {
     setLoading(true);
     try {
+      const response = await fetch('/api/seguridad//respaldos/crear', { method: 'POST' });
+      const data = await response.json();
+
       toast.current?.show({
         severity: 'success',
         summary: 'SIGMOT',
         detail: 'Respaldo generado en el servidor.',
         life: 2500,
       });
+
+      // Re-cargar los respaldos después de crear uno nuevo
+      setBackups((prevBackups) => [...prevBackups, data.newBackup]);
     } catch (err: any) {
       toast.current?.show({
         severity: 'error',
@@ -85,6 +80,7 @@ export default function BackupRestoreSIGMOT() {
     }
   };
 
+  // Restaurar el respaldo seleccionado
   const restaurarBackup = () => {
     if (!selectedBackup) {
       toast.current?.show({
@@ -104,6 +100,13 @@ export default function BackupRestoreSIGMOT() {
       accept: async () => {
         setLoading(true);
         try {
+          const response = await fetch('/api/seguridad/respaldos/restaurar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ archivo: selectedBackup }),
+          });
+          const data = await response.json();
+
           toast.current?.show({
             severity: 'success',
             summary: 'SIGMOT',

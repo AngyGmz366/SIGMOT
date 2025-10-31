@@ -64,7 +64,7 @@ export default function PagoModal({
               id="cliente"
               value={pago.idCliente}
               options={clientes.map((c) => ({
-                label: `${c.persona?.nombre} ${c.persona?.apellido}`,
+                label: `${c.persona?. Nombres} ${c.persona?.Apellidos}`,
                 value: c.id,
               }))}
               onChange={(e) => setPago({ ...pago, idCliente: e.value })}

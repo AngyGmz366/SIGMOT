@@ -1,291 +1,375 @@
 'use client';
 export const dynamic = 'force-dynamic';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
-import { Dropdown } from 'primereact/dropdown';
-import { Calendar } from 'primereact/calendar';
 import { Toolbar } from 'primereact/toolbar';
 import { Toast } from 'primereact/toast';
-import { Password } from 'primereact/password';
 import { Tag } from 'primereact/tag';
-import { FileUpload, FileUploadSelectEvent } from 'primereact/fileupload';
+import { Dropdown } from 'primereact/dropdown';
 
-type Rol = { id: string; nombre: string; descripcion?: string; activo?: boolean };
+type Rol = { id: number; nombre: string };
 type Usuario = {
-  id: string;
+  id: number;
   nombres: string;
   apellidos: string;
   correo: string;
   telefono?: string;
-  rolId: string;
-  estado: 'activo' | 'inactivo';
-  fechaRegistro: string; // ISO
-  foto?: string;
-  username?: string;
-  password?: string;
+  rolId: number;
+  rol?: string;
+  estado: string;
+  fechaRegistro: string;
 };
-
-// ✅ Generador de ID seguro que no rompe SSR
-const genId = () =>
-  typeof crypto !== 'undefined' && crypto.randomUUID
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random()}`;
-
-const newUser = (roles: Rol[]): Usuario => ({
-  id: genId(),
-  nombres: '',
-  apellidos: '',
-  correo: '',
-  telefono: '',
-  rolId: roles[0]?.id || '',
-  estado: 'activo',
-  fechaRegistro: new Date().toISOString(),
-  foto: '',
-  username: '',
-  password: ''
-});
 
 export default function UsuariosPage() {
   const toast = useRef<Toast>(null);
-  const [hydrated, setHydrated] = useState(false);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [roles, setRoles] = useState<Rol[]>([]);
-
-  // ✅ Cargar desde localStorage solo en cliente
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    try {
-      const rawU = localStorage.getItem('usuarios');
-      const rawR = localStorage.getItem('roles');
-      setUsuarios(rawU ? JSON.parse(rawU) : []);
-      setRoles(rawR ? JSON.parse(rawR) : []);
-    } catch {
-      setUsuarios([]);
-      setRoles([]);
-    } finally {
-      setHydrated(true);
-    }
-  }, []);
-
-  // ✅ Guardar solo después de hidratar
-  useEffect(() => {
-    if (typeof window === 'undefined' || !hydrated) return;
-    localStorage.setItem('usuarios', JSON.stringify(usuarios));
-  }, [usuarios, hydrated]);
-
-  // --- filtros
-  const [search, setSearch] = useState('');
-  const [rolFilter, setRolFilter] = useState<string | null>(null);
-  const [estadoFilter, setEstadoFilter] = useState<'activo' | 'inactivo' | null>(null);
-  const [fechaRango, setFechaRango] = useState<[Date | null, Date | null] | null>(null);
-
-  const data = useMemo(() => {
-    if (!hydrated) return [];
-    const q = search.trim().toLowerCase();
-    const [d1, d2] = fechaRango || [null, null];
-    return usuarios.filter(u => {
-      const matchText =
-        !q ||
-        u.nombres.toLowerCase().includes(q) ||
-        u.apellidos.toLowerCase().includes(q) ||
-        u.correo.toLowerCase().includes(q) ||
-        (roles.find(r => r.id === u.rolId)?.nombre.toLowerCase() || '').includes(q);
-
-      const matchRol = !rolFilter || u.rolId === rolFilter;
-      const matchEstado = !estadoFilter || u.estado === estadoFilter;
-
-      const fr = new Date(u.fechaRegistro);
-      const matchFecha =
-        !d1 && !d2
-          ? true
-          : d1 && d2
-          ? fr >= new Date(d1.setHours(0, 0, 0, 0)) && fr <= new Date(d2.setHours(23, 59, 59, 999))
-          : d1
-          ? fr >= new Date(d1.setHours(0, 0, 0, 0))
-          : d2
-          ? fr <= new Date(d2.setHours(23, 59, 59, 999))
-          : true;
-
-      return matchText && matchRol && matchEstado && matchFecha;
-    });
-  }, [usuarios, roles, search, rolFilter, estadoFilter, fechaRango, hydrated]);
-
-  // --- Modales ---
+  const [loading, setLoading] = useState(true);
   const [visibleForm, setVisibleForm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [userEdit, setUserEdit] = useState<Usuario | null>(null);
+  const [usuarioEdit, setUsuarioEdit] = useState<Usuario | null>(null);
 
-  const openNew = () => {
-    setUserEdit(newUser(roles));
-    setSubmitted(false);
-    setVisibleForm(true);
+  // 🔹 Cargar usuarios y roles
+  useEffect(() => {
+    const cargarDatos = async () => {
+      try {
+        const resUsuarios = await fetch('/api/usuarios');
+        const dataU = resUsuarios.ok ? await resUsuarios.json() : { items: [] };
+        setUsuarios(dataU.items || []);
+
+        const resRoles = await fetch('/api/seguridad/roles');
+        const dataR = resRoles.ok ? await resRoles.json() : { data: [] };
+        setRoles(dataR.data || []);
+      } catch (err) {
+        console.error('Error al cargar usuarios o roles:', err);
+        toast.current?.show({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'No se pudieron cargar los usuarios o roles.',
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    cargarDatos();
+  }, []);
+
+  // 🔹 Editar usuario existente
+  const openEdit = async (row: Usuario) => {
+    try {
+      const res = await fetch(`/api/usuarios/obtener?id=${row.id}`);
+      if (!res.ok) throw new Error(`Error HTTP ${res.status}`);
+      const data = await res.json();
+
+      if (data.ok && data.item) {
+        const u = data.item;
+        setUsuarioEdit({
+          id: u.Id_Usuario_PK || u.id || row.id,
+          nombres: u.Nombres || u.nombres || '',
+          apellidos: u.Apellidos || u.apellidos || '',
+          correo: u.Correo || u.correo || '',
+          telefono: u.Telefono || u.telefono || '',
+          rolId: u.Id_Rol_FK || u.rolId || 0,
+          rol: u.Rol || u.rol || '',
+          estado: u.Estado_Usuario || u.estado || 'INACTIVO',
+          fechaRegistro: u.Fecha_Registro || '',
+        });
+        setVisibleForm(true);
+      } else {
+        throw new Error('Usuario no encontrado.');
+      }
+    } catch (err) {
+      console.error('Error al obtener usuario:', err);
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo obtener el usuario.',
+      });
+    }
   };
 
-  const openEdit = (u: Usuario) => {
-    setUserEdit({ ...u, password: '' });
-    setSubmitted(false);
-    setVisibleForm(true);
-  };
-
-  const saveUser = () => {
-    if (!userEdit) return;
+  // 🔹 Guardar cambios
+  const saveUser = async () => {
+    if (!usuarioEdit) return;
     setSubmitted(true);
 
-    if (!userEdit.nombres.trim() || !userEdit.apellidos.trim() || !userEdit.correo.trim() || !userEdit.rolId) return;
+    if (!usuarioEdit.nombres.trim() || !usuarioEdit.apellidos.trim()) {
+      toast.current?.show({
+        severity: 'warn',
+        summary: 'Campos requeridos',
+        detail: 'Completa los campos de nombre y apellido.',
+      });
+      return;
+    }
 
-    const exists = usuarios.some(p => p.id === userEdit.id);
-    const updated = {
-      ...userEdit,
-      username: userEdit.username?.trim() || userEdit.correo
-    };
+    try {
+      const body = {
+        idUsuario: usuarioEdit.id,
+        nombres: usuarioEdit.nombres,
+        apellidos: usuarioEdit.apellidos,
+        correo: usuarioEdit.correo,
+        telefono: usuarioEdit.telefono,
+        idRol: usuarioEdit.rolId,
+        idEstado: usuarioEdit.estado === 'ACTIVO' ? 2 : 4,
+        idAdmin: 1,
+      };
 
-    setUsuarios(prev =>
-      exists ? prev.map(p => (p.id === updated.id ? updated : p)) : [...prev, updated]
-    );
+      const res = await fetch('/api/usuarios/actualizar', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
 
-    toast.current?.show({
-      severity: 'success',
-      summary: 'Éxito',
-      detail: exists ? 'Usuario actualizado' : 'Usuario creado',
-      life: 2500
-    });
+      const data = await res.json();
+      if (data.ok) {
+        toast.current?.show({
+          severity: 'success',
+          summary: 'Éxito',
+          detail: data.message || 'Usuario actualizado correctamente',
+        });
 
-    setVisibleForm(false);
-    setUserEdit(null);
+        const resU = await fetch('/api/usuarios');
+        const dataU = await resU.json();
+        setUsuarios(dataU.items || []);
+        setVisibleForm(false);
+        setUsuarioEdit(null);
+      } else {
+        toast.current?.show({
+          severity: 'error',
+          summary: 'Error',
+          detail: data.error,
+        });
+      }
+    } catch (err: any) {
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail: err.message,
+      });
+    }
   };
 
-  const deleteUser = (u: Usuario) => {
-    setUsuarios(prev => prev.filter(p => p.id !== u.id));
-    toast.current?.show({ severity: 'success', summary: 'Eliminado', life: 2000 });
+  // 🔹 Cambiar estado desde tabla (ícono)
+  const cambiarEstado = async (row: Usuario) => {
+    const nuevo = row.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO';
+    try {
+      const res = await fetch('/api/usuarios/cambiar-estado', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          idUsuario: row.id,
+          nuevoEstado: nuevo,
+          idAdmin: 1,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.ok) {
+        toast.current?.show({
+          severity: 'success',
+          summary: 'Éxito',
+          detail: data.message,
+        });
+        setUsuarios((prev) =>
+          prev.map((u) =>
+            u.id === row.id ? { ...u, estado: nuevo } : u
+          )
+        );
+      } else {
+        toast.current?.show({
+          severity: 'error',
+          summary: 'Error',
+          detail: data.error,
+        });
+      }
+    } catch (err) {
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo cambiar el estado.',
+      });
+    }
   };
 
-  // --- File upload seguro ---
-  const onSelectFoto = async (e: FileUploadSelectEvent) => {
-    if (!userEdit || typeof window === 'undefined') return;
-    const file = (e.files && (e.files as File[])[0]) || (e.files as any)?.files?.[0];
-    if (!file) return;
-    const dataUrl = await new Promise<string>((res, rej) => {
-      const fr = new FileReader();
-      fr.onload = () => res(fr.result as string);
-      fr.onerror = rej;
-      fr.readAsDataURL(file);
-    });
-    setUserEdit({ ...userEdit, foto: dataUrl });
-  };
+  const estados = [
+    { label: 'Activo', value: 'ACTIVO' },
+    { label: 'Inactivo', value: 'INACTIVO' },
+  ];
 
   const estadoTemplate = (row: Usuario) => (
-    <Tag value={row.estado === 'activo' ? 'Activo' : 'Inactivo'} severity={row.estado === 'activo' ? 'success' : 'danger'} />
+    <Tag
+      value={row.estado}
+      severity={row.estado === 'ACTIVO' ? 'success' : 'danger'}
+    />
   );
-
-  const rolName = (id: string) => roles.find(r => r.id === id)?.nombre || '—';
-
-  const fotoTemplate = (row: Usuario) =>
-    row.foto ? <img src={row.foto} alt="foto" className="w-2rem h-2rem border-circle" /> : <span className="text-600">—</span>;
 
   const accionesTemplate = (row: Usuario) => (
     <div className="flex gap-2">
-      <Button icon="pi pi-user-edit" rounded text onClick={() => openEdit(row)} title="Editar" />
-      <Button icon="pi pi-trash" rounded text severity="danger" onClick={() => deleteUser(row)} title="Eliminar" />
+      <Button
+        icon="pi pi-pencil"
+        rounded
+        text
+        tooltip="Editar"
+        onClick={() => openEdit(row)}
+      />
+      <Button
+        icon={row.estado === 'ACTIVO' ? 'pi pi-ban' : 'pi pi-check'}
+        rounded
+        text
+        severity={row.estado === 'ACTIVO' ? 'warning' : 'success'}
+        tooltip={
+          row.estado === 'ACTIVO'
+            ? 'Desactivar usuario'
+            : 'Activar usuario'
+        }
+        onClick={() => cambiarEstado(row)}
+      />
     </div>
   );
 
-  const leftToolbar = (
-    <div className="flex flex-wrap gap-2">
-      <Button label="Nuevo usuario" icon="pi pi-plus" severity="success" onClick={openNew} />
-    </div>
-  );
-
-  const rightToolbar = (
-    <div className="flex flex-wrap gap-2 align-items-center">
-      <span className="p-input-icon-left">
-        <i className="pi pi-search" />
-        <InputText value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar..." />
-      </span>
-    </div>
-  );
-
-  // 🚫 No renderizar tabla hasta hidratar, evita errores SSR
-  if (!hydrated) return <div className="p-4 text-center">Cargando usuarios...</div>;
-
+  // 🔹 Render principal
   return (
     <div className="grid">
       <div className="col-12">
         <div className="card">
           <Toast ref={toast} />
 
-          <Toolbar className="mb-4 surface-100 border-round shadow-1" left={leftToolbar} right={rightToolbar} />
+          <Toolbar
+            className="mb-4 surface-100 border-round shadow-1"
+            right={
+              <span className="p-input-icon-left">
+                <i className="pi pi-search" />
+                <InputText
+                  placeholder="Buscar..."
+                  onChange={(e) => {
+                    const q = e.target.value.toLowerCase();
+                    setUsuarios((prev) =>
+                      prev.filter(
+                        (u) =>
+                          u.nombres.toLowerCase().includes(q) ||
+                          u.apellidos.toLowerCase().includes(q) ||
+                          u.correo.toLowerCase().includes(q)
+                      )
+                    );
+                  }}
+                />
+              </span>
+            }
+          />
 
           <DataTable
-            value={data}
-            dataKey="id"
+            value={usuarios}
+            loading={loading}
             paginator
             rows={10}
+            dataKey="id"
             stripedRows
-            responsiveLayout="scroll"
             emptyMessage="No se encontraron usuarios."
+            responsiveLayout="scroll"
           >
-            <Column header="Foto" body={fotoTemplate} />
+            <Column field="id" header="ID" sortable />
             <Column field="nombres" header="Nombres" sortable />
             <Column field="apellidos" header="Apellidos" sortable />
             <Column field="correo" header="Correo" sortable />
-            <Column header="Rol" body={(r) => rolName(r.rolId)} />
-            <Column header="Estado" body={estadoTemplate} />
-            <Column field="fechaRegistro" header="Fecha" body={(r: Usuario) => new Date(r.fechaRegistro).toLocaleDateString()} />
+            <Column field="rol" header="Rol" sortable />
+            <Column header="Estado" body={estadoTemplate} sortable />
             <Column header="Acciones" body={accionesTemplate} />
           </DataTable>
 
+          {/* 🔹 Modal de edición */}
           <Dialog
-            header={userEdit?.id ? 'Editar usuario' : 'Nuevo usuario'}
+            header="Editar Usuario"
             visible={visibleForm}
-            style={{ width: '800px', maxWidth: '95vw' }}
+            style={{ width: '700px', maxWidth: '95vw' }}
             modal
             onHide={() => setVisibleForm(false)}
             footer={
               <div className="flex justify-end gap-2">
-                <Button label="Cancelar" icon="pi pi-times" text onClick={() => setVisibleForm(false)} />
+                <Button
+                  label="Cancelar"
+                  icon="pi pi-times"
+                  text
+                  onClick={() => setVisibleForm(false)}
+                />
                 <Button label="Guardar" icon="pi pi-check" onClick={saveUser} />
               </div>
             }
           >
-            {userEdit && (
+            {usuarioEdit && (
               <div className="grid">
-                <div className="col-12 md:col-8">
-                  <label className="block mb-2">Nombres</label>
+                <div className="col-12 md:col-6">
+                  <label className="block mb-2">Nombre</label>
                   <InputText
-                    value={userEdit.nombres}
-                    onChange={(e) => setUserEdit({ ...userEdit, nombres: e.target.value })}
-                    className={`${submitted && !userEdit.nombres.trim() ? 'p-invalid w-full' : 'w-full'}`}
+                    value={usuarioEdit.nombres}
+                    onChange={(e) =>
+                      setUsuarioEdit({
+                        ...usuarioEdit,
+                        nombres: e.target.value,
+                      })
+                    }
+                    className="w-full"
                   />
-                  <label className="block mt-3 mb-2">Correo</label>
+
+                  <label className="block mt-3 mb-2">Apellido</label>
                   <InputText
-                    value={userEdit.correo}
-                    onChange={(e) => setUserEdit({ ...userEdit, correo: e.target.value })}
-                    className={`${submitted && !userEdit.correo.trim() ? 'p-invalid w-full' : 'w-full'}`}
+                    value={usuarioEdit.apellidos}
+                    onChange={(e) =>
+                      setUsuarioEdit({
+                        ...usuarioEdit,
+                        apellidos: e.target.value,
+                      })
+                    }
+                    className="w-full"
+                  />
+
+                  <label className="block mt-3 mb-2">Correo electrónico</label>
+                  <InputText
+                    value={usuarioEdit.correo}
+                    disabled
+                    className="w-full bg-gray-100 text-gray-600 cursor-not-allowed"
                   />
                 </div>
-                <div className="col-12 md:col-4">
-                  <label className="block mb-2">Foto</label>
-                  {userEdit.foto ? (
-                    <img src={userEdit.foto} alt="preview" className="w-10rem h-10rem border-round mb-2 object-cover" />
-                  ) : (
-                    <div className="w-10rem h-10rem border-1 border-round surface-border flex align-items-center justify-content-center mb-2">
-                      <span className="text-600">Sin foto</span>
-                    </div>
-                  )}
-                  <FileUpload
-                    mode="basic"
-                    name="foto"
-                    accept="image/*"
-                    customUpload
-                    auto
-                    chooseLabel="Subir foto"
-                    onSelect={onSelectFoto}
+
+                <div className="col-12 md:col-6">
+                  <label className="block mb-2">Teléfono</label>
+                  <InputText
+                    value={usuarioEdit.telefono || ''}
+                    onChange={(e) =>
+                      setUsuarioEdit({
+                        ...usuarioEdit,
+                        telefono: e.target.value,
+                      })
+                    }
+                    className="w-full"
+                  />
+
+                  <label className="block mt-3 mb-2">Rol</label>
+                  <Dropdown
+                    value={usuarioEdit.rolId}
+                    options={roles.map((r) => ({
+                      label: r.nombre,
+                      value: r.id,
+                    }))}
+                    onChange={(e) =>
+                      setUsuarioEdit({ ...usuarioEdit, rolId: e.value })
+                    }
+                    placeholder="Selecciona un rol"
+                    className="w-full"
+                  />
+
+                  <label className="block mt-3 mb-2">Estado</label>
+                  <Dropdown
+                    value={usuarioEdit.estado}
+                    options={estados}
+                    onChange={(e) =>
+                      setUsuarioEdit({ ...usuarioEdit, estado: e.value })
+                    }
+                    className="w-full"
                   />
                 </div>
               </div>
