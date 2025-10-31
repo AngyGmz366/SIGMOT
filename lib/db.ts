@@ -1,5 +1,5 @@
 // lib/db.ts
-import mysql from "mysql2/promise";
+import mysql from 'mysql2/promise';
 
 export const db = mysql.createPool({
   host: process.env.DB_HOST,
@@ -14,12 +14,14 @@ export const db = mysql.createPool({
   timezone: "Z", // usa UTC interno, luego forzamos manualmente
 });
 
+
 // 👇 Ejecutar comando al crear conexión
-db.on("connection", async (connection) => {
+db.on('connection', async (connection) => {
   try {
-    await connection.query("SET time_zone = '-06:00';");
-    console.log("🕓 Zona horaria de conexión establecida a Honduras (-06:00)");
+    // No es necesario usar .promise() si ya estás usando mysql2/promise
+    await connection.query("SET time_zone = '-06:00';"); 
+    console.log('🕓 Zona horaria de conexión establecida a Honduras (-06:00)');
   } catch (err) {
-    console.error("⚠️ Error al establecer zona horaria:", err);
+    console.error('⚠️ Error al establecer zona horaria:', err);
   }
 });

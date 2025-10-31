@@ -1,6 +1,8 @@
+export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+
 
 // Ruta dentro del proyecto para almacenar los respaldos
 const BACKUP_DIR = path.join(process.cwd(), 'backups');  // Usa process.cwd() para obtener la ruta raíz del proyecto

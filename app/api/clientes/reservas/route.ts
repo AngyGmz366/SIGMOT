@@ -1,8 +1,11 @@
+export const dynamic = "force-dynamic";
 export const runtime = 'nodejs';
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getAuth } from 'firebase-admin/auth';
 import { cookies } from 'next/headers';
+
+
 
 /**
  * 📄 GET /api/clientes/reservas
@@ -56,47 +59,46 @@ export async function GET(req: Request) {
     }
 
     // 3️⃣ Buscar DNI del cliente en base al UID
-    const [rowsDNI]: any = await conn.query(
-      `
-      SELECT p.DNI
-      FROM mydb.TBL_MS_USUARIO u
-      INNER JOIN mydb.TBL_PERSONAS p ON p.Id_Persona_PK = u.Id_Persona_FK
-      WHERE u.Firebase_UID = ?
-      LIMIT 1;
-      `,
-      [firebaseUID]
-    );
+const [rowsDNI]: any = await conn.query(
+  `
+  SELECT p.DNI
+  FROM mydb.TBL_MS_USUARIO u
+  INNER JOIN mydb.TBL_PERSONAS p ON p.Id_Persona_PK = u.Id_Persona_FK
+  WHERE u.Firebase_UID = ?
+  LIMIT 1;
+  `,
+  [firebaseUID]
+);
 
-    const dni = rowsDNI?.[0]?.DNI ?? null;
-    if (!dni) {
-      return NextResponse.json(
-        { ok: false, error: 'No se encontró el DNI del usuario autenticado.' },
-        { status: 404 }
-      );
-    }
+const dni = rowsDNI?.[0]?.DNI ?? null;
+if (!dni) {
+  return NextResponse.json(
+    { ok: false, error: 'No se encontró el DNI del usuario autenticado.' },
+    { status: 404 }
+  );
+}
+
 
     console.log('🔍 DNI encontrado:', dni);
 
-    // 4️⃣ Ejecutar SP para traer reservaciones del cliente
-    const [rows]: any = await conn.query('CALL sp_reservaciones_por_cliente(?, ?, ?);', [
-      dni,
-      estado,
-      tipo,
-    ]);
+const [rows]: any = await conn.query('CALL sp_reservaciones_por_cliente(?, ?, ?);', [
+  dni,
+  estado,
+  tipo,
+]);
 
-    // 5️⃣ Normalizar datos
-    const resultRows = Array.isArray(rows) ? rows[0] ?? [] : [];
+// Normalizar datos
+const resultRows = Array.isArray(rows) ? rows[0] ?? [] : [];
 
-    const reservaciones = resultRows.map((r: any) => ({
-      id: r.IdReserva,
-      tipo: r.Tipo?.toLowerCase(),
-      ruta: r.Ruta,
-      unidad: r.Unidad,
-      asiento: r.Asiento_Peso,
-      fecha: r.Fecha_Reserva,
-      estado: r.Estado?.toLowerCase(),
-    }));
-
+const reservaciones = resultRows.map((r: any) => ({
+  id: r.IdReserva,
+  tipo: r.Tipo?.toLowerCase(),
+  ruta: r.Ruta,
+  unidad: r.Unidad,
+  asiento: r.Asiento_Peso,
+  fecha: r.Fecha_Reserva,
+  estado: r.Estado?.toLowerCase(),
+}));
     console.log(`✅ Reservaciones encontradas: ${reservaciones.length}`);
 
     return NextResponse.json({ ok: true, items: reservaciones }, { status: 200 });
