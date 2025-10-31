@@ -299,4 +299,37 @@
     font-size: 1.2rem !important;
     color: #0f4ea5 !important;
   }
+  
+}
+/* ============================================================
+🛠️ FIX: Mostrar tuerca (⚙️) también en móvil
+============================================================ */
+@media (max-width: 768px) {
+  /* Forzamos visibilidad del contenedor de la tuerca */
+  .layout-topbar-menu {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    position: static !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Ajuste visual del botón de tuerca */
+  .layout-topbar-menu .layout-topbar-button {
+    display: flex !important;
+    width: 40px !important;
+    height: 40px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 50% !important;
+    background: transparent !important;
+  }
+
+  .layout-topbar-menu .layout-topbar-button i {
+    color: #0f4ea5 !important;
+    font-size: 1.3rem !important;
+  }
 }
