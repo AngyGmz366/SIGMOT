@@ -11,12 +11,12 @@
   }
 
   .tabla {
-    overflow-x: auto;
+    overflow-x: auto;  // Asegura que la tabla sea desplazable en pantallas pequeñas
 
     table {
       width: 100%;
       border-collapse: collapse;
-      max-width: 1000px;
+      max-width: 100%;
       margin: 0 auto;
       background: $white;
       border-radius: $radius;
@@ -40,3 +40,53 @@
   }
 }
 
+/* Media queries para hacer que la tabla sea más responsiva */
+@media (max-width: 768px) {
+  .rutas {
+    padding: 4rem 1rem 3rem;  // Ajuste de padding para pantallas más pequeñas
+  }
+
+  .tabla {
+    /* Permite desplazamiento horizontal si la tabla es demasiado ancha para la pantalla */
+    overflow-x: auto;
+  }
+
+  .tabla table {
+    /* Permite que la tabla se ajuste y sea desplazable */
+    width: 100%;
+    min-width: 600px; /* Esto permite que la tabla no se distorsione en pantallas pequeñas */
+  }
+
+  .tabla th, .tabla td {
+    padding: 0.75rem; /* Reduce el padding en pantallas más pequeñas */
+    font-size: 14px; /* Ajusta el tamaño de la fuente */
+  }
+
+  .rutas h1 {
+    font-size: 1.8rem; /* Ajuste del tamaño de fuente */
+  }
+
+  /* Ajuste de los encabezados de la tabla para pantallas pequeñas */
+  .tabla th {
+    font-size: 12px; /* Reducción del tamaño de la fuente de los encabezados */
+  }
+}
+
+/* Media query para pantallas móviles */
+@media (max-width: 480px) {
+  .rutas h1 {
+    font-size: 1.5rem; /* Ajuste aún más pequeño para pantallas muy pequeñas */
+  }
+
+  .tabla {
+    padding: 0.5rem;  /* Ajuste de padding en la tabla */
+  }
+
+  .tabla table {
+    min-width: 400px; /* Limita la anchura mínima de la tabla en pantallas pequeñas */
+  }
+
+  .tabla th, .tabla td {
+    font-size: 12px; /* Ajuste de la fuente */
+  }
+}

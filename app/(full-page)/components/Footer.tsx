@@ -17,6 +17,7 @@ export default function Footer() {
         {/* Enlaces rápidos */}
         <div>
           <h4>Enlaces rápidos</h4>
+          <Link href="/auth/Inicio">Inicio</Link>
           <Link href="/auth/nosotros">Nosotros</Link>
           <Link href="/auth/rutas">Rutas</Link>
         </div>

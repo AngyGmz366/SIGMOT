@@ -1,6 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from 'primereact/button';
 import { Dropdown } from 'primereact/dropdown';
@@ -8,51 +7,35 @@ import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { InputNumber } from 'primereact/inputnumber';
-import { RadioButton } from 'primereact/radiobutton';
-import { FileUpload } from 'primereact/fileupload';
 import { Toast } from 'primereact/toast';
 import { Toolbar } from 'primereact/toolbar';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
+import { Tooltip } from 'primereact/tooltip';
+import { Accordion, AccordionTab } from 'primereact/accordion';
+import { Badge } from 'primereact/badge';
+import { OverlayPanel } from 'primereact/overlaypanel';
+
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { Calendar } from 'primereact/calendar';
 import { addLocale } from 'primereact/api';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer } from 'recharts';
 import esLocale from '@fullcalendar/core/locales/es';
-import { Tooltip } from 'primereact/tooltip';
-import { Accordion, AccordionTab } from 'primereact/accordion';
-import { Badge } from 'primereact/badge';
-import { OverlayPanel } from 'primereact/overlaypanel';
+
 import { listarUnidades } from '@/modulos/unidades/servicios/unidades.servicios';
 import { obtenerTiposMantenimiento } from '@/modulos/mantenimientos/servicios/tipoMantenimiento.servicios';
 import { obtenerEstadosMantenimiento } from '@/modulos/mantenimientos/servicios/estadoMantenimiento.servicios';
 import {
-    listarMantenimientos,
-    crearMantenimiento,
-    actualizarMantenimiento,
-    eliminarMantenimiento
+    listarMantenimientos, crearMantenimiento, actualizarMantenimiento, eliminarMantenimiento
 } from '@/modulos/mantenimientos/servicios/mantenimientos.servicios';
 
 const MantenimientoTransporte = () => {
     const emptyServicio = {
-        id: null,
-        vehiculo: '',
-        placa: '',
-        tipoServicio: '',
-        fecha: null,
-        fechaRealizada: null,
-        proximoMantenimiento: null,
-        kilometraje: 0,
-        estado: '',
-        descripcion: '',
-        costo: 0,
-        taller: '',
-        repuestos: '',
+        id: null, vehiculo: '', placa: '', tipoServicio: '', fecha: null,
+        fechaRealizada: null, proximoMantenimiento: null, kilometraje: 0,
+        estado: '', descripcion: '', costo: 0, taller: '', repuestos: '',
     };
-
-
     const [servicios, setServicios] = useState<any[]>([]);
     const [servicio, setServicio] = useState<any>(emptyServicio);
     const [servicioDialog, setServicioDialog] = useState(false);
@@ -65,15 +48,12 @@ const MantenimientoTransporte = () => {
     const toast = useRef<Toast>(null);
     const [tiposMantenimiento, setTiposMantenimiento] = useState<TipoMantenimiento[]>([]);
     const [estadosMantenimiento, setEstadosMantenimiento] = useState<EstadoMantenimiento[]>([]);
-
-
     const [resumen, setResumen] = useState({ verde: 0, amarillo: 0, rojo: 0 });
-
+    //Cargar mantenimientos
     useEffect(() => {
         async function cargarMantenimientos() {
             try {
                 const data = await listarMantenimientos();
-
                 // ✅ usar los alias exactos del SP
                 const transformados = data.map((m: any) => ({
                     id: m.id,
@@ -90,18 +70,15 @@ const MantenimientoTransporte = () => {
                     repuestos: m.repuestos || '',
                     costo: parseFloat(m.costo) || 0,
                 }));
-
                 setServicios(transformados);
                 console.log('✅ Datos cargados desde API:', transformados);
             } catch (error) {
                 console.error('❌ Error al listar mantenimientos:', error);
             }
         }
-
         cargarMantenimientos();
     }, []);
-
-
+    //Cargar catálogos
     useEffect(() => {
         async function cargarCatalogos() {
             try {
@@ -115,11 +92,9 @@ const MantenimientoTransporte = () => {
                 console.error('❌ Error al cargar catálogos de mantenimiento:', error);
             }
         }
-
         cargarCatalogos();
     }, []);
-
-
+    //Configurar locale del calendario español
     useEffect(() => {
         addLocale('es', {
             firstDayOfWeek: 1,
@@ -137,7 +112,7 @@ const MantenimientoTransporte = () => {
         const hoySinHora = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
         const nuevasAlertas: any[] = [];
         const nuevoResumen = { verde: 0, amarillo: 0, rojo: 0 };
-
+        // Recorrer todos los servicios para evaluar fechas y próximos mantenimientos
         servicios.forEach((s) => {
             // ============================
             // 🔸 FECHAS PROGRAMADAS (solo si NO hay fechaRealizada)
@@ -152,7 +127,6 @@ const MantenimientoTransporte = () => {
                 const diferenciaDias = Math.floor(
                     (fechaServicioSinHora.getTime() - hoySinHora.getTime()) / (1000 * 60 * 60 * 24)
                 );
-
                 if (diferenciaDias > 7) {
                     nuevoResumen.verde++;
                     nuevasAlertas.push({
@@ -191,9 +165,8 @@ const MantenimientoTransporte = () => {
                     });
                 }
             }
-
             // ============================
-            // 🔹 PRÓXIMO MANTENIMIENTO (SIEMPRE)
+            // 🔹 PRÓXIMO MANTENIMIENTO
             // ============================
             if (s.proximoMantenimiento) {
                 const fechaProx = new Date(s.proximoMantenimiento);
@@ -232,32 +205,27 @@ const MantenimientoTransporte = () => {
                 });
             }
         });
-
         setAlertas(nuevasAlertas);
-        setResumen(nuevoResumen); // 👈 este resumen solo considera "fecha programada", como antes
+        setResumen(nuevoResumen); // 👈 este resumen solo considera "fecha programada"
     }, [servicios]);
-
-
+    // Funciones para abrir/cerrar diálogos
     const openNew = () => {
         setServicio(emptyServicio);
         setSubmitted(false);
         setServicioDialog(true);
     };
-
     const hideDialog = () => {
         setSubmitted(false);
         setServicioDialog(false);
     };
-
     const hideDetalleDialog = () => {
         setDetalleDialog(false);
     };
-
     const hideDetalleServicioDialog = () => {
         setDetalleServicioDialog(false);
         setServicioSeleccionado(null);
     };
-
+    // Ver detalle por vehículo
     const verDetalle = () => {
         // Agrupar servicios por vehículo y placa
         const vehiculosAgrupados = servicios.reduce((acc, servicio) => {
@@ -275,55 +243,51 @@ const MantenimientoTransporte = () => {
             acc[key].servicios.push(servicio);
             acc[key].totalServicios++;
             acc[key].costoTotal += parseFloat(servicio.costo) || 0;
-
             // Encontrar el último servicio (más reciente)
             if (!acc[key].ultimoServicio || new Date(servicio.fecha) > new Date(acc[key].ultimoServicio.fecha)) {
                 acc[key].ultimoServicio = servicio;
             }
-
             return acc;
         }, {});
-
         // Convertir a array y ordenar servicios por fecha
         const vehiculosArray = Object.values(vehiculosAgrupados).map((vehiculo: any) => ({
             ...vehiculo,
             servicios: vehiculo.servicios.sort((a: any, b: any) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
         }));
-
         setVehiculosDetalle(vehiculosArray);
         setDetalleDialog(true);
     };
-
+    // Funciones para manejar cambios en inputs
     const onInputChange = (e: any, name: string) => {
         const val = (e.target && e.target.value) || '';
         let _servicio = { ...servicio };
         _servicio[name] = val;
         setServicio(_servicio);
     };
-
+    // Función específica para InputNumber
     const onInputNumberChange = (e: any, name: string) => {
         const val = e.value || 0;
         let _servicio = { ...servicio };
         _servicio[name] = val;
         setServicio(_servicio);
     };
-
+    // Función específica para Dropdown Tipo de Servicio
     const onCategoryChange = (e: any) => {
         let _servicio = { ...servicio };
         _servicio['tipoServicio'] = e.value;
         setServicio(_servicio);
     };
-
+    // Función específica para Dropdown Estado
     const onEstadoChange = (e: any) => {
         let _servicio = { ...servicio };
         _servicio['estado'] = e.value;
         setServicio(_servicio);
     };
-
+    // Generar ID único
     const createId = () => {
         return Math.random().toString(36).substr(2, 9);
     };
-
+    // Editar servicio
     const editServicio = (rowData: any) => {
         const tipoSeleccionado = tiposMantenimiento.find(
             (t: any) => t.Servicio === rowData.tipoServicio
@@ -334,7 +298,6 @@ const MantenimientoTransporte = () => {
         const unidadSeleccionada = unidades.find(
             (u) => `${u.Marca_Unidad} ${u.Modelo} (${u.Año})` === rowData.vehiculo
         );
-
         setServicio({
             ...rowData,
             Id_TipoManto_FK: tipoSeleccionado ? tipoSeleccionado.Id : null,
@@ -344,11 +307,9 @@ const MantenimientoTransporte = () => {
             fechaRealizada: rowData.fechaRealizada ? new Date(rowData.fechaRealizada) : null,
             proximoMantenimiento: rowData.proximoMantenimiento ? new Date(rowData.proximoMantenimiento) : null,
         });
-
         setServicioDialog(true);
     };
-
-
+    // Eliminar servicio
     const deleteServicio = async (rowData: any) => {
         try {
             await eliminarMantenimiento(rowData.id);
@@ -370,14 +331,12 @@ const MantenimientoTransporte = () => {
             });
         }
     };
-
-
+    // Ver detalle de servicio
     const verDetalleServicio = (rowData: any) => {
         setServicioSeleccionado(rowData);
         setDetalleServicioDialog(true);
     };
-
-
+    // Template para acciones en la tabla
     const accionesTemplate = (rowData: any) => (
         <div className="flex gap-2">
             <Button icon="pi pi-eye" rounded text severity="info" aria-label="Ver Detalle" onClick={() => verDetalleServicio(rowData)} />
@@ -385,22 +344,11 @@ const MantenimientoTransporte = () => {
             <Button icon="pi pi-trash" rounded text severity="danger" aria-label="Eliminar" onClick={() => deleteServicio(rowData)} />
         </div>
     );
-
-    interface TipoMantenimiento {
-        Id: number;
-        Servicio: string;
-        Descripcion: string;
-    }
-
-    interface EstadoMantenimiento {
-        Id: number;
-        Estado: string;
-        Descripcion: string;
-    }
-
+    interface TipoMantenimiento { Id: number; Servicio: string; Descripcion: string; } // Definición de la interfaz para los tipos de mantenimiento
+    interface EstadoMantenimiento { Id: number; Estado: string; Descripcion: string; }// Definición de la interfaz para los estados de mantenimiento
+    // Guardar servicio (crear o actualizar)
     const saveServicio = async () => {
         setSubmitted(true);
-
         try {
             // Validar campos obligatorios del formulario
             if (!servicio.Id_Unidad_FK) {
@@ -411,9 +359,7 @@ const MantenimientoTransporte = () => {
                     life: 3000,
                 });
                 return;
-            }
-
-            if (!servicio.Id_TipoManto_FK) {
+            } if (!servicio.Id_TipoManto_FK) {
                 toast.current?.show({
                     severity: 'warn',
                     summary: 'Tipo requerido',
@@ -421,9 +367,7 @@ const MantenimientoTransporte = () => {
                     life: 3000,
                 });
                 return;
-            }
-
-            if (!servicio.Id_EstadoManto_FK) {
+            } if (!servicio.Id_EstadoManto_FK) {
                 toast.current?.show({
                     severity: 'warn',
                     summary: 'Estado requerido',
@@ -431,9 +375,7 @@ const MantenimientoTransporte = () => {
                     life: 3000,
                 });
                 return;
-            }
-
-            if (!servicio.proximoMantenimiento) {
+            } if (!servicio.proximoMantenimiento) {
                 toast.current?.show({
                     severity: 'warn',
                     summary: 'Fecha requerida',
@@ -441,9 +383,7 @@ const MantenimientoTransporte = () => {
                     life: 3000,
                 });
                 return;
-            }
-
-            if (servicio.fecha && servicio.proximoMantenimiento <= servicio.fecha) {
+            } if (servicio.fecha && servicio.proximoMantenimiento <= servicio.fecha) {
                 toast.current?.show({
                     severity: 'warn',
                     summary: 'Fecha inválida',
@@ -452,7 +392,13 @@ const MantenimientoTransporte = () => {
                 });
                 return;
             }
-
+            // Si el estado es "Cancelado", eliminar las alertas de fechas programadas
+            if (servicio.estado === 'Cancelado') {
+                // Eliminar alertas de tipo 'fecha'
+                setAlertas((prevAlertas) =>
+                    prevAlertas.filter((alerta) => alerta.tipo !== 'fecha')
+                );
+            }
             // 🔧 Mapeo de campos reales que espera el SP `sp_mantenimiento_crear`
             const payload = {
                 Id_Unidad_FK: servicio.Id_Unidad_FK,
@@ -473,8 +419,6 @@ const MantenimientoTransporte = () => {
                 Taller: servicio.taller,
                 Repuestos: servicio.repuestos,
             };
-
-
             if (servicio.id) {
                 // 🔄 Actualizar mantenimiento existente
                 await actualizarMantenimiento(servicio.id, payload);
@@ -494,7 +438,6 @@ const MantenimientoTransporte = () => {
                     life: 3000,
                 });
             }
-
             // Refrescar lista y cerrar modal
             const data = await listarMantenimientos();
             setServicios(data);
@@ -510,14 +453,9 @@ const MantenimientoTransporte = () => {
             });
         }
     };
-
-    interface Unidad {
-        Id_Unidad_PK: number;
-        Numero_Placa: string;
-        Marca_Unidad: string;
-        Modelo: string;
-        Año: number;
-    }
+    // Definición de la interfaz para las unidades
+    interface Unidad { Id_Unidad_PK: number; Numero_Placa: string; Marca_Unidad: string; Modelo: string; Año: number; }
+    // Cargar unidades para el dropdown
     const [unidades, setUnidades] = useState<Unidad[]>([]);
     useEffect(() => {
         async function cargarUnidades() {
@@ -530,13 +468,12 @@ const MantenimientoTransporte = () => {
         }
         cargarUnidades();
     }, []);
-
-
+    // Nombres de meses en español
     const meses = [
         'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
         'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
     ];
-
+    // Formatear fecha y hora en español (Honduras)
     const formatearFechaHora = (fechaISO: string) => {
         const fecha = new Date(fechaISO);
         return fecha.toLocaleString('es-HN', {
@@ -548,7 +485,7 @@ const MantenimientoTransporte = () => {
             hour12: true
         });
     };
-
+    // Formatear fecha para alertas
     const formatearFechaAlerta = (fechaISO: string) => {
         const fecha = new Date(fechaISO);
         return fecha.toLocaleString('es-HN', {
@@ -561,13 +498,12 @@ const MantenimientoTransporte = () => {
         }).replace(',', ' a las');
     };
 
-    const [filtroPlaca, setFiltroPlaca] = useState('');
-
+    const [filtroPlaca, setFiltroPlaca] = useState('');// Estado para el filtro de placa
     const serviciosFiltrados = servicios.filter(
         (s) => (s.placa?.toLowerCase() || '').includes(filtroPlaca.toLowerCase())
-    );
+    );// Filtrar servicios por placa
 
-
+    // Función para obtener colores de alerta según días restantes
     const getAlertColor = (diasRestantes: number) => {
         if (diasRestantes < 0) {
             return { bg: 'surface-100', text: 'text-red-800', border: 'border-red-500' };
@@ -580,6 +516,7 @@ const MantenimientoTransporte = () => {
         }
     };
 
+    // Funciones para obtener badges de Tipo de Servicio y Estado
     const getTipoServicioBadge = (tipo: string) => {
         switch (tipo) {
             case 'Preventivo':
@@ -593,11 +530,10 @@ const MantenimientoTransporte = () => {
         }
     };
 
+    // Función para obtener badge de Estado
     const getEstadoBadge = (estado: string) => {
         if (!estado) return <Badge value="Sin estado" severity="secondary" />;
-
         const estadoUpper = estado.toUpperCase().trim();
-
         switch (estadoUpper) {
             case 'PROGRAMADO':
                 return <Badge value="Programado" severity="info" />;
@@ -611,61 +547,35 @@ const MantenimientoTransporte = () => {
                 return <Badge value={estado} severity="secondary" />;
         }
     };
-    const op = useRef<OverlayPanel>(null);
+    const op = useRef<OverlayPanel>(null);// Ref para el OverlayPanel de notificaciones
 
+    // Footer del diálogo de servicio
     const servicioDialogFooter = (
         <>
-            <Button
-                label="Cancelar"
-                icon="pi pi-times"
-                className="p-button-text"
-                onClick={hideDialog}
-            />
-            <Button
-                label="Guardar"
-                icon="pi pi-check"
-                className="p-button-text"
-                onClick={saveServicio}
-            />
+            <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={hideDialog} />
+            <Button label="Guardar" icon="pi pi-check" className="p-button-text" onClick={saveServicio} />
         </>
     );
 
     return (
         <div className="grid">
             <Toast ref={toast} />
-
             <div className="col-12">
+                {/* Botones principales */}
                 <Toolbar
                     className="mb-4"
                     left={
                         <div className="flex flex-wrap gap-2">
-                            <Button
-                                label="Nuevo Servicio"
-                                icon="pi pi-plus"
-                                severity="success"
-                                onClick={openNew}
-                            />
-                            <Button
-                                label="Ver Detalle por Vehículo"
-                                icon="pi pi-eye"
-                                severity="info"
-                                onClick={verDetalle}
-                            />
+                            <Button label="Nuevo Servicio" icon="pi pi-plus" severity="success" onClick={openNew} />
+                            <Button label="Ver Detalle por Vehículo" icon="pi pi-eye" severity="info" onClick={verDetalle} />
                         </div>
                     }
                 />
                 {/* 🔔 Botón de notificaciones mejorado */}
                 <div className="flex justify-content-end mb-3 relative">
-                    <Button
-                        icon="pi pi-bell"
-                        rounded
-                        text
+                    <Button icon="pi pi-bell" rounded text
                         style={{
-                            backgroundColor: '#094293',
-                            color: 'white',
-                            width: '3rem',
-                            height: '3rem',
-                            position: 'relative',
+                            backgroundColor: '#094293', color: 'white', width: '3rem', height: '3rem', position: 'relative',
                         }}
                         className={alertas.length > 0 ? 'bell-animate' : ''}
                         aria-label="Notificaciones"
@@ -695,6 +605,7 @@ const MantenimientoTransporte = () => {
                             }}
                         />
                     )}
+                    {/* OverlayPanel para mostrar las alertas */}
                     <OverlayPanel ref={op} showCloseIcon dismissable>
                         <div
                             style={{
@@ -709,7 +620,6 @@ const MantenimientoTransporte = () => {
                                 <i className="pi pi-exclamation-triangle text-yellow-500"></i>
                                 Alertas de Mantenimiento
                             </h6>
-
                             {alertas.length === 0 ? (
                                 <p className="text-center text-500">No hay alertas pendientes 🚘</p>
                             ) : (
@@ -730,7 +640,6 @@ const MantenimientoTransporte = () => {
                                             const fechaFormateada = alerta.fecha
                                                 ? new Date(alerta.fecha).toLocaleDateString('es-HN')
                                                 : '-';
-
                                             return (
                                                 <div
                                                     key={`fecha-${i}`}
@@ -823,12 +732,10 @@ const MantenimientoTransporte = () => {
                                                 default:
                                                     break;
                                             }
-
                                             const mensaje = `${alerta.vehiculo} (${alerta.placa}) • ${alerta.tipoServicio}`;
                                             const fechaProx = alerta.proximoMantenimiento
                                                 ? new Date(alerta.proximoMantenimiento).toLocaleDateString('es-HN')
                                                 : '-';
-
                                             return (
                                                 <div
                                                     key={`prox-${i}`}
@@ -890,16 +797,14 @@ const MantenimientoTransporte = () => {
                             )}
                         </div>
                     </OverlayPanel>
-
                 </div>
-
+                {/* RESUMEN DE MANTENIMIENTOS */}
                 <div className="card">
                     <h5>Resumen de Mantenimientos</h5>
                     <div className="grid">
                         <div className="col-12 md:col-4">
                             <div className="p-4 border-round shadow-2" style={{
-                                backgroundColor: '#dcfce7',
-                                border: '2px solid #22c55e'
+                                backgroundColor: '#dcfce7', border: '2px solid #22c55e'
                             }}>
                                 <h6 className="m-0 mb-2" style={{ color: '#166534' }}>
                                     Mantenimientos mayores a 7 días
@@ -911,8 +816,7 @@ const MantenimientoTransporte = () => {
                         </div>
                         <div className="col-12 md:col-4">
                             <div className="p-4 border-round shadow-2" style={{
-                                backgroundColor: '#fef3c7',
-                                border: '2px solid #f59e0b'
+                                backgroundColor: '#fef3c7', border: '2px solid #f59e0b'
                             }}>
                                 <h6 className="m-0 mb-2" style={{ color: '#92400e' }}>
                                     Mantenimientos en 3-7 días
@@ -924,8 +828,7 @@ const MantenimientoTransporte = () => {
                         </div>
                         <div className="col-12 md:col-4">
                             <div className="p-4 border-round shadow-2" style={{
-                                backgroundColor: '#fee2e2',
-                                border: '2px solid #ef4444'
+                                backgroundColor: '#fee2e2', border: '2px solid #ef4444'
                             }}>
                                 <h6 className="m-0 mb-2" style={{ color: '#991b1b' }}>
                                     Mantenimientos menores a 3 días
@@ -940,85 +843,67 @@ const MantenimientoTransporte = () => {
 
                 {/* TABLA DE SERVICIOS */}
                 <div className="card mt-4">
-                    <div className="mb-3 flex align-items-center justify-content-between">
+                    <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
                         <h4 className="m-0 text-primary font-semibold">Historial de Servicios</h4>
-                        <span className="p-input-icon-left">
-                            <i className="pi pi-search" />
-                            <InputText
-                                value={filtroPlaca}
-                                onChange={(e) => setFiltroPlaca(e.target.value)}
-                                placeholder="Buscar por placa..."
-                                className="p-inputtext-sm w-20rem"
-                            />
-                        </span>
+                        <div>
+                            <span className="block mt-2 md:mt-0 p-input-icon-left">
+                                <i className="pi pi-search" />
+                                <InputText
+                                    type="search"
+                                    value={filtroPlaca}
+                                    onChange={(e) => setFiltroPlaca(e.target.value)}
+                                    placeholder="Buscar por placa..."
+                                    className="w-full"
+                                />
+                            </span>
+                        </div>
                     </div>
+
                     {/* 🔹 Tabla principal */}
                     <DataTable
                         value={serviciosFiltrados}
                         paginator
                         rows={10}
                         rowsPerPageOptions={[5, 10, 25, 50]}
-                        className="datatable-responsive shadow-2 border-round"
+                        className="datatable-responsive"
+                        tableStyle={{ minWidth: '50rem' }}
                         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
                         currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} servicios"
                         responsiveLayout="scroll"
-                        showGridlines
                         emptyMessage="No hay servicios registrados."
                     >
                         <Column
-                            field="id"
-                            header="ID"
-                            sortable
-                            headerStyle={{ width: '80px', textAlign: 'center' }}
-                            bodyStyle={{ textAlign: 'center' }}
+                            field="id" header="ID" sortable headerStyle={{ width: '80px', textAlign: 'center' }} bodyStyle={{ textAlign: 'center' }}
                         />
                         <Column field="vehiculo" header="Vehículo" sortable style={{ minWidth: '10rem' }} />
                         <Column field="placa" header="Placa" sortable style={{ minWidth: '8rem' }} />
                         <Column
-                            field="tipoServicio"
-                            header="Tipo de Servicio"
-                            body={(rowData) => getTipoServicioBadge(rowData.tipoServicio)}
-                            sortable
-                            style={{ minWidth: '10rem' }}
+                            field="tipoServicio" header="Tipo de Servicio"
+                            body={(rowData) => getTipoServicioBadge(rowData.tipoServicio)} sortable style={{ minWidth: '10rem' }}
                         />
                         <Column
-                            header="Estado"
-                            body={(rowData) => getEstadoBadge(rowData.estado || 'Pendiente')}
-                            sortable
-                            style={{ minWidth: '9rem' }}
+                            header="Estado" body={(rowData) => getEstadoBadge(rowData.estado || 'Pendiente')}
+                            sortable style={{ minWidth: '9rem' }}
                         />
                         <Column
-                            field="fecha"
-                            header="Fecha Programada"
-                            sortable
-                            style={{ minWidth: '9rem' }}
+                            field="fecha" header="Fecha Programada" sortable style={{ minWidth: '9rem' }}
                             body={(r) => (r.fecha ? new Date(r.fecha).toLocaleDateString('es-HN') : '-')}
                         />
                         <Column
-                            field="fechaRealizada"
-                            header="Fecha Realizada"
-                            sortable
-                            style={{ minWidth: '9rem' }}
+                            field="fechaRealizada" header="Fecha Realizada" sortable style={{ minWidth: '9rem' }}
                             body={(r) => (r.fechaRealizada ? new Date(r.fechaRealizada).toLocaleDateString('es-HN') : '-')}
                         />
                         <Column
-                            field="proximoMantenimiento"
-                            header="Próximo Mantenimiento"
-                            sortable
-                            style={{ minWidth: '10rem' }}
+                            field="proximoMantenimiento" header="Próximo Mantenimiento" sortable style={{ minWidth: '10rem' }}
                             body={(r) => (r.proximoMantenimiento ? new Date(r.proximoMantenimiento).toLocaleDateString('es-HN') : '-')}
                         />
                         <Column
-                            field="kilometraje"
-                            header="Kilometraje"
-                            sortable
-                            body={(r) => `${r.kilometraje?.toLocaleString() || 0} km`}
+                            field="kilometraje" header="Kilometraje" sortable body={(r) => `${r.kilometraje?.toLocaleString() || 0} km`}
                             style={{ minWidth: '8rem' }}
                         />
                         <Column field="taller" header="Taller" sortable style={{ minWidth: '10rem' }} />
                         <Column
-                            field="costo"
-                            header="Costo (L)"
+                            field="costo" header="Costo (L)"
                             body={(r) =>
                                 r.costo?.toLocaleString('es-HN', {
                                     style: 'currency',
@@ -1026,37 +911,15 @@ const MantenimientoTransporte = () => {
                                     minimumFractionDigits: 2,
                                 })
                             }
-                            sortable
-                            style={{ minWidth: '8rem' }}
+                            sortable style={{ minWidth: '8rem' }}
                         />
                         <Column
                             header="Acciones"
                             body={(rowData) => (
                                 <div className="flex gap-2 justify-content-center">
-                                    <Button
-                                        icon="pi pi-eye"
-                                        rounded
-                                        text
-                                        severity="info"
-                                        tooltip="Ver detalle"
-                                        onClick={() => verDetalleServicio(rowData)}
-                                    />
-                                    <Button
-                                        icon="pi pi-pencil"
-                                        rounded
-                                        text
-                                        severity="warning"
-                                        tooltip="Editar"
-                                        onClick={() => editServicio(rowData)}
-                                    />
-                                    <Button
-                                        icon="pi pi-trash"
-                                        rounded
-                                        text
-                                        severity="danger"
-                                        tooltip="Eliminar"
-                                        onClick={() => deleteServicio(rowData)}
-                                    />
+                                    <Button icon="pi pi-eye" rounded text severity="info" tooltip="Ver detalle" onClick={() => verDetalleServicio(rowData)} />
+                                    <Button icon="pi pi-pencil" rounded text severity="warning" tooltip="Editar" onClick={() => editServicio(rowData)} />
+                                    <Button icon="pi pi-trash" rounded text severity="danger" tooltip="Eliminar" onClick={() => deleteServicio(rowData)} />
                                 </div>
                             )}
                             style={{ width: '8rem' }}
@@ -1079,7 +942,7 @@ const MantenimientoTransporte = () => {
                             date: s.fecha,
                             extendedProps: s
                         }))}
-                        eventDidMount={(info) => {
+                        eventDidMount={(info: any) => {
                             const s = info.event.extendedProps;
                             const tooltipContent = `
                                 Vehículo: ${s.vehiculo}
@@ -1147,6 +1010,7 @@ const MantenimientoTransporte = () => {
                             placeholder="Selecciona una unidad"
                             className="w-full"
                         />
+
                     )}
                 </div>
                 {/* 🔧 Tipo de Mantenimiento */}
@@ -1245,10 +1109,8 @@ const MantenimientoTransporte = () => {
                             });
                         }}
                         min={0}
-                        placeholder="Ej. 150000"
-                        className="w-full"
+                        placeholder="Ej. 150000" className="w-full"
                     />
-
                 </div>
 
                 {/* 🏷️ Estado del mantenimiento */}
@@ -1292,10 +1154,7 @@ const MantenimientoTransporte = () => {
                         onValueChange={(e) =>
                             setServicio({ ...servicio, costo: e.value || 0 })
                         }
-                        mode="currency"
-                        currency="HNL"
-                        locale="es-HN"
-                        className="w-full"
+                        mode="currency" currency="HNL" locale="es-HN" className="w-full"
                     />
                 </div>
 
@@ -1491,14 +1350,13 @@ const MantenimientoTransporte = () => {
                                                         const costoTotalNum = parseFloat(
                                                             String(vehiculoData.costoTotal || '0').replace(/[^\d.-]/g, '')
                                                         ) || 0;
-
+                                                        // 🔹 Cálculo del promedio
                                                         const promedio = vehiculoData.totalServicios > 0
                                                             ? costoTotalNum / vehiculoData.totalServicios
                                                             : 0;
-
+                                                        // 🔹 Formateo de moneda local
                                                         const format = (n: number) =>
                                                             `L.${n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
-
                                                         return (
                                                             <>
                                                                 <p className="m-0">
@@ -1512,7 +1370,6 @@ const MantenimientoTransporte = () => {
                                                     })()}
                                                 </div>
                                             </div>
-
                                         </div>
                                     </div>
 
@@ -1520,31 +1377,11 @@ const MantenimientoTransporte = () => {
                                     <div className="col-12">
                                         <h6 className="mb-3">Historial de Servicios</h6>
                                         <DataTable
-                                            value={vehiculoData.servicios}
-                                            paginator
-                                            rows={5}
-                                            showGridlines
-                                            size="small"
-                                            responsiveLayout="scroll"
-                                            emptyMessage="No hay servicios para este vehículo."
+                                            value={vehiculoData.servicios} paginator rows={5} showGridlines size="small" responsiveLayout="scroll" emptyMessage="No hay servicios para este vehículo."
                                         >
-                                            <Column
-                                                field="tipoServicio"
-                                                header="Tipo"
-                                                body={(rowData) => getTipoServicioBadge(rowData.tipoServicio)}
-                                                style={{ width: '120px' }}
-                                            />
-                                            <Column
-                                                field="estado"
-                                                header="Estado"
-                                                body={(rowData) => getEstadoBadge(rowData.estado || 'Pendiente')}
-                                                style={{ width: '100px' }}
-                                            />
-                                            <Column
-                                                header="Fecha"
-                                                body={(rowData) => formatearFechaHora(rowData.fecha)}
-                                                style={{ width: '150px' }}
-                                            />
+                                            <Column field="tipoServicio" header="Tipo" body={(rowData) => getTipoServicioBadge(rowData.tipoServicio)} style={{ width: '120px' }} />
+                                            <Column field="estado" header="Estado" body={(rowData) => getEstadoBadge(rowData.estado || 'Pendiente')} style={{ width: '100px' }} />
+                                            <Column header="Fecha" body={(rowData) => formatearFechaHora(rowData.fecha)} style={{ width: '150px' }} />
                                             <Column field="kilometraje" header="Km" style={{ width: '80px' }} />
                                             <Column field="taller" header="Taller" style={{ width: '120px' }} />
                                             <Column
@@ -1565,16 +1402,12 @@ const MantenimientoTransporte = () => {
                                                     </div>
                                                 )}
                                             />
-                                            <Column
-                                                field="costo" header="Costo" body={(rowData) => rowData.costo?.toLocaleString('es-HN', { style: 'currency', currency: 'HNL', minimumFractionDigits: 2 })} style={{ width: '100px' }}
-                                            />
+                                            <Column field="costo" header="Costo" body={(rowData) => rowData.costo?.toLocaleString('es-HN', { style: 'currency', currency: 'HNL', minimumFractionDigits: 2 })} style={{ width: '100px' }} />
                                             <Column
                                                 body={(rowData) => (
                                                     <div className="flex gap-1">
-                                                        <Button icon="pi pi-pencil" rounded text size="small" severity="warning" aria-label="Editar" onClick={() => editServicio(rowData)}
-                                                        />
-                                                        <Button icon="pi pi-trash" rounded text size="small" severity="danger" aria-label="Eliminar" onClick={() => deleteServicio(rowData)}
-                                                        />
+                                                        <Button icon="pi pi-pencil" rounded text size="small" severity="warning" aria-label="Editar" onClick={() => editServicio(rowData)} />
+                                                        <Button icon="pi pi-trash" rounded text size="small" severity="danger" aria-label="Eliminar" onClick={() => deleteServicio(rowData)} />
                                                     </div>
                                                 )}
                                                 header="Acciones" style={{ width: '80px' }}
@@ -1590,5 +1423,4 @@ const MantenimientoTransporte = () => {
         </div>
     );
 };
-
 export default MantenimientoTransporte;
