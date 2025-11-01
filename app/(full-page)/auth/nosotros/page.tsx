@@ -15,9 +15,12 @@ export default function Nosotros() {
       const res = await fetch('/api/rutas', { cache: 'no-store' });
       if (!res.ok) throw new Error(`Error ${res.status} al obtener rutas`);
       const data = await res.json();
-      const rutas = Array.isArray(data?.items) ? data.items : [];
 
-      const activas = rutas.filter((r: any) => r.estado?.toUpperCase() === 'ACTIVA').length;
+      // Verifica la respuesta para saber si usa "data" o "items"
+      console.log("Respuesta de la API de rutas:", data);
+
+      const rutas = Array.isArray(data?.data) ? data.data : []; // Usamos "data" si es necesario
+      const activas = rutas.filter((r: any) => r.Estado?.toUpperCase() === 'ACTIVA').length;
       setRutasActivas(activas);
     } catch (err) {
       console.error('❌ Error cargando rutas activas:', err);
@@ -94,4 +97,3 @@ export default function Nosotros() {
     </>
   );
 }
-
