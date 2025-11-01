@@ -189,6 +189,9 @@ const RegistroUsuario: React.FC = () => {
       await Swal.fire({ icon: 'success', title: '¡Bienvenido!', text: 'Registro completado con Google.' });
       router.push('/dashboard');
     } catch (e: any) {
+      // Verificar el error de cierre de popup
+      if (e?.code === 'auth/popup-closed-by-user') return; // No hacer nada si el usuario cierra el popup
+
       Swal.fire('Error', e?.message || 'No se pudo registrar con Google.', 'error');
     } finally {
       setLoading(false);
