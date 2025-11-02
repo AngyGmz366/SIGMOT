@@ -50,6 +50,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+            tls: {
+        rejectUnauthorized: false, // ✅ evita error de certificado local
+      },
     });
 
     // 📎 Adjuntos
@@ -89,9 +92,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       </div>
     `;
 
-    // 📤 Enviar correo
+    // 📤 Enviar correos
     const info = await transporter.sendMail({
-      from: `"Soporte SIGMOT" <${process.env.SMTP_USER}>`,
+      from: `"Soporte SIGMOT" <${process.env.SMTP_FROM}>`,
       to: correoCliente,
       subject: "Respuesta a tu incidencia - SIGMOT",
       html: htmlTemplate,
