@@ -1039,7 +1039,7 @@ function cerrarDetalle() {
           { field: 'Precio_Total', header: 'Precio (Lps)' },
           { field: 'Fecha_Hora_Compra', header: 'Fecha de Compra' },
         ]}
-        onView={(row) => console.log('🔎 Detalle boleto:', row)}
+        onView={(row) => abrirDetalle('Boletos', row)}
         />
           {/* ==================== Reportes de Ventas / Facturación ==================== */}
       <ReportTable
@@ -1194,9 +1194,10 @@ function cerrarDetalle() {
           { field: 'Tipo_Persona', header: 'Tipo Persona' },
           { field: 'Estado', header: 'Estado' },
         ]}
-
         onView={(row) => abrirDetalle('Personas', row)}
       />
+
+
                 <Dialog
           header={`Detalle - ${detalleInfo?.seccion ?? ''}`}
           visible={detalleOpen}
