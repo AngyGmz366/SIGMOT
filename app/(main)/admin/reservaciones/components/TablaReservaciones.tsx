@@ -26,33 +26,43 @@ export default function TablaReservaciones({
   return (
     <div className="card">
       <ConfirmDialog />
-      <div className="flex justify-content-between align-items-center mb-4">
-        <h2>Gestión de Reservaciones</h2>
-        <div className="flex gap-2 align-items-center">
-          <span className="p-input-icon-left">
+
+      {/* 🔹 Encabezado adaptativo */}
+      <div className="flex flex-column md:flex-row justify-content-between align-items-center gap-3 mb-4">
+        <h2 className="text-center md:text-left text-xl md:text-2xl font-semibold">
+          Gestión de Reservaciones
+        </h2>
+
+        <div className="flex flex-column sm:flex-row gap-2 align-items-center w-full md:w-auto">
+          <span className="p-input-icon-left w-full sm:w-auto">
             <i className="pi pi-search" />
             <InputText
               value={globalFilter}
               onChange={(e) => setGlobalFilter(e.target.value)}
               placeholder="Buscar por cliente o ruta"
+              className="w-full sm:w-14rem"
             />
           </span>
+
+          {/* 🔸 Botón más pequeño sin cambiar color */}
           <Button
             label="Nueva Reservación"
             icon="pi pi-plus"
-            className="p-button-success"
+            className="p-button-success p-button-sm"
             onClick={() => onAdd()}
           />
+
           <Button
             label="Eliminar"
             icon="pi pi-trash"
-            className="p-button-danger"
+            className="p-button-danger p-button-sm"
             onClick={() => selectedReservation?.id && onDelete(selectedReservation.id)}
             disabled={!isRowSelected}
           />
         </div>
       </div>
 
+      {/* 🔹 Tabla responsive */}
       <DataTable
         value={reservaciones}
         selection={selectedReservation}
@@ -82,7 +92,11 @@ export default function TablaReservaciones({
           field="tipo"
           header="Tipo"
           body={(row) => (
-            <span className={`font-semibold ${row.tipo === 'viaje' ? 'text-blue-500' : 'text-orange-500'}`}>
+            <span
+              className={`font-semibold ${
+                row.tipo === 'viaje' ? 'text-blue-500' : 'text-orange-500'
+              }`}
+            >
               {row.tipo === 'viaje' ? '🚌 Viaje' : '📦 Encomienda'}
             </span>
           )}

@@ -3,7 +3,6 @@
 import { Button } from 'primereact/button';
 import { confirmDialog } from 'primereact/confirmdialog';
 import { ReservacionBase } from './types';
-import { Tooltip } from 'primereact/tooltip';
 
 export default function ActionsColumn({
   row,
@@ -16,7 +15,6 @@ export default function ActionsColumn({
   onDelete: (id: string) => void;
   disabled?: boolean;
 }) {
-
   const confirmDelete = () => {
     confirmDialog({
       message: `¿Desea eliminar la ${row.tipo === 'viaje' ? 'reservación de viaje' : 'encomienda'} de ${row.cliente}?`,
@@ -30,28 +28,39 @@ export default function ActionsColumn({
   };
 
   return (
-    <div className="flex gap-2 justify-content-center">
-      <Tooltip target=".btn-edit" content="Editar reservación" position="top" />
-      <Tooltip target=".btn-delete" content="Eliminar reservación" position="top" />
-
+    <div
+      className="
+        flex flex-wrap gap-2 justify-content-center
+        md:justify-content-start
+        align-items-center
+      "
+      style={{ zIndex: 5 }} // evita que se oculte tras overlays
+    >
+      {/* Tooltip embebido para no perder referencia al hacer re-render */}
       <Button
         icon="pi pi-pencil"
-        className="btn-edit"
         rounded
         text
         severity="secondary"
+        size="small"
+        tooltip="Editar reservación"
+        tooltipOptions={{ position: 'top' }}
         onClick={() => onEdit(row)}
         disabled={disabled}
+        className="action-btn"
       />
 
       <Button
         icon="pi pi-trash"
-        className="btn-delete"
         rounded
         text
         severity="danger"
+        size="small"
+        tooltip="Eliminar reservación"
+        tooltipOptions={{ position: 'top' }}
         onClick={confirmDelete}
         disabled={disabled}
+        className="action-btn"
       />
     </div>
   );

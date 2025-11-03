@@ -7,6 +7,7 @@ import TablaReservaciones from './components/TablaReservaciones';
 import { cargarReservacionesCliente } from '@/modulos/reservas/controlador/reservas.controlador';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { initializeApp, getApps, getApp } from 'firebase/app';
+import './mis-reservaciones.css';
 
 // ⚙️ Configuración local segura
 const firebaseConfig = {
@@ -83,26 +84,27 @@ export default function MisReservacionesPage() {
 
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <Toast ref={toast} />
-        <h1 className="text-2xl font-bold mb-6 text-gray-800">Mis Reservaciones</h1>
+  <div className="mis-reservas-wrapper">
+    <div className="mis-reservas-card">
+      <Toast ref={toast} />
+      <h1 className="mis-reservas-title">Mis Reservaciones</h1>
 
-        <div className="border rounded-lg overflow-hidden">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center p-8 text-gray-500">
-              <ProgressSpinner style={{ width: '50px', height: '50px' }} />
-              <p className="mt-3">Cargando tus reservaciones...</p>
-            </div>
-          ) : reservaciones.length > 0 ? (
-            <TablaReservaciones reservaciones={reservaciones} />
-          ) : (
-            <p className="text-center py-6 text-gray-500">
-              No tienes reservaciones registradas aún.
-            </p>
-          )}
-        </div>
+      <div className="border rounded-lg overflow-hidden">
+        {loading ? (
+          <div className="mis-reservas-loading">
+            <ProgressSpinner style={{ width: '50px', height: '50px' }} />
+            <p className="mt-3">Cargando tus reservaciones...</p>
+          </div>
+        ) : reservaciones.length > 0 ? (
+          <TablaReservaciones reservaciones={reservaciones} />
+        ) : (
+          <p className="mis-reservas-empty">
+            No tienes reservaciones registradas aún.
+          </p>
+        )}
       </div>
     </div>
-  );
+  </div>
+);
+
 }

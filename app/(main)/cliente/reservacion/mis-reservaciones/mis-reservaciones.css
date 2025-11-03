@@ -1,0 +1,101 @@
+/* ==========================================================
+   💠 Estilos responsive para Mis Reservaciones (Cliente)
+========================================================== */
+
+/* Contenedor general */
+.mis-reservas-wrapper {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 3rem;
+}
+
+.mis-reservas-card {
+  background-color: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  padding: 2rem;
+}
+
+/* Título */
+.mis-reservas-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: #1f2937; /* gris oscuro */
+}
+
+/* Estado de carga */
+.mis-reservas-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  color: #6b7280;
+}
+
+/* Sin reservaciones */
+.mis-reservas-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+/* ==========================================
+   📱 Media Queries
+========================================== */
+
+/* Tablet */
+@media (max-width: 1024px) {
+  .mis-reservas-wrapper {
+    padding: 1.5rem 2rem;
+  }
+  .mis-reservas-card {
+    padding: 1.5rem;
+  }
+  .mis-reservas-title {
+    font-size: 1.5rem;
+  }
+}
+
+/* Móvil mediano */
+@media (max-width: 768px) {
+  .mis-reservas-wrapper {
+    padding: 1rem;
+  }
+  .mis-reservas-card {
+    padding: 1rem;
+  }
+  .mis-reservas-title {
+    font-size: 1.3rem;
+    text-align: center;
+  }
+}
+
+/* Móvil pequeño */
+@media (max-width: 480px) {
+  .mis-reservas-wrapper {
+    padding: 0.75rem;
+  }
+  .mis-reservas-card {
+    padding: 0.9rem;
+    border-radius: 0.75rem;
+  }
+  .mis-reservas-title {
+    font-size: 1.2rem;
+  }
+}
+
+/* Ultra pequeño (<360 px) */
+@media (max-width: 360px) {
+  .mis-reservas-wrapper {
+    padding: 0.5rem !important;
+  }
+  .mis-reservas-card {
+    padding: 0.75rem !important;
+  }
+  .mis-reservas-title {
+    font-size: 1.1rem;
+  }
+}
