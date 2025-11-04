@@ -625,7 +625,7 @@ function cerrarDetalle() {
     
             if (json.ok) {
               setEncomiendas(json.data);
-              console.log('📦 Reportes de encomiendas cargados:', json.data);
+              console.log('Reportes de encomiendas cargados:', json.data);
             } else {
               console.warn('⚠️ Error desde backend:', json.error);
               toast.current?.show({
@@ -1043,7 +1043,7 @@ function cerrarDetalle() {
         />
           {/* ==================== Reportes de Ventas / Facturación ==================== */}
       <ReportTable
-        title="Reportes de Ventas / Facturación"
+        title="Reportes de Ventas / Facturación" 
         data={[]}
         columns={[
           { field: 'numero',   header: 'Nº' },
@@ -1058,7 +1058,7 @@ function cerrarDetalle() {
       {/* ==================== Reportes de Encomiendas ==================== */}
       <ReportTable
         title="Reportes de Encomiendas"
-        data={encomiendas}
+        data={encomiendas}  // Los datos de encomiendas
         columns={[
           { field: 'Id_Encomienda_PK', header: 'ID' },
           { field: 'Cliente', header: 'Cliente' },
@@ -1067,9 +1067,8 @@ function cerrarDetalle() {
           { field: 'Costo', header: 'Costo (Lps)' },
           { field: 'Descripcion', header: 'Descripción' },
           { field: 'Estado', header: 'Estado' },
-          { field: 'Fecha_Programada', header: 'Fecha Programada' },
           { field: 'Fecha_Realizada', header: 'Fecha Realizada' },
-          { field: 'Taller', header: 'Taller / Lugar' },
+          // Agrega más columnas si es necesario, según los datos que devuelve el backend
         ]}
         onView={(row) => abrirDetalle('Encomiendas', row)}
       />
