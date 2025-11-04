@@ -28,13 +28,11 @@ type Usuario = {
 export default function UsuariosPage() {
   const toast = useRef<Toast>(null);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
-  const [usuariosOriginal, setUsuariosOriginal] = useState<Usuario[]>([]);
   const [roles, setRoles] = useState<Rol[]>([]);
   const [loading, setLoading] = useState(true);
   const [visibleForm, setVisibleForm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [usuarioEdit, setUsuarioEdit] = useState<Usuario | null>(null);
-  const [search, setSearch] = useState('');
 
   // 🔹 Cargar usuarios y roles
   useEffect(() => {
@@ -43,7 +41,6 @@ export default function UsuariosPage() {
         const resUsuarios = await fetch('/api/usuarios');
         const dataU = resUsuarios.ok ? await resUsuarios.json() : { items: [] };
         setUsuarios(dataU.items || []);
-        setUsuariosOriginal(dataU.items || []);
 
         const resRoles = await fetch('/api/seguridad/roles');
         const dataR = resRoles.ok ? await resRoles.json() : { data: [] };
@@ -61,23 +58,6 @@ export default function UsuariosPage() {
     };
     cargarDatos();
   }, []);
-
-  // 🔹 Filtro de búsqueda
-  useEffect(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) {
-      setUsuarios(usuariosOriginal);
-    } else {
-      setUsuarios(
-        usuariosOriginal.filter(
-          (u) =>
-            u.nombres.toLowerCase().includes(q) ||
-            u.apellidos.toLowerCase().includes(q) ||
-            u.correo.toLowerCase().includes(q)
-        )
-      );
-    }
-  }, [search, usuariosOriginal]);
 
   // 🔹 Editar usuario existente
   const openEdit = async (row: Usuario) => {
@@ -156,7 +136,6 @@ export default function UsuariosPage() {
         const resU = await fetch('/api/usuarios');
         const dataU = await resU.json();
         setUsuarios(dataU.items || []);
-        setUsuariosOriginal(dataU.items || []);
         setVisibleForm(false);
         setUsuarioEdit(null);
       } else {
@@ -197,10 +176,9 @@ export default function UsuariosPage() {
           detail: data.message,
         });
         setUsuarios((prev) =>
-          prev.map((u) => (u.id === row.id ? { ...u, estado: nuevo } : u))
-        );
-        setUsuariosOriginal((prev) =>
-          prev.map((u) => (u.id === row.id ? { ...u, estado: nuevo } : u))
+          prev.map((u) =>
+            u.id === row.id ? { ...u, estado: nuevo } : u
+          )
         );
       } else {
         toast.current?.show({
@@ -245,7 +223,9 @@ export default function UsuariosPage() {
         text
         severity={row.estado === 'ACTIVO' ? 'warning' : 'success'}
         tooltip={
-          row.estado === 'ACTIVO' ? 'Desactivar usuario' : 'Activar usuario'
+          row.estado === 'ACTIVO'
+            ? 'Desactivar usuario'
+            : 'Activar usuario'
         }
         onClick={() => cambiarEstado(row)}
       />
@@ -259,25 +239,24 @@ export default function UsuariosPage() {
         <div className="card">
           <Toast ref={toast} />
 
-          {/* 🔹 Título principal */}
-          <div className="mb-4">
-            <h3 className="m-0 font-bold text-primary text-3xl">
-              Usuarios del Sistema
-            </h3>
-            <p className="text-color-secondary mt-2 mb-0">
-              Administra los usuarios registrados y sus roles
-            </p>
-          </div>
-
           <Toolbar
-            className="mb-4"
+            className="mb-4 surface-100 border-round shadow-1"
             right={
               <span className="p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText
-                  placeholder="Buscar usuario..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar..."
+                  onChange={(e) => {
+                    const q = e.target.value.toLowerCase();
+                    setUsuarios((prev) =>
+                      prev.filter(
+                        (u) =>
+                          u.nombres.toLowerCase().includes(q) ||
+                          u.apellidos.toLowerCase().includes(q) ||
+                          u.correo.toLowerCase().includes(q)
+                      )
+                    );
+                  }}
                 />
               </span>
             }
@@ -324,7 +303,7 @@ export default function UsuariosPage() {
             {usuarioEdit && (
               <div className="grid">
                 <div className="col-12 md:col-6">
-                  <label className="block mb-2 font-semibold">Nombre *</label>
+                  <label className="block mb-2">Nombre</label>
                   <InputText
                     value={usuarioEdit.nombres}
                     onChange={(e) =>
@@ -336,9 +315,7 @@ export default function UsuariosPage() {
                     className="w-full"
                   />
 
-                  <label className="block mt-3 mb-2 font-semibold">
-                    Apellido *
-                  </label>
+                  <label className="block mt-3 mb-2">Apellido</label>
                   <InputText
                     value={usuarioEdit.apellidos}
                     onChange={(e) =>
@@ -350,9 +327,7 @@ export default function UsuariosPage() {
                     className="w-full"
                   />
 
-                  <label className="block mt-3 mb-2 font-semibold">
-                    Correo electrónico
-                  </label>
+                  <label className="block mt-3 mb-2">Correo electrónico</label>
                   <InputText
                     value={usuarioEdit.correo}
                     disabled
@@ -361,7 +336,7 @@ export default function UsuariosPage() {
                 </div>
 
                 <div className="col-12 md:col-6">
-                  <label className="block mb-2 font-semibold">Teléfono</label>
+                  <label className="block mb-2">Teléfono</label>
                   <InputText
                     value={usuarioEdit.telefono || ''}
                     onChange={(e) =>
@@ -373,7 +348,7 @@ export default function UsuariosPage() {
                     className="w-full"
                   />
 
-                  <label className="block mt-3 mb-2 font-semibold">Rol *</label>
+                  <label className="block mt-3 mb-2">Rol</label>
                   <Dropdown
                     value={usuarioEdit.rolId}
                     options={roles.map((r) => ({
@@ -387,9 +362,7 @@ export default function UsuariosPage() {
                     className="w-full"
                   />
 
-                  <label className="block mt-3 mb-2 font-semibold">
-                    Estado *
-                  </label>
+                  <label className="block mt-3 mb-2">Estado</label>
                   <Dropdown
                     value={usuarioEdit.estado}
                     options={estados}

@@ -8,6 +8,7 @@ import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import { Toolbar } from 'primereact/toolbar';
 import { Toast } from 'primereact/toast';
+import { Tag } from 'primereact/tag';
 
 type Parametro = {
   id: number;
@@ -137,25 +138,15 @@ export default function ParametrosPage() {
       <div className="col-12">
         <div className="card">
           <Toast ref={toast} />
-
-          {/* 🔹 Título principal */}
-          <div className="mb-4">
-            <h3 className="m-0 font-bold text-primary text-3xl">
-              Parámetros del Sistema
-            </h3>
-            <p className="text-color-secondary mt-2 mb-0">
-              Configura los valores y ajustes globales del sistema
-            </p>
-          </div>
+          <h3 className="m-0 font-bold text-primary mb-3">Parámetros del Sistema</h3>
 
           <Toolbar
-            className="mb-4"
+            className="mb-4 surface-100 border-round shadow-1"
             right={
               <span className="p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText
                   placeholder="Buscar parámetro..."
-                  value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </span>
@@ -206,22 +197,21 @@ export default function ParametrosPage() {
             {selected && (
               <div className="p-fluid">
                 <div className="field mb-3">
-                  <label className="block mb-2 font-semibold">ID</label>
+                  <label className="block mb-2">ID</label>
                   <InputText value={String(selected.id)} disabled className="w-full" />
                 </div>
 
                 <div className="field mb-3">
-                  <label className="block mb-2 font-semibold">Parámetro</label>
+                  <label className="block mb-2">Parámetro</label>
                   <InputText value={selected.parametro} disabled className="w-full" />
                 </div>
 
                 <div className="field mb-3">
-                  <label className="block mb-2 font-semibold">Valor *</label>
+                  <label className="block mb-2">Valor</label>
                   <InputText
                     value={nuevoValor}
                     onChange={(e) => setNuevoValor(e.target.value)}
                     className="w-full"
-                    placeholder="Ingresa el nuevo valor"
                   />
                 </div>
               </div>

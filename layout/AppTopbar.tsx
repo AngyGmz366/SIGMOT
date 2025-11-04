@@ -25,7 +25,7 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
   const [rolUsuario, setRolUsuario] = useState<string>('Rol');
   const [foto, setFoto] = useState<string>('demo/images/default-user.png');
 
-  // 🧩 Cargar datos reales del usuario logueado
+    // 🧩 Cargar datos reales del usuario logueado
   useEffect(() => {
     const idUsuario = localStorage.getItem('idUsuario');
     if (!idUsuario) return;
@@ -67,6 +67,7 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
                   localStorage.setItem('permisosUsuario', JSON.stringify(resp.data.data));
                   // 🔁 Dispara evento para que AppMenu se actualice al instante
                   window.dispatchEvent(new Event('permisos-actualizados'));
+
                 } else {
                   console.warn('⚠️ Respuesta inesperada de permisos:', resp.data);
                 }
@@ -84,6 +85,8 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
       })
       .catch((err) => console.error('Error al cargar datos de usuario:', err));
   }, []);
+
+
 
   useImperativeHandle(ref, () => ({
     menubutton: menubuttonRef.current,
@@ -153,10 +156,8 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
   const items = [
     {
       template: () => (
-        <div 
-          className="p-3 border-bottom-1 surface-border flex align-items-center gap-3 menu-header cursor-pointer hover:surface-hover"
-          onClick={() => router.push('/configuracion/perfil')}
-        >
+        <div className="p-3 border-bottom-1 surface-border flex align-items-center gap-3 menu-header"   onClick={() => router.push('/configuracion/perfil')}
+  >
           <img
             src={foto || 'demo/images/default-user.png'}
             alt="Avatar"
@@ -194,7 +195,19 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
 
   return (
     <div className="layout-topbar">
-      {/* Botón menú lateral - IZQUIERDA */}
+      <Link
+        href="/dashboard"
+        className="layout-topbar-logo"
+        style={{ display: 'flex', alignItems: 'center' }}
+      >
+        <img
+          src="/demo/images/login/LOGO-SIGMOT.png"
+          alt="Logo SIGMOT"
+          style={{ width: '100px', height: 'auto', maxWidth: 'none' }}
+        />
+      </Link>
+
+      {/* Botón menú lateral */}
       <button
         ref={menubuttonRef}
         type="button"
@@ -204,25 +217,7 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
         <i className="pi pi-bars" />
       </button>
 
-      {/* Logo - CENTRO */}
-      <Link
-        href="/dashboard"
-        className="layout-topbar-logo"
-        style={{ 
-          display: 'flex', 
-          alignItems: 'center',
-          flex: 1,
-          justifyContent: 'center'
-        }}
-      >
-        <img
-          src="/demo/images/login/LOGO-SIGMOT.png"
-          alt="Logo SIGMOT"
-          style={{ width: '100px', height: 'auto', maxWidth: 'none' }}
-        />
-      </Link>
-
-      {/* Menú de configuración - DERECHA */}
+      {/* Menú derecho */}
       <div
         ref={topbarmenuRef}
         className={classNames('layout-topbar-menu', {
@@ -240,16 +235,7 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
           <i className="pi pi-cog layout-menuitem-icon"></i>
         </button>
 
-        <Menu 
-          model={items} 
-          popup 
-          ref={menuRef} 
-          id="config_menu" 
-          style={{ minWidth: '250px' }}
-          pt={{
-            root: { className: 'mt-2' }
-          }}
-        />
+        <Menu model={items} popup ref={menuRef} id="config_menu" style={{ minWidth: '230px' }} />
       </div>
     </div>
   );
