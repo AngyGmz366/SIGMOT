@@ -6,7 +6,8 @@ import { Dialog } from 'primereact/dialog';
 import { Button } from 'primereact/button';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { Dropdown } from 'primereact/dropdown';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { Toast } from 'primereact/toast';
 import { Eye, CreditCard } from 'lucide-react';
 import './TablaReservaciones.css';
 
@@ -36,6 +37,7 @@ export default function TablaReservaciones({ reservaciones }: TablaReservaciones
   const [modoPago, setModoPago] = useState<'confirmar' | 'cancelar' | null>(null);
   const [comentario, setComentario] = useState('');
   const [metodoPago, setMetodoPago] = useState<number | null>(null);
+  const toast = useRef<Toast>(null);
 
   const metodosPago = [
     { label: 'Efectivo', value: 1 },
@@ -94,6 +96,8 @@ export default function TablaReservaciones({ reservaciones }: TablaReservaciones
 
   return (
     <>
+      <Toast ref={toast} />
+
       <DataTable
         value={reservaciones}
         paginator
@@ -171,135 +175,184 @@ export default function TablaReservaciones({ reservaciones }: TablaReservaciones
       </Dialog>
 
       {/* 💳 Modal de confirmación / cancelación */}
-<Dialog
+      <Dialog
+        header="Confirmar o Cancelar Reservación"
+        visible={visiblePago}
+        style={{ width: '600px', maxWidth: '90vw' }}
+        modal
+        onHide={() => setVisiblePago(false)}
+      >
 
-  header="Confirmar o Cancelar Reservación"
-  visible={visiblePago}
-  style={{ width: '600px', maxWidth: '90vw' }}
-  modal
-  onHide={() => setVisiblePago(false)}
->
+        {!modoPago && (
+          <div className="flex flex-col gap-3">
+            <p className="text-gray-700 text-sm mb-3">
+              ¿Qué desea hacer con la reservación{' '}
+              <b>{selectedReservation?.id}</b>?
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button
+                label="Atrás"
+                icon="pi pi-arrow-left"
+                text
+                className="p-button-sm text-gray-600 hover:text-gray-800"
+                onClick={() => setVisiblePago(false)}
+              />
 
-  {!modoPago && (
-    <div className="flex flex-col gap-3">
-      <p className="text-gray-700 text-sm mb-3">
-        ¿Qué desea hacer con la reservación{' '}
-        <b>{selectedReservation?.id}</b>?
-      </p>
-      <div className="flex justify-end gap-2">
-        {/* Botón Atrás */}
-        <Button
-          label="Atrás"
-          icon="pi pi-arrow-left"
-          text
-          className="p-button-sm text-gray-600 hover:text-gray-800"
-          onClick={() => setVisiblePago(false)}
-        />
+              <Button
+                label="Cancelar"
+                icon="pi pi-times"
+                className="p-button-danger p-button-sm font-medium"
+                onClick={() => setModoPago('cancelar')}
+              />
 
-        {/* Botón Cancelar */}
-        <Button
-          label="Cancelar"
-          icon="pi pi-times"
-          className="p-button-danger p-button-sm font-medium"
-          onClick={() => setModoPago('cancelar')}
-        />
+              <Button
+                label="Confirmar / Pagar"
+                icon="pi pi-credit-card"
+                className="p-button-success p-button-sm font-medium"
+                onClick={() => setModoPago('confirmar')}
+              />
+            </div>
+          </div>
+        )}
 
-        {/* Botón Confirmar / Pagar */}
-        <Button
-          label="Confirmar / Pagar"
-          icon="pi pi-credit-card"
-          className="p-button-success p-button-sm font-medium"
-          onClick={() => setModoPago('confirmar')}
-        />
-      </div>
-    </div>
-  )}
+        {/* 🟥 Modo cancelar */}
+        {modoPago === 'cancelar' && (
+          <div className="cancel-form-container flex flex-col gap-4">
+            <p className="text-gray-700 text-sm">
+              Indique el motivo de la cancelación:
+            </p>
 
-  {/* 🟥 Modo cancelar */}
-{modoPago === 'cancelar' && (
-  <div className="cancel-form-container flex flex-col gap-4">
-    <p className="text-gray-700 text-sm">
-      Indique el motivo de la cancelación:
-    </p>
+            <div className="flex flex-col items-center">
+              <InputTextarea
+                value={comentario}
+                onChange={(e) => {
+                  if (e.target.value.length <= 200) {
+                    setComentario(e.target.value);
+                  }
+                }}
+                placeholder="Escriba su motivo aquí (máximo 200 caracteres)..."
+                rows={8}
+                autoResize={false}
+                className="w-full md:w-10/12 text-sm p-3 border border-gray-300 rounded-lg focus:border-indigo-400 resize-none"
+              />
+              <div className="flex justify-end w-full md:w-10/12 mt-1 text-xs text-gray-500">
+                <span>{comentario.length}/200 caracteres</span>
+              </div>
+            </div>
 
+            <div className="flex justify-center gap-3 mt-4">
+              <Button
+                label="Atrás"
+                icon="pi pi-arrow-left"
+                text
+                className="btn-sm text-gray-600 hover:text-gray-800"
+                onClick={() => setModoPago(null)}
+              />
+              <Button
+                label="Enviar cancelación"
+                icon="pi pi-times"
+                className="p-button-danger btn-sm font-medium"
+                disabled={!comentario.trim()}
+                onClick={async () => {
+                if (!selectedReservation) return;
 
-    <div className="flex flex-col items-center">
-      <InputTextarea
-        value={comentario}
-        onChange={(e) => {
-          if (e.target.value.length <= 200) {
-            setComentario(e.target.value);
-          }
-        }}
-        placeholder="Escriba su motivo aquí (máximo 200 caracteres)..."
-        rows={8}
-        autoResize={false}
-        className="w-full md:w-10/12 text-sm p-3 border border-gray-300 rounded-lg focus:border-indigo-400 resize-none"
-      />
-      <div className="flex justify-end w-full md:w-10/12 mt-1 text-xs text-gray-500">
-        <span>{comentario.length}/200 caracteres</span>
-      </div>
-    </div>
+                try {
+                const { getAuth } = await import('firebase/auth');
+                const auth = getAuth();
+                const user = auth.currentUser;
+                const token = user ? await user.getIdToken() : null;
 
+                 if (!token) {
+                    toast.current?.show({
+                    severity: 'warn',
+                    summary: 'Sesión no activa',
+                    detail: 'Inicie sesión nuevamente para continuar.',
+                    life: 4000,
+                     });
+                    return;
+                    }
 
-    <div className="flex justify-center gap-3 mt-4">
-      <Button
-        label="Atrás"
-        icon="pi pi-arrow-left"
-        text
-        className="btn-sm text-gray-600 hover:text-gray-800"
-        onClick={() => setModoPago(null)}
-      />
-      <Button
-        label="Enviar cancelación"
-        icon="pi pi-times"
-        className="p-button-danger btn-sm font-medium"
-        disabled={!comentario.trim()}
-        onClick={() => {
-          alert(`Cancelada con comentario: ${comentario}`);
-          setVisiblePago(false);
-        }}
-      />
-    </div>
-  </div>
-)}
+                  const res = await fetch(
+                  `/api/clientes/reservas/cancelar/${selectedReservation.id}`,
+                    {
+                    method: 'PUT',
+                    headers: {
+                     'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ motivo: comentario }),
+        }
+      );
 
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al cancelar reservación.');
 
-  {/* 🟩 Modo confirmar / pago */}
-  {modoPago === 'confirmar' && (
-    <div className="flex flex-col gap-3">
-      <p className="text-gray-700 text-sm mb-2">
-        Seleccione el método de pago para confirmar su reservación:
-      </p>
-      <Dropdown
-        value={metodoPago}
-        options={metodosPago}
-        onChange={(e) => setMetodoPago(e.value)}
-        placeholder="Método de pago"
-        className="w-full"
-      />
-      <div className="flex justify-end gap-2">
-        <Button
-          label="Atrás"
-          icon="pi pi-arrow-left"
-          text
-          className="p-button-sm text-gray-600 hover:text-gray-800"
-          onClick={() => setModoPago(null)}
-        />
-        <Button
-          label="Confirmar pago"
-          icon="pi pi-check"
-          className="p-button-success p-button-sm font-medium"
-          disabled={!metodoPago}
-          onClick={() => {
-            alert(`Reservación confirmada con método #${metodoPago}`);
-            setVisiblePago(false);
-          }}
-        />
-      </div>
-    </div>
-  )}
-  </Dialog>
+      toast.current?.show({
+        severity: 'success',
+        summary: 'Reservación cancelada',
+        detail: data.message || 'La reservación fue cancelada correctamente.',
+        life: 3000,
+      });
+
+      // 🔄 Refrescar tabla (sin recargar toda la página)
+      setVisiblePago(false);
+      setModoPago(null);
+      setComentario('');
+
+      // Si usás Next.js App Router:
+      if (typeof window !== 'undefined') {
+        setTimeout(() => window.location.reload(), 1200);
+      }
+    } catch (error: any) {
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail: error.message || 'No se pudo cancelar la reservación.',
+        life: 4000,
+      });
+    }
+  }}
+/>
+
+            </div>
+          </div>
+        )}
+
+        {/* 🟩 Modo confirmar / pago */}
+        {modoPago === 'confirmar' && (
+          <div className="flex flex-col gap-3">
+            <p className="text-gray-700 text-sm mb-2">
+              Seleccione el método de pago para confirmar su reservación:
+            </p>
+            <Dropdown
+              value={metodoPago}
+              options={metodosPago}
+              onChange={(e) => setMetodoPago(e.value)}
+              placeholder="Método de pago"
+              className="w-full"
+            />
+            <div className="flex justify-end gap-2">
+              <Button
+                label="Atrás"
+                icon="pi pi-arrow-left"
+                text
+                className="p-button-sm text-gray-600 hover:text-gray-800"
+                onClick={() => setModoPago(null)}
+              />
+              <Button
+                label="Confirmar pago"
+                icon="pi pi-check"
+                className="p-button-success p-button-sm font-medium"
+                disabled={!metodoPago}
+                onClick={() => {
+                  alert(`Reservación confirmada con método #${metodoPago}`);
+                  setVisiblePago(false);
+                }}
+              />
+            </div>
+          </div>
+        )}
+      </Dialog>
     </>
   );
 }

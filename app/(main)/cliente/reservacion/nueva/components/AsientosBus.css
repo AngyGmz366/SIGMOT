@@ -2,6 +2,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
 }
 
 .conductor-area {
@@ -19,11 +21,13 @@
   font-size: 0.9rem;
 }
 
+/* 🪑 Grilla de asientos */
 .asientos-container {
   display: grid;
   grid-template-columns: repeat(5, 48px);
   gap: 10px;
   justify-content: center;
+  max-width: 100%;
 }
 
 .asiento {
@@ -36,22 +40,22 @@
   font-weight: bold;
   cursor: default;
   transition: transform 0.2s ease-in-out;
+  color: #fff;
 }
 
 .asiento.disponible {
-  background-color: #42c18a; /* Morado */
-  color: white;
+  background-color: #42c18a;
 }
 
 .asiento.ocupado {
-  background-color: #dc3545; /* Rojo */
-  color: white;
+  background-color: #dc3545;
 }
 
 .asiento:hover {
   transform: scale(1.05);
 }
 
+/* 🚪 Pasillo */
 .pasillo {
   width: 48px;
   height: 48px;
@@ -59,27 +63,89 @@
   border-radius: 4px;
 }
 
+/* 🔰 Leyenda */
 .leyenda {
   display: flex;
   justify-content: center;
+  flex-wrap: wrap;
   margin-top: 1rem;
+  gap: 0.5rem;
 }
 
-/* Responsivo */
-@media (max-width: 500px) {
+/* ================================
+   📱 Responsivo real
+================================ */
+
+/* Pantallas medianas (<=1024 px) */
+@media (max-width: 1024px) {
   .asientos-container {
-    grid-template-columns: repeat(5, 38px);
+    grid-template-columns: repeat(5, 42px);
+    gap: 8px;
+  }
+  .asiento,
+  .pasillo {
+    width: 42px;
+    height: 42px;
+  }
+}
+
+/* Pantallas tablet (<=768 px) */
+@media (max-width: 768px) {
+  .asientos-container {
+    grid-template-columns: repeat(5, 36px);
     gap: 6px;
   }
-
-  .asiento {
-    width: 38px;
-    height: 38px;
+  .asiento,
+  .pasillo {
+    width: 36px;
+    height: 36px;
+  }
+  .texto-conductor {
     font-size: 0.8rem;
   }
+}
 
+/* Móviles medianos (<=500 px) */
+@media (max-width: 500px) {
+  .asientos-container {
+    grid-template-columns: repeat(5, 32px);
+    gap: 5px;
+  }
+  .asiento,
   .pasillo {
-    width: 38px;
-    height: 38px;
+    width: 32px;
+    height: 32px;
+    font-size: 0.75rem;
+  }
+}
+
+/* Móviles pequeños (<=400 px) */
+@media (max-width: 400px) {
+  .asientos-container {
+    grid-template-columns: repeat(5, 28px);
+    gap: 4px;
+  }
+  .asiento,
+  .pasillo {
+    width: 28px;
+    height: 28px;
+    font-size: 0.7rem;
+  }
+  .emoji-bus {
+    font-size: 1.6rem;
+  }
+}
+
+/* Ultra pequeños (<=340 px) */
+@media (max-width: 340px) {
+  .asientos-container {
+    grid-template-columns: repeat(5, 24px);
+    gap: 3px;
+  }
+  .asiento,
+  .pasillo {
+    width: 24px;
+    height: 24px;
+    font-size: 0.65rem;
   }
 }

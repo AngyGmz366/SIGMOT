@@ -45,10 +45,13 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT),
-      secure: true,
+      secure: process.env.SMTP_SECURE === "true",
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
+      },
+            tls: {
+        rejectUnauthorized: false, // ✅ evita error de certificado local
       },
     });
 
@@ -89,9 +92,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       </div>
     `;
 
-    // 📤 Enviar correo
+    // 📤 Enviar correos
     const info = await transporter.sendMail({
-      from: `"Soporte SIGMOT" <${process.env.SMTP_USER}>`,
+      from: `"Soporte SIGMOT" <${process.env.SMTP_FROM}>`,
       to: correoCliente,
       subject: "Respuesta a tu incidencia - SIGMOT",
       html: htmlTemplate,
