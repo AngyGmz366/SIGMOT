@@ -19,17 +19,17 @@ interface Props {
 
 const MapaInteractivo: React.FC<Props> = ({ rutas }) => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<any>(null); // ✅ Usar any para el mapa
-  const layersRef = useRef<any[]>([]); // ✅ Usar any para las capas
+  const mapRef = useRef<any>(null); // Usar any para el mapa
+  const layersRef = useRef<any[]>([]); // Usar any para las capas
 
-  // 🔹 Función para obtener ruta real usando OSRM
+  // Función para obtener ruta real usando OSRM
   const obtenerRutaReal = async (origen: [number, number], destino: [number, number]) => {
     try {
       const response = await fetch(
         `https://router.project-osrm.org/route/v1/driving/${origen[1]},${origen[0]};${destino[1]},${destino[0]}?overview=full&geometries=geojson`
       );
       const data = await response.json();
-      
+
       if (data.routes && data.routes.length > 0) {
         return data.routes[0].geometry;
       }
@@ -39,10 +39,10 @@ const MapaInteractivo: React.FC<Props> = ({ rutas }) => {
     return null;
   };
 
-  // 🔹 Limpiar capas anteriores
+  // Limpiar capas anteriores
   const limpiarCapas = () => {
     if (!mapRef.current) return;
-    
+
     layersRef.current.forEach((layer: any) => {
       mapRef.current?.removeLayer(layer);
     });
@@ -74,53 +74,51 @@ const MapaInteractivo: React.FC<Props> = ({ rutas }) => {
     }
 
     const map = mapRef.current;
-    
+
     // Limpiar rutas anteriores
     limpiarCapas();
 
     const colores = ["#007bff", "#e91e63", "#ff9800", "#28a745", "#9c27b0"];
-    const allCoords: any[] = []; // ✅ Usar any para coordenadas
+    const allCoords: any[] = [];
 
-    // 🚗 Procesar cada ruta
+    // Procesar cada ruta
     rutas.forEach(async (ruta, idx) => {
       if (!ruta.coordenadas || ruta.coordenadas.length < 2) return;
 
       const coords = ruta.coordenadas.map((p) => [p.lat, p.lng] as [number, number]);
       const inicio = coords[0];
       const fin = coords[coords.length - 1];
-      
+
       // Agregar coordenadas para ajustar bounds
       allCoords.push(L.latLng(inicio[0], inicio[1]));
       allCoords.push(L.latLng(fin[0], fin[1]));
-      
+
       const color = colores[idx % colores.length];
 
       try {
-        // 🛣️ Intentar obtener ruta real de OSRM
+        // Intentar obtener ruta real de OSRM
         const geometry = await obtenerRutaReal(inicio, fin);
-        
+
         let rutaCoords: [number, number][] = [];
-        
+
         if (geometry) {
-          // Usar ruta real de OSRM
           rutaCoords = geometry.coordinates.map((coord: number[]) => [coord[1], coord[0]]);
         } else {
-          // Fallback a coordenadas originales
           rutaCoords = coords;
         }
 
-        // 🛣️ Dibujar la ruta
+        // Dibujar la ruta
         const polyline = L.polyline(rutaCoords, {
           color: color,
           weight: 5,
           opacity: 0.8,
-          lineJoin: "round" as any,
-          lineCap: "round" as any,
+          lineJoin: "round",
+          lineCap: "round",
         }).addTo(map);
 
         layersRef.current.push(polyline);
 
-        // 📍 Marcador INICIO
+        // Marcador INICIO
         const inicioIcon = L.divIcon({
           className: 'custom-marker',
           html: ` 
@@ -129,7 +127,7 @@ const MapaInteractivo: React.FC<Props> = ({ rutas }) => {
             </div>
           `,
           iconSize: [100, 30],
-          iconAnchor: [50, 15]
+          iconAnchor: [50, 15],
         });
 
         const inicioMarker = L.marker([inicio[0], inicio[1]], { icon: inicioIcon })
@@ -146,7 +144,7 @@ const MapaInteractivo: React.FC<Props> = ({ rutas }) => {
 
         layersRef.current.push(inicioMarker);
 
-        // 📍 Marcador DESTINO
+        // Marcador DESTINO
         const destinoIcon = L.divIcon({
           className: 'custom-marker',
           html: `
@@ -155,7 +153,7 @@ const MapaInteractivo: React.FC<Props> = ({ rutas }) => {
             </div>
           `,
           iconSize: [100, 30],
-          iconAnchor: [50, 15]
+          iconAnchor: [50, 15],
         });
 
         const destinoMarker = L.marker([fin[0], fin[1]], { icon: destinoIcon })
@@ -172,7 +170,7 @@ const MapaInteractivo: React.FC<Props> = ({ rutas }) => {
 
         layersRef.current.push(destinoMarker);
 
-        // 📋 Popup informativo de la ruta
+        // Popup informativo de la ruta
         polyline.bindPopup(`
           <div style="min-width: 220px;">
             <div style="border-left: 4px solid ${color}; padding-left: 12px; margin-bottom: 8px;">
@@ -209,7 +207,7 @@ const MapaInteractivo: React.FC<Props> = ({ rutas }) => {
       }
     });
 
-    // 🔄 Ajustar vista del mapa
+    // Ajustar vista del mapa
     if (allCoords.length > 0) {
       const bounds = L.latLngBounds(allCoords);
       setTimeout(() => {
@@ -244,8 +242,8 @@ const MapaInteractivo: React.FC<Props> = ({ rutas }) => {
       <div
         ref={mapContainerRef}
         style={{
-          height: "60vh",
-          minHeight: "400px",
+          height: "60vh", // Usa el 60% de la altura de la pantalla
+          minHeight: "400px", // Altura mínima en pantallas pequeñas
           width: "100%",
           borderRadius: "12px",
           border: "1px solid #e2e8f0",

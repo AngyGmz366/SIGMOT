@@ -48,11 +48,11 @@ const PanelLateral: React.FC<PanelLateralProps> = ({
     <Card
       title="🚌 Rutas Disponibles"
       className="h-full shadow-2 border-1 surface-border"
-      style={{ 
-        width: "100%", 
-        maxWidth: 320, 
+      style={{
+        width: "100%",
+        maxWidth: 320,
         borderTop: "4px solid #6f42c1",
-        borderRadius: "12px"
+        borderRadius: "12px",
       }}
     >
       <div className="p-fluid">
@@ -65,21 +65,22 @@ const PanelLateral: React.FC<PanelLateralProps> = ({
               onChange={(e) => setFiltro(e.target.value)}
               placeholder="Buscar origen o destino..."
               className="w-full"
-              style={{ 
+              style={{
                 borderRadius: "8px",
-                padding: "0.75rem 0.75rem 0.75rem 2.5rem"
+                padding: "0.75rem 0.75rem 0.75rem 2.5rem",
               }}
             />
           </span>
           {filtro && (
             <small className="text-gray-500 block mt-2">
-              {filtradas.length} ruta{filtradas.length !== 1 ? 's' : ''} encontrada{filtradas.length !== 1 ? 's' : ''}
+              {filtradas.length} ruta{filtradas.length !== 1 ? "s" : ""} encontrada
+              {filtradas.length !== 1 ? "s" : ""}
             </small>
           )}
         </div>
 
         {/* 🧭 Lista de rutas */}
-        <div style={{ maxHeight: "calc(100vh - 200px)", overflowY: "auto" }}>
+        <div className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 200px)" }}>
           <ListBox
             value={seleccion}
             options={filtradas}
@@ -91,8 +92,8 @@ const PanelLateral: React.FC<PanelLateralProps> = ({
               return (
                 <div
                   className={`p-3 border-round mb-2 cursor-pointer transition-all transition-duration-200 ${
-                    sel 
-                      ? "bg-primary border-1 border-primary" 
+                    sel
+                      ? "bg-primary border-1 border-primary"
                       : "bg-surface border-1 surface-border hover:bg-gray-50"
                   }`}
                   style={{
@@ -100,24 +101,28 @@ const PanelLateral: React.FC<PanelLateralProps> = ({
                   }}
                 >
                   {/* Encabezado de la ruta */}
-                  <div className={`font-bold text-sm mb-2 ${sel ? "text-white" : "text-gray-900"}`}>
+                  <div
+                    className={`font-bold text-sm mb-2 ${sel ? "text-white" : "text-gray-900"}`}
+                  >
                     {r.origen} → {r.destino}
                   </div>
 
                   {/* Información de la ruta */}
-                  <div className={`text-xs mb-2 ${sel ? "text-blue-100" : "text-gray-600"}`}>
+                  <div
+                    className={`text-xs mb-2 ${sel ? "text-blue-100" : "text-gray-600"}`}
+                  >
                     <div className="flex align-items-center mb-1">
-                      <i className="pi pi-clock mr-2" style={{ fontSize: '0.8rem' }}></i>
+                      <i className="pi pi-clock mr-2" style={{ fontSize: "0.8rem" }}></i>
                       <span>{r.tiempoEstimado || "Tiempo no especificado"}</span>
                     </div>
                     {r.distancia && (
                       <div className="flex align-items-center mb-1">
-                        <i className="pi pi-map-marker mr-2" style={{ fontSize: '0.8rem' }}></i>
+                        <i className="pi pi-map-marker mr-2" style={{ fontSize: "0.8rem" }}></i>
                         <span>{r.distancia} km</span>
                       </div>
                     )}
                     <div className="flex align-items-center">
-                      <i className="pi pi-tag mr-2" style={{ fontSize: '0.8rem' }}></i>
+                      <i className="pi pi-tag mr-2" style={{ fontSize: "0.8rem" }}></i>
                       <span className="font-bold">Lps. {r.precio?.toFixed(2) || "0.00"}</span>
                     </div>
                   </div>
@@ -125,7 +130,9 @@ const PanelLateral: React.FC<PanelLateralProps> = ({
                   {/* Horarios disponibles */}
                   {r.horarios && r.horarios.length > 0 && (
                     <div className="mb-3">
-                      <div className={`text-xs font-semibold mb-1 ${sel ? "text-blue-100" : "text-gray-500"}`}>
+                      <div
+                        className={`text-xs font-semibold mb-1 ${sel ? "text-blue-100" : "text-gray-500"}`}
+                      >
                         Horarios:
                       </div>
                       <div className="flex flex-wrap gap-1">
@@ -133,23 +140,19 @@ const PanelLateral: React.FC<PanelLateralProps> = ({
                           <span
                             key={idx}
                             className={`text-xs px-2 py-1 border-round ${
-                              sel 
-                                ? "bg-white text-primary" 
-                                : "bg-gray-100 text-gray-700"
+                              sel ? "bg-white text-primary" : "bg-gray-100 text-gray-700"
                             }`}
-                            style={{ fontSize: '0.7rem' }}
+                            style={{ fontSize: "0.7rem" }}
                           >
                             {horario}
                           </span>
                         ))}
                         {r.horarios.length > 3 && (
-                          <span 
+                          <span
                             className={`text-xs px-2 py-1 border-round ${
-                              sel 
-                                ? "bg-white text-primary" 
-                                : "bg-gray-100 text-gray-700"
+                              sel ? "bg-white text-primary" : "bg-gray-100 text-gray-700"
                             }`}
-                            style={{ fontSize: '0.7rem' }}
+                            style={{ fontSize: "0.7rem" }}
                           >
                             +{r.horarios.length - 3}
                           </span>
@@ -163,9 +166,7 @@ const PanelLateral: React.FC<PanelLateralProps> = ({
                     label="Reservar"
                     icon="pi pi-ticket"
                     className={`w-full mt-2 text-sm ${
-                      sel 
-                        ? "p-button-outlined p-button-secondary" 
-                        : "p-button-primary"
+                      sel ? "p-button-outlined p-button-secondary" : "p-button-primary"
                     }`}
                     size="small"
                     onClick={(e) => handleReservar(r, e)}
@@ -173,15 +174,15 @@ const PanelLateral: React.FC<PanelLateralProps> = ({
                 </div>
               );
             }}
-            listStyle={{ 
-              height: '100%', 
-              border: 'none', 
-              background: 'transparent' 
+            listStyle={{
+              height: "100%",
+              border: "none",
+              background: "transparent",
             }}
-            style={{ 
-              width: "100%", 
-              border: 'none',
-              background: 'transparent'
+            style={{
+              width: "100%",
+              border: "none",
+              background: "transparent",
             }}
           />
         </div>
@@ -189,7 +190,7 @@ const PanelLateral: React.FC<PanelLateralProps> = ({
         {/* Información adicional */}
         {filtradas.length === 0 && (
           <div className="text-center p-4 text-gray-500">
-            <i className="pi pi-info-circle mb-2" style={{ fontSize: '1.5rem' }}></i>
+            <i className="pi pi-info-circle mb-2" style={{ fontSize: "1.5rem" }}></i>
             <p>No se encontraron rutas</p>
           </div>
         )}

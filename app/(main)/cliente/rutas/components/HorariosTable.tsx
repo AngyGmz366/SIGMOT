@@ -35,12 +35,15 @@ const HorariosTabla: React.FC<Props> = ({ rutas = [] }) => {
     <Card title="🕓 Horarios por Ruta" className="shadow-2 mb-4">
       <DataTable
         value={data}
-        responsiveLayout="scroll"
+        responsiveLayout="scroll" // Hace la tabla scrollable en pantallas pequeñas
         stripedRows
-        tableStyle={{ minWidth: "100%" }}
+        tableStyle={{ minWidth: "100%" }} // Asegura que la tabla ocupe todo el ancho
         emptyMessage="No hay rutas activas con horarios."
       >
+        {/* Columna de ruta */}
         <Column field="ruta" header="Ruta" style={{ minWidth: "14rem", fontWeight: "bold" }} />
+
+        {/* Columnas de horarios, dinámicamente creadas según la cantidad de horarios */}
         {[...Array(maxHorarios)].map((_, i) => (
           <Column
             key={i}
