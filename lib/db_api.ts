@@ -16,7 +16,7 @@ function createPool(): Pool {
     database: process.env.DB_NAME,
 
     waitForConnections: true,
-    connectionLimit: 50,
+    connectionLimit: 10,
     queueLimit: 0,
 
     // ⚙️ Estabilidad y rendimiento
