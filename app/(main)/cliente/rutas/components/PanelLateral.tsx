@@ -1,7 +1,6 @@
 "use client";
 import React, { useMemo, useState } from "react";
 import { InputText } from "primereact/inputtext";
-import { ListBox } from "primereact/listbox";
 import { Card } from "primereact/card";
 import { Button } from "primereact/button";
 import { RutaPublica } from "../Types/rutas.types";
@@ -20,7 +19,6 @@ const PanelLateral: React.FC<PanelLateralProps> = ({
   const [filtro, setFiltro] = useState("");
   const [seleccion, setSeleccion] = useState<number | null>(null);
 
-  // 🔎 Filtra rutas por origen o destino
   const filtradas = useMemo(() => {
     const q = filtro.trim().toLowerCase();
     if (!q) return rutas;
@@ -31,130 +29,109 @@ const PanelLateral: React.FC<PanelLateralProps> = ({
     );
   }, [rutas, filtro]);
 
-  // 🎯 Selección de ruta (para mostrar información)
   const handleSeleccion = (id: number) => {
     setSeleccion(id);
     const ruta = filtradas.find((r) => r.id === id);
     if (ruta) onSeleccionarRuta(ruta);
   };
 
-  // 🎫 Reservar ruta (navegación a reservación)
   const handleReservar = (ruta: RutaPublica, event: React.MouseEvent) => {
-    event.stopPropagation(); // Evita que se active la selección
+    event.stopPropagation();
     onReservar(ruta);
   };
 
   return (
-    <Card
-      title="🚌 Rutas Disponibles"
-      className="h-full shadow-2 border-1 surface-border"
-      style={{
-        width: "100%",
-        maxWidth: 320,
-        borderTop: "4px solid #6f42c1",
-        borderRadius: "12px",
-      }}
-    >
-      <div className="p-fluid">
-        {/* 🔍 Buscador */}
-        <div className="mb-4">
-          <span className="p-input-icon-left w-full">
-            <i className="pi pi-search text-gray-400" />
-            <InputText
-              value={filtro}
-              onChange={(e) => setFiltro(e.target.value)}
-              placeholder="Buscar origen o destino..."
-              className="w-full"
-              style={{
-                borderRadius: "8px",
-                padding: "0.75rem 0.75rem 0.75rem 2.5rem",
-              }}
-            />
-          </span>
-          {filtro && (
-            <small className="text-gray-500 block mt-2">
-              {filtradas.length} ruta{filtradas.length !== 1 ? "s" : ""} encontrada
-              {filtradas.length !== 1 ? "s" : ""}
-            </small>
-          )}
-        </div>
+    <Card className="rounded-xl shadow-lg overflow-hidden border-0">
+      {/* Header con título y buscador */}
+      <div className="bg-white border-b border-gray-200 px-4 py-4 sm:px-6 sm:py-4">
+        <div className="flex flex-col gap-4">
+          <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2 m-0">
+            <i className="pi pi-bus text-primary"></i>
+            Rutas Disponibles
+          </h2>
 
-        {/* 🧭 Lista de rutas */}
-        <div className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 200px)" }}>
-          <ListBox
-            value={seleccion}
-            options={filtradas}
-            optionValue="id"
-            optionLabel="origen"
-            onChange={(e) => handleSeleccion(e.value)}
-            itemTemplate={(r: RutaPublica) => {
-              const sel = seleccion === r.id;
+          {/* 🔍 Buscador */}
+          <div className="flex flex-col gap-1">
+            <span className="p-input-icon-left w-full">
+              <i className="pi pi-search text-gray-400" />
+              <InputText
+                value={filtro}
+                onChange={(e) => setFiltro(e.target.value)}
+                placeholder="Buscar origen o destino..."
+                className="w-full rounded-lg pl-10 pr-3 py-2"
+              />
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* 🧭 Lista de rutas con desplazamiento */}
+      <div className="bg-gray-50 px-4 py-4 sm:px-6 max-h-[500px] overflow-y-auto">
+        {filtradas.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filtradas.map((ruta) => {
+              const sel = seleccion === ruta.id;
               return (
                 <div
-                  className={`p-3 border-round mb-2 cursor-pointer transition-all transition-duration-200 ${
+                  key={ruta.id}
+                  className={`card-ruta p-6 cursor-pointer transition-all duration-300 ease-in-out flex flex-col gap-4 ${
                     sel
-                      ? "bg-primary border-1 border-primary"
-                      : "bg-surface border-1 surface-border hover:bg-gray-50"
+                      ? "selected"
+                      : "border-gray-200 hover:border-blue-500 hover:bg-blue-100 hover:shadow-lg"
                   }`}
-                  style={{
-                    borderLeft: sel ? "4px solid #6f42c1" : "4px solid transparent",
-                  }}
+                  onClick={() => handleSeleccion(ruta.id)}
+                  style={{ cursor: "pointer" }} // Estilo de cursor azul similar a YouTube
                 >
-                  {/* Encabezado de la ruta */}
-                  <div
-                    className={`font-bold text-sm mb-2 ${sel ? "text-white" : "text-gray-900"}`}
-                  >
-                    {r.origen} → {r.destino}
+                  <div className="flex justify-between items-start">
+                    <div
+                      className={`font-bold text-lg leading-tight ${sel ? "text-white" : "text-blue-600"}`}
+                    >
+                      {ruta.origen} → {ruta.destino}
+                    </div>
                   </div>
 
-                  {/* Información de la ruta */}
-                  <div
-                    className={`text-xs mb-2 ${sel ? "text-blue-100" : "text-gray-600"}`}
-                  >
-                    <div className="flex align-items-center mb-1">
-                      <i className="pi pi-clock mr-2" style={{ fontSize: "0.8rem" }}></i>
-                      <span>{r.tiempoEstimado || "Tiempo no especificado"}</span>
-                    </div>
-                    {r.distancia && (
-                      <div className="flex align-items-center mb-1">
-                        <i className="pi pi-map-marker mr-2" style={{ fontSize: "0.8rem" }}></i>
-                        <span>{r.distancia} km</span>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-1">
+                        <i className="pi pi-clock text-sm"></i>
+                        <span className="text-sm">{ruta.tiempoEstimado || "N/A"}</span>
                       </div>
-                    )}
-                    <div className="flex align-items-center">
-                      <i className="pi pi-tag mr-2" style={{ fontSize: "0.8rem" }}></i>
-                      <span className="font-bold">Lps. {r.precio?.toFixed(2) || "0.00"}</span>
+                      {ruta.distancia && (
+                        <div className="flex items-center gap-1">
+                          <i className="pi pi-map-marker text-sm"></i>
+                          <span className="text-sm">{ruta.distancia} km</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <i className="pi pi-tag text-sm"></i>
+                      <span
+                        className={`font-bold text-lg ${sel ? "text-white" : "text-gray-900"}`}
+                      >
+                        Lps. {ruta.precio?.toFixed(2) || "0.00"}
+                      </span>
                     </div>
                   </div>
 
-                  {/* Horarios disponibles */}
-                  {r.horarios && r.horarios.length > 0 && (
-                    <div className="mb-3">
-                      <div
-                        className={`text-xs font-semibold mb-1 ${sel ? "text-blue-100" : "text-gray-500"}`}
-                      >
+                  {ruta.horarios && ruta.horarios.length > 0 && (
+                    <div className="flex flex-col gap-1">
+                      <div className={`text-sm font-semibold ${sel ? "text-blue-100" : "text-gray-500"}`}>
                         Horarios:
                       </div>
-                      <div className="flex flex-wrap gap-1">
-                        {r.horarios.slice(0, 3).map((horario, idx) => (
+                      <div className="flex flex-wrap gap-2">
+                        {ruta.horarios.slice(0, 2).map((horario, idx) => (
                           <span
                             key={idx}
-                            className={`text-xs px-2 py-1 border-round ${
-                              sel ? "bg-white text-primary" : "bg-gray-100 text-gray-700"
-                            }`}
-                            style={{ fontSize: "0.7rem" }}
+                            className={`text-sm px-4 py-2 rounded ${sel ? "bg-white text-blue-600" : "bg-gray-100 text-gray-700"}`}
                           >
                             {horario}
                           </span>
                         ))}
-                        {r.horarios.length > 3 && (
+                        {ruta.horarios.length > 2 && (
                           <span
-                            className={`text-xs px-2 py-1 border-round ${
-                              sel ? "bg-white text-primary" : "bg-gray-100 text-gray-700"
-                            }`}
-                            style={{ fontSize: "0.7rem" }}
+                            className={`text-sm px-4 py-2 rounded ${sel ? "bg-white text-blue-600" : "bg-gray-100 text-gray-700"}`}
                           >
-                            +{r.horarios.length - 3}
+                            +{ruta.horarios.length - 2}
                           </span>
                         )}
                       </div>
@@ -165,35 +142,34 @@ const PanelLateral: React.FC<PanelLateralProps> = ({
                   <Button
                     label="Reservar"
                     icon="pi pi-ticket"
-                    className={`w-full mt-2 text-sm ${
-                      sel ? "p-button-outlined p-button-secondary" : "p-button-primary"
-                    }`}
+                    className={`w-full text-sm py-2 ${sel ? "bg-white text-blue-600 border-white hover:bg-gray-100 hover:text-blue-700" : "p-button-primary"}`}
                     size="small"
-                    onClick={(e) => handleReservar(r, e)}
+                    onClick={(e) => handleReservar(ruta, e)}
                   />
                 </div>
               );
-            }}
-            listStyle={{
-              height: "100%",
-              border: "none",
-              background: "transparent",
-            }}
-            style={{
-              width: "100%",
-              border: "none",
-              background: "transparent",
-            }}
-          />
-        </div>
-
-        {/* Información adicional */}
-        {filtradas.length === 0 && (
-          <div className="text-center p-4 text-gray-500">
-            <i className="pi pi-info-circle mb-2" style={{ fontSize: "1.5rem" }}></i>
-            <p>No se encontraron rutas</p>
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-12 px-4 text-gray-500 flex flex-col items-center justify-center">
+            <i className="pi pi-search text-3xl mb-3 opacity-50"></i>
+            <p className="text-sm mb-4">No se encontraron rutas</p>
+            {filtro && (
+              <Button
+                label="Limpiar búsqueda"
+                className="p-button-text p-button-sm"
+                onClick={() => setFiltro("")}
+              />
+            )}
           </div>
         )}
+      </div>
+
+      <div className="bg-gray-100 px-4 py-3 border-t border-gray-200 text-center">
+        <div className="flex items-center justify-center gap-2 text-xs text-gray-600">
+          <i className="pi pi-info-circle"></i>
+          <span>{rutas.length} rutas totales • {filtradas.length} filtradas</span>
+        </div>
       </div>
     </Card>
   );
