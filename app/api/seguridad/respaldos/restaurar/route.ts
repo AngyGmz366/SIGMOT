@@ -1,77 +1,121 @@
 import { NextResponse } from 'next/server';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import mysql from 'mysql2/promise';
 import path from 'path';
+import fs from 'fs';
 
-const execAsync = promisify(exec);
-
-// Credenciales de la base de datos
-const DB_HOST = process.env.DB_HOST || 'localhost';
+// Configuración de Aiven
+const DB_HOST = process.env.DB_HOST;
 const DB_PORT = process.env.DB_PORT || '3306';
 const DB_USER = process.env.DB_USER;
 const DB_PASS = process.env.DB_PASS;
 const DB_NAME = process.env.DB_NAME;
-
-// Directorio donde se almacenan los backups
-const BACKUP_DIR = process.env.BACKUP_DIR || path.join(process.cwd(), 'backups');
+const DB_SSL_CA = process.env.DB_SSL_CA;
 
 export async function POST(req: Request) {
+  let connection: mysql.Connection | null = null;
+  let tempFilePath: string | null = null;
+
   try {
-    const { archivo } = await req.json();
+    // Obtener el archivo del FormData
+    const formData = await req.formData();
+    const file = formData.get('file') as File;
 
-    if (!archivo) {
+    if (!file) {
       return NextResponse.json(
-        { error: 'El archivo de respaldo es requerido' }, 
+        { error: 'No se proporcionó ningún archivo' },
         { status: 400 }
       );
     }
 
-    // Validar que el archivo existe y está en el directorio correcto (seguridad)
-    const archivoPath = path.join(BACKUP_DIR, archivo);
-    
-    // Verificar que no se intente acceder a archivos fuera del directorio de backups
-    if (!archivoPath.startsWith(BACKUP_DIR)) {
+    // Validar que sea un archivo SQL
+    if (!file.name.endsWith('.sql')) {
       return NextResponse.json(
-        { error: 'Ruta de archivo no válida' }, 
+        { error: 'El archivo debe ser .sql' },
         { status: 400 }
       );
     }
 
-    console.log('Iniciando restauración del archivo:', archivoPath);
+    console.log('=== Iniciando restauración ===');
+    console.log('Archivo:', file.name);
+    console.log('Tamaño:', (file.size / 1024 / 1024).toFixed(2), 'MB');
 
-    // Usar mysql con MYSQL_PWD en lugar de -p en el comando
-    const comando = `mysql -h ${DB_HOST} -P ${DB_PORT} -u ${DB_USER} ${DB_NAME} < "${archivoPath}"`;
-    
-    // Ejecutar el comando con la contraseña en la variable de entorno
-    const { stdout, stderr } = await execAsync(comando, {
-      env: {
-        ...process.env,
-        MYSQL_PWD: DB_PASS
-      }
+    // Crear archivo temporal
+    const tempDir = process.env.TEMP || process.env.TMP || '/tmp';
+    tempFilePath = path.join(tempDir, `restore_${Date.now()}.sql`);
+
+    // Convertir el archivo a buffer y guardarlo temporalmente
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    fs.writeFileSync(tempFilePath, buffer);
+
+    // Leer contenido SQL
+    const sqlContent = fs.readFileSync(tempFilePath, 'utf8');
+
+    // Configurar SSL si existe
+    const sslConfig = DB_SSL_CA && fs.existsSync(DB_SSL_CA)
+      ? { ca: fs.readFileSync(DB_SSL_CA) }
+      : undefined;
+
+    // Conectar a la base de datos
+    console.log('Conectando a la base de datos...');
+    connection = await mysql.createConnection({
+      host: DB_HOST,
+      port: parseInt(DB_PORT || '3306'),
+      user: DB_USER,
+      password: DB_PASS,
+      database: DB_NAME,
+      ssl: sslConfig,
+      multipleStatements: true, // IMPORTANTE: permite ejecutar múltiples statements
     });
 
-    if (stderr && stderr.includes('ERROR')) {
-      console.error('Error en la restauración:', stderr);
-      return NextResponse.json(
-        { error: `Error restaurando: ${stderr}` }, 
-        { status: 500 }
-      );
+    console.log('Ejecutando restauración...');
+
+    // Ejecutar el SQL
+    await connection.query(sqlContent);
+
+    console.log('=== Restauración completada ===');
+
+    // Cerrar conexión
+    await connection.end();
+
+    // Limpiar archivo temporal
+    if (fs.existsSync(tempFilePath)) {
+      fs.unlinkSync(tempFilePath);
+      console.log('Archivo temporal eliminado');
     }
 
-    console.log('Respaldo restaurado correctamente');
-    
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: 'Respaldo restaurado exitosamente',
-      archivo: archivo
+      archivo: file.name
     });
 
   } catch (error: any) {
-    console.error('Error al restaurar el respaldo:', error);
+    console.error('=== Error al restaurar ===');
+    console.error('Mensaje:', error.message);
+
+    // Cerrar conexión si existe
+    if (connection) {
+      try {
+        await connection.end();
+      } catch (e) {
+        console.error('Error cerrando conexión:', e);
+      }
+    }
+
+    // Limpiar archivo temporal si existe
+    if (tempFilePath && fs.existsSync(tempFilePath)) {
+      try {
+        fs.unlinkSync(tempFilePath);
+      } catch (cleanupError) {
+        console.error('Error al limpiar:', cleanupError);
+      }
+    }
+
     return NextResponse.json(
-      { 
-        error: 'Error al restaurar el respaldo', 
-        detalles: error.message 
-      }, 
+      {
+        error: 'Error al restaurar el respaldo',
+        detalles: error.message
+      },
       { status: 500 }
     );
   }
