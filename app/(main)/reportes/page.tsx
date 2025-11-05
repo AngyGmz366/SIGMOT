@@ -228,16 +228,7 @@ function cerrarDetalle() {
     setDetalleVisible(true)
   }
 
-// -------------------- RECOLECTOR DE TABLAS PARA EXPORTAR --------------------
-// Nota: ahora mismo tus DataTable usan [] como value. Estas funciones
-// exportarán igual (tablas vacías) hasta que conectes los arrays reales.
-// Cuando tengas data, podrás reemplazar cada value={[]} por el array correcto
-// y aquí solo mapeas esos arrays.
-
   const buildAllTablesForExport = () => {
-    // Define aquí las "columnas" visibles de cada tabla (en el mismo orden)
-    // y de dónde vendrán sus filas (por ahora vacías).
-    // Cuando conectes datos reales, reemplaza `rows: []` por tu array (e.g. repEmpleados).
     return [
       {
         title: 'Reportes de Empleados',
@@ -556,17 +547,7 @@ function cerrarDetalle() {
         }
       };
 
-      {/* ================== Sección: Reportes desde la Base ================== */}
-
       const [unidades, setUnidades] = useState<any[]>([]);
-      const [boletos, setBoletos] = useState<any[]>([]);
-      const [encomiendas, setEncomiendas] = useState<any[]>([]);
-      const [rutas, setRutas] = useState<any[]>([]);
-      const [mantenimientos, setMantenimientos] = useState<any[]>([]);
-      const [incidencias, setIncidencias] = useState<any[]>([]);
-      const [reservaciones, setReservaciones] = useState<any[]>([]);
-      const [personas, setPersonas] = useState<any[]>([]);
-      const [clientes, setClientes] = useState<any[]>([]);
 
       useEffect(() => {
         const fetchUnidades = async () => {
@@ -586,261 +567,7 @@ function cerrarDetalle() {
         fetchUnidades();
       }, []);
 
-      useEffect(() => {
-        const fetchBoletos = async () => {
-          try {
-            const res = await fetch('/api/reportes/boletos');
-            const json = await res.json();
-
-            if (json.ok) {
-              setBoletos(json.data);
-              console.log('🎟️ Reportes de boletos cargados:', json.data);
-            } else {
-              console.error('⚠️ Error desde backend:', json.error);
-              toast.current?.show({
-                severity: 'warn',
-                summary: 'Advertencia',
-                detail: 'Error al obtener los reportes de boletos.',
-                life: 3000,
-              });
-            }
-          } catch (err) {
-            console.error('❌ Error al conectar con el backend de reportes:', err);
-            toast.current?.show({
-              severity: 'error',
-              summary: 'Error de conexión',
-              detail: 'No se pudo conectar con el servidor.',
-              life: 3000,
-            });
-          }
-        };
-        fetchBoletos();
-      }, []);
-
-      useEffect(() => {
-        const fetchEncomiendas = async () => {
-          try {
-            const res = await fetch('/api/reportes/encomiendas');
-            const json = await res.json();
-    
-            if (json.ok) {
-              setEncomiendas(json.data);
-              console.log('📦 Reportes de encomiendas cargados:', json.data);
-            } else {
-              console.warn('⚠️ Error desde backend:', json.error);
-              toast.current?.show({
-                severity: 'warn',
-                summary: 'Advertencia',
-                detail: 'Error al obtener los reportes de encomiendas.',
-                life: 3000,
-              });
-            }
-          } catch (err) {
-            console.error('❌ Error al conectar con el backend de reportes:', err);
-            toast.current?.show({
-              severity: 'error',
-              summary: 'Error de conexión',
-              detail: 'No se pudo conectar con el servidor.',
-              life: 3000,
-            });
-          }
-        };
-    
-        fetchEncomiendas();
-      }, []);
-
-      useEffect(() => {
-        const fetchRutas = async () => {
-          try {
-            const res = await fetch('/api/reportes/rutas');
-            const json = await res.json();
-    
-            if (json.ok) {
-              setRutas(json.data);
-              console.log('🛣️ Reportes de rutas cargados:', json.data);
-            } else {
-              console.warn('⚠️ Error desde backend:', json.error);
-              toast.current?.show({
-                severity: 'warn',
-                summary: 'Advertencia',
-                detail: 'Error al obtener los reportes de rutas.',
-                life: 3000,
-              });
-            }
-          } catch (err) {
-            console.error('❌ Error al conectar con backend de reportes:', err);
-            toast.current?.show({
-              severity: 'error',
-              summary: 'Error de conexión',
-              detail: 'No se pudo conectar con el servidor.',
-              life: 3000,
-            });
-          }
-        };
-        fetchRutas();
-      }, []);
-
-      useEffect(() => {
-        const fetchMantenimientos = async () => {
-          try {
-            const res = await fetch('/api/reportes/mantenimientos');
-            const json = await res.json();
-    
-            if (json.ok) {
-              setMantenimientos(json.data);
-              console.log('🧰 Reportes de mantenimientos cargados:', json.data);
-            } else {
-              console.warn('⚠️ Error desde backend:', json.error);
-              toast.current?.show({
-                severity: 'warn',
-                summary: 'Advertencia',
-                detail: 'Error al obtener los reportes de mantenimientos.',
-                life: 3000,
-              });
-            }
-          } catch (err) {
-            console.error('❌ Error al conectar con el backend de reportes:', err);
-            toast.current?.show({
-              severity: 'error',
-              summary: 'Error de conexión',
-              detail: 'No se pudo conectar con el servidor.',
-              life: 3000,
-            });
-          }
-        };
-    
-        fetchMantenimientos();
-      }, []);
-
-      useEffect(() => {
-        const fetchIncidencias = async () => {
-          try {
-            const res = await fetch('/api/reportes/incidencias');
-            const json = await res.json();
-    
-            if (json.ok) {
-              setIncidencias(json.data);
-              console.log('⚠️ Reportes de incidencias cargados:', json.data);
-            } else {
-              console.warn('⚠️ Error desde backend:', json.error);
-              toast.current?.show({
-                severity: 'warn',
-                summary: 'Advertencia',
-                detail: 'Error al obtener los reportes de incidencias.',
-                life: 3000,
-              });
-            }
-          } catch (err) {
-            console.error('❌ Error al conectar con el backend de reportes:', err);
-            toast.current?.show({
-              severity: 'error',
-              summary: 'Error de conexión',
-              detail: 'No se pudo conectar con el servidor.',
-              life: 3000,
-            });
-          }
-        };
-    
-        fetchIncidencias();
-      }, []);
-    
-      useEffect(() => {
-        const fetchReservaciones = async () => {
-          try {
-            const res = await fetch('/api/reportes/reservaciones');
-            const json = await res.json();
-    
-            if (json.ok) {
-              setReservaciones(json.data);
-              console.log('🎟️ Reportes de reservaciones cargados:', json.data);
-            } else {
-              console.warn('⚠️ Error desde backend:', json.error);
-              toast.current?.show({
-                severity: 'warn',
-                summary: 'Advertencia',
-                detail: 'Error al obtener los reportes de reservaciones.',
-                life: 3000,
-              });
-            }
-          } catch (err) {
-            console.error('❌ Error al conectar con el backend de reportes:', err);
-            toast.current?.show({
-              severity: 'error',
-              summary: 'Error de conexión',
-              detail: 'No se pudo conectar con el servidor.',
-              life: 3000,
-            });
-          }
-        };
-    
-        fetchReservaciones();
-      }, []);
-
-      useEffect(() => {
-        const fetchPersonas = async () => {
-          try {
-            const res = await fetch('/api/reportes/personas');
-            const json = await res.json();
-    
-            if (json.ok) {
-              setPersonas(json.data);
-              console.log('👥 Reportes de personas cargados:', json.data);
-            } else {
-              console.warn('⚠️ Error desde backend:', json.error);
-              toast.current?.show({
-                severity: 'warn',
-                summary: 'Advertencia',
-                detail: 'Error al obtener los reportes de personas.',
-                life: 3000,
-              });
-            }
-          } catch (err) {
-            console.error('❌ Error al conectar con el backend de reportes:', err);
-            toast.current?.show({
-              severity: 'error',
-              summary: 'Error de conexión',
-              detail: 'No se pudo conectar con el servidor.',
-              life: 3000,
-            });
-          }
-        };
-    
-        fetchPersonas();
-      }, []);
-    
-      useEffect(() => {
-        const fetchClientes = async () => {
-          try {
-            const res = await fetch('/api/reportes/clientes');
-            const json = await res.json();
-    
-            if (json.ok) {
-              setClientes(json.data);
-              console.log('🧍‍♂️ Reportes de clientes cargados:', json.data);
-            } else {
-              console.warn('⚠️ Error desde backend:', json.error);
-              toast.current?.show({
-                severity: 'warn',
-                summary: 'Advertencia',
-                detail: 'Error al obtener los reportes de clientes.',
-                life: 3000,
-              });
-            }
-          } catch (err) {
-            console.error('❌ Error al conectar con el backend de reportes:', err);
-            toast.current?.show({
-              severity: 'error',
-              summary: 'Error de conexión',
-              detail: 'No se pudo conectar con el servidor.',
-              life: 3000,
-            });
-          }
-        };
-    
-        fetchClientes();
-      }, []);
-    
-    
+      
   return (
     <div className="p-6 space-y-6">
       <h2 className="text-2xl font-bold mb-4">Reportes Generales</h2>
@@ -1025,21 +752,19 @@ function cerrarDetalle() {
     {/* ================== Sección: Reportes de Boletos ================== */}
 
         <ReportTable
-        title="Reportes de Boletos"
-        data={boletos} // conectado al backend
-        columns={[
-          { field: 'Codigo_Ticket', header: 'Código' },
-          { field: 'Cliente', header: 'Cliente' },
-          { field: 'Origen', header: 'Origen' },
-          { field: 'Destino', header: 'Destino' },
-          { field: 'Autobus', header: 'Unidad' },
-          { field: 'Numero_Asiento', header: 'Asiento' },
-          { field: 'MetodoPago', header: 'Método de Pago' },
-          { field: 'Estado', header: 'Estado' },
-          { field: 'Precio_Total', header: 'Precio (Lps)' },
-          { field: 'Fecha_Hora_Compra', header: 'Fecha de Compra' },
-        ]}
-        onView={(row) => abrirDetalle('Boletos', row)}
+          title="Reportes de Boletos"
+          data={[]}
+          columns={[
+            { field: 'tipo', header: 'Tipo' },
+            { field: 'cliente', header: 'Cliente' },
+            { field: 'origen', header: 'Origen' },
+            { field: 'destino', header: 'Destino' },
+            { field: 'fecha', header: 'Fecha' },
+            { field: 'estado', header: 'Estado' },
+            { field: 'metodo_pago', header: 'Metodo de Pago' },
+            { field: 'total', header: 'Total (L)' },
+          ]}
+          onView={(row) => abrirDetalle('Boletos', row)}
         />
           {/* ==================== Reportes de Ventas / Facturación ==================== */}
       <ReportTable
@@ -1058,18 +783,15 @@ function cerrarDetalle() {
       {/* ==================== Reportes de Encomiendas ==================== */}
       <ReportTable
         title="Reportes de Encomiendas"
-        data={encomiendas}
+        data={[]}
         columns={[
-          { field: 'Id_Encomienda_PK', header: 'ID' },
-          { field: 'Cliente', header: 'Cliente' },
-          { field: 'Origen', header: 'Origen' },
-          { field: 'Destino', header: 'Destino' },
-          { field: 'Costo', header: 'Costo (Lps)' },
-          { field: 'Descripcion', header: 'Descripción' },
-          { field: 'Estado', header: 'Estado' },
-          { field: 'Fecha_Programada', header: 'Fecha Programada' },
-          { field: 'Fecha_Realizada', header: 'Fecha Realizada' },
-          { field: 'Taller', header: 'Taller / Lugar' },
+          { field: 'codigo',      header: 'Código' },
+          { field: 'remitente',   header: 'Remitente' },
+          { field: 'destinatario',header: 'Destinatario' },
+          { field: 'ruta',        header: 'Ruta' },
+          { field: 'fecha',       header: 'Fecha' },
+          { field: 'monto',       header: 'Monto (L)' },
+          { field: 'estado',      header: 'Estado' },
         ]}
         onView={(row) => abrirDetalle('Encomiendas', row)}
       />
@@ -1077,37 +799,34 @@ function cerrarDetalle() {
       {/* ==================== Reportes de Rutas ==================== */}
       <ReportTable
         title="Reportes de Rutas"
-        data={rutas}
+        data={[]}
         columns={[
-          { field: 'Id_Ruta_PK', header: 'ID Ruta' },
-          { field: 'Origen', header: 'Origen' },
-          { field: 'Destino', header: 'Destino' },
-          { field: 'Distancia', header: 'Distancia (km)' },
-          { field: 'Tiempo_Estimado', header: 'Tiempo Estimado' },
-          { field: 'Precio', header: 'Precio (Lps)' },
-          { field: 'Estado', header: 'Estado' },
-          { field: 'Descripcion', header: 'Descripción' },
+          { field: 'id', header: 'ID' },
+          { field: 'origen', header: 'Origen' },
+          { field: 'destino',header: 'Destino' },
+          { field: 'estado', header: 'Estado' },
+          { field: 'tiempo_estimado', header: 'Tiempo Estimado' },
+          { field: 'precio', header: 'Precio' },
+          { field: 'horarios', header: 'Horarios' },
+          { field: 'unidades', header: 'Unidades' },
+          { field: 'descripcion', header: 'Descripción' },
         ]}
         onView={(row) => abrirDetalle('Rutas', row)}
       />
 
       {/* ==================== Reportes de Mantenimiento ==================== */}
       <ReportTable
-        title="Reportes de Mantenimientos"
-        data={mantenimientos}
+        title="Reportes de Mantenimiento"
+        data={[]}
         columns={[
-          { field: 'Id_Mantenimiento_PK', header: 'ID' },
-          { field: 'Placa', header: 'Unidad' },
-          { field: 'Tipo_Mantenimiento', header: 'Tipo' },
-          { field: 'Estado', header: 'Estado' },
-          { field: 'Fecha_Programada', header: 'Fecha Programada' },
-          { field: 'Fecha_Realizada', header: 'Fecha Realizada' },
-          { field: 'Proximo_Mantenimiento', header: 'Próximo Mantenimiento' },
-          { field: 'Kilometraje', header: 'Kilometraje' },
-          { field: 'Taller', header: 'Taller' },
-          { field: 'Repuestos', header: 'Repuestos' },
-          { field: 'Costo_Total', header: 'Costo (Lps)' },
-          { field: 'Descripcion', header: 'Descripción' },
+          { field: 'vehiculo', header: 'Vehículo' },
+          { field: 'placa', header: 'Placa' },
+          { field: 'tipo_servicio',     header: 'Tipo de Servicio' },       // preventivo/correctivo
+          { field: 'fecha_programada',    header: 'Fecha Programada' },
+          { field: 'fecha_realizada', header: 'Fecha Realizada' },
+          { field: 'proximo_mantenimiento', header: 'Próximo Mantenimiento' },
+          { field: 'kilometraje', header: 'Kilometraje' },
+          { field: 'costo',    header: 'Costo (L)' },
         ]}
         onView={(row) => abrirDetalle('Mantenimiento', row)}
       />
@@ -1115,19 +834,14 @@ function cerrarDetalle() {
       {/* ==================== Reportes de Incidencias ==================== */}
       <ReportTable
         title="Reportes de Incidencias"
-        data={incidencias}
+        data={[]}
         columns={[
-          { field: 'Id_Incidencia_PK', header: 'ID' },
-          { field: 'Usuario', header: 'Usuario' },
-          { field: 'Tipo_Incidencia', header: 'Tipo' },
-          { field: 'Estado', header: 'Estado' },
-          { field: 'Asunto', header: 'Asunto' },
-          { field: 'Descripcion', header: 'Descripción' },
-          { field: 'Respuesta_Admin', header: 'Respuesta Admin' },
-          { field: 'Fecha_Creacion', header: 'Creada' },
-          { field: 'Fecha_Actualizacion', header: 'Actualizada' },
-          { field: 'Cerrada_Por', header: 'Cerrada Por' },
-          { field: 'Fecha_Cierre', header: 'Fecha de Cierre' },
+          { field: 'id',        header: 'ID' },
+          { field: 'titulo',    header: 'Título' },
+          { field: 'categoria', header: 'Categoría' },
+          { field: 'fecha',     header: 'Fecha' },
+          { field: 'estado',    header: 'Estado' },
+          { field: 'prioridad', header: 'Prioridad' },
         ]}
         onView={(row) => abrirDetalle('Incidencias', row)}
       />
@@ -1135,16 +849,16 @@ function cerrarDetalle() {
       {/* ==================== Reportes de Reservaciones ==================== */}
       <ReportTable
         title="Reportes de Reservaciones"
-        data={reservaciones}
+        data={[]}
         columns={[
-          { field: 'Id_Reserva_PK', header: 'ID' },
-          { field: 'Cliente', header: 'Cliente' },
-          { field: 'Tipo_Reserva', header: 'Tipo' },
-          { field: 'Estado', header: 'Estado' },
-          { field: 'Motivo_Cancelacion', header: 'Motivo Cancelación' },
-          { field: 'Fecha_Reserva', header: 'Fecha de Reserva' },
-          { field: 'Asiento', header: 'Asiento' },
-          { field: 'Es_Activa', header: 'Activa' },
+          { field: 'id',       header: 'ID' },
+          { field: 'cliente',  header: 'Cliente' },
+          { field: 'tipo',     header: 'Tipo' },
+          { field: 'ruta',     header: 'Ruta' },
+          { field: 'unidad',   header: 'Unidad' },
+          { field: 'fecha',    header: 'Fecha' },
+          { field: 'asiento/costo', header: 'Asientos/Costo' },
+          { field: 'estado',   header: 'Estado' },
         ]}
         onView={(row) => abrirDetalle('Reservaciones', row)}
       />
@@ -1152,7 +866,7 @@ function cerrarDetalle() {
       {/* ==================== Reportes de Unidades ==================== */}
           <ReportTable
           title="Reportes de Unidades"
-          data={unidades} // ✅ conectado al backend
+          data={unidades}
           columns={[
             { field: 'placa', header: 'Placa' },
             { field: 'marca', header: 'Marca' },
@@ -1168,13 +882,13 @@ function cerrarDetalle() {
       {/* ==================== Reportes de Clientes ==================== */}
       <ReportTable
         title="Reportes de Clientes"
-        data={clientes}
+        data={[]}
         columns={[
-          { field: 'Id_Cliente', header: 'ID Cliente' },
-          { field: 'Nombre_Completo', header: 'Nombre Completo' },
-          { field: 'DNI', header: 'DNI' },
-          { field: 'Telefono', header: 'Teléfono' },
-          { field: 'Estado', header: 'Estado' },
+          { field: 'id',      header: 'ID' },
+          { field: 'nombre',  header: 'Nombre' },
+          { field: 'telefono',header: 'Teléfono' },
+          { field: 'correo',  header: 'Correo' },
+          { field: 'estado',  header: 'Estado' },
         ]}
         onView={(row) => abrirDetalle('Clientes', row)}
       />
@@ -1182,22 +896,21 @@ function cerrarDetalle() {
       {/* ==================== Reportes de Personas ==================== */}
       <ReportTable
         title="Reportes de Personas"
-        data={personas}
+        data={[]}
         columns={[
-          { field: 'Id_Persona', header: 'ID' },
-          { field: 'Nombres', header: 'Nombres' },
-          { field: 'Apellidos', header: 'Apellidos' },
-          { field: 'DNI', header: 'DNI' },
-          { field: 'Telefono', header: 'Teléfono' },
-          { field: 'Fecha_Nacimiento', header: 'Nacimiento' },
-          { field: 'Genero', header: 'Género' },
-          { field: 'Tipo_Persona', header: 'Tipo Persona' },
-          { field: 'Estado', header: 'Estado' },
+          { field: 'id',      header: 'ID' },
+          { field: 'nombres',  header: 'Nombres' },
+          { field: 'apellidos', header: 'Apellidos' },
+          { field: 'dni', header: 'DNI' },
+          { field: 'tipo_persona',     header: 'Tipo Persona' },      // empleado/cliente/etc.
+          { field: 'telefono',header: 'Teléfono' },
+          { field: 'correo',  header: 'Correo' },
+          { field: 'genero', header: 'Género' },
+          { field: 'departamento',  header: 'Departamento' },
+          { field: 'municipio', header: 'Municipio' },
         ]}
         onView={(row) => abrirDetalle('Personas', row)}
       />
-
-
                 <Dialog
           header={`Detalle - ${detalleInfo?.seccion ?? ''}`}
           visible={detalleOpen}

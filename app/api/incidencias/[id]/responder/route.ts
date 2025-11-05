@@ -42,18 +42,15 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const idAdmin = fields.idAdmin?.[0] || 1;
 
     // 💌 Configuración SMTP
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT),
-      secure: process.env.SMTP_SECURE === "true",
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-            tls: {
-        rejectUnauthorized: false, // ✅ evita error de certificado local
-      },
-    });
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST, // smtp.gmail.com
+  port: Number(process.env.SMTP_PORT), // 465 for secure SMTP
+  secure: true, // Ensure it uses SSL/TLS
+  auth: {
+    user: process.env.SMTP_USER, // Gmail user
+    pass: process.env.SMTP_PASS, // Gmail password or app-specific password
+  },
+});
 
     // 📎 Adjuntos
     let attachments: any[] = [];
