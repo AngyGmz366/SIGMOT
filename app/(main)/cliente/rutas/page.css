@@ -1,0 +1,32 @@
+
+
+.content-desktop {
+  margin-left: 0 !important;
+}
+
+/* Asegurar que el contenido ocupe todo el ancho */
+.min-h-screen {
+  min-height: 100vh;
+}
+
+/* Estilo de las tarjetas */
+.card-ruta {
+  border-radius: 12px; /* Bordes redondeados */
+  transition: all 0.3s ease; /* Transición suave */
+  cursor: pointer; /* Cambio de cursor para indicar interactividad */
+}
+
+/* Efecto de hover: color morado */
+.card-ruta:hover {
+  background: linear-gradient(to bottom right, #d3a7f7, #b18dff); /* Color morado bonito */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Sombra suave para resaltar */
+  transform: translateY(-5px); /* Pequeño levantamiento de la tarjeta */
+  border: 1px solid #9c6eff; /* Borde morado al hacer hover */
+}
+
+.card-ruta.selected {
+  background: linear-gradient(to bottom right, #9c6eff, #7a4bff); /* Cambio de fondo cuando está seleccionada */
+  border: 1px solid #5a2aff; /* Borde morado más oscuro para la selección */
+  color: white; /* Texto blanco para una mejor visual */
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Sombra más intensa para selección */
+}

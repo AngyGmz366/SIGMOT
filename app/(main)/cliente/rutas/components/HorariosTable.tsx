@@ -33,26 +33,50 @@ const HorariosTabla: React.FC<Props> = ({ rutas = [] }) => {
 
   return (
     <Card title="🕓 Horarios por Ruta" className="shadow-2 mb-4">
-      <DataTable
-        value={data}
-        responsiveLayout="scroll" // Hace la tabla scrollable en pantallas pequeñas
-        stripedRows
-        tableStyle={{ minWidth: "100%" }} // Asegura que la tabla ocupe todo el ancho
-        emptyMessage="No hay rutas activas con horarios."
-      >
-        {/* Columna de ruta */}
-        <Column field="ruta" header="Ruta" style={{ minWidth: "14rem", fontWeight: "bold" }} />
-
-        {/* Columnas de horarios, dinámicamente creadas según la cantidad de horarios */}
-        {[...Array(maxHorarios)].map((_, i) => (
-          <Column
-            key={i}
-            field={`h${i}`}
-            header={`Horario ${i + 1}`}
-            style={{ textAlign: "center" }}
+      <div className="overflow-x-auto">
+        <DataTable
+          value={data}
+          responsiveLayout="stack"
+          breakpoint="960px"
+          stripedRows
+          scrollable
+          scrollHeight="400px"
+          tableStyle={{ minWidth: "600px" }}
+          emptyMessage="No hay rutas activas con horarios."
+          className="text-sm"
+        >
+          {/* Columna de ruta */}
+          <Column 
+            field="ruta" 
+            header="Ruta" 
+            style={{ minWidth: "160px", fontWeight: "bold" }} 
+            body={(data) => (
+              <span className="font-semibold text-primary">{data.ruta}</span>
+            )}
           />
-        ))}
-      </DataTable>
+
+          {/* Columnas de horarios, dinámicamente creadas según la cantidad de horarios */}
+          {[...Array(maxHorarios)].map((_, i) => (
+            <Column
+              key={i}
+              field={`h${i}`}
+              header={`Hora ${i + 1}`}
+              style={{ textAlign: "center", minWidth: "100px" }}
+              body={(data) => (
+                <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-medium">
+                  {data[`h${i}`]}
+                </span>
+              )}
+            />
+          ))}
+        </DataTable>
+      </div>
+      
+      {/* Información responsive */}
+      <div className="mt-3 text-xs text-gray-500 text-center md:text-left">
+        <i className="pi pi-info-circle mr-1"></i>
+        Desliza horizontalmente para ver todos los horarios en dispositivos móviles
+      </div>
     </Card>
   );
 };
