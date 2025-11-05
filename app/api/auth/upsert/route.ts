@@ -19,6 +19,7 @@ if (!getApps().length) {
 const pool = db;
 
 export async function POST(req: Request) {
+  let conn;
   try {
     const token = req.headers.get('authorization')?.replace('Bearer ', '');
     if (!token) return NextResponse.json({ error: 'Sin token' }, { status: 401 });
@@ -34,7 +35,8 @@ export async function POST(req: Request) {
 
     const body = await req.json().catch(() => ({}));
     const rolDefecto = Number(body?.rolDefecto ?? 1);
-    const conn = await pool.getConnection();
+    
+    conn = await pool.getConnection();
 
     try {
       await conn.beginTransaction();
@@ -89,43 +91,30 @@ export async function POST(req: Request) {
         [firebaseUid, correo, rolDefecto, personaFk]
       );
 
-      // 🔹 Activar si estaba NUEVO
-      await conn.query(
-        `UPDATE mydb.TBL_MS_USUARIO 
-         SET Estado_Usuario = (
-           SELECT Id_Estado_PK FROM mydb.TBL_MS_ESTADO_USUARIO 
-           WHERE Estado = 'ACTIVO' LIMIT 1
-         )
-         WHERE Firebase_UID = ? 
-           AND (Estado_Usuario IS NULL OR Estado_Usuario = 1);`,
-        [firebaseUid]
-      );
+      const usuarioData = resultSets?.[0]?.[0];
+      
+      if (!usuarioData || !usuarioData.Id_Usuario_PK) {
+        throw new Error('No se pudo obtener datos del usuario después del registro');
+      }
 
-      // 🔹 Datos finales
-      const [[usuario]]: any = await conn.query(
-        `SELECT Id_Usuario_PK, Correo_Electronico AS Correo, Id_Rol_FK
-         FROM mydb.TBL_MS_USUARIO
-         WHERE Firebase_UID = ? OR Correo_Electronico = ?
-         ORDER BY Id_Usuario_PK DESC LIMIT 1;`,
-        [firebaseUid, correo]
-      );
+      const idUsuario = usuarioData.Id_Usuario_PK;
 
       // 🔹 Verificar si tiene 2FA activo
       const [twofaRows]: any = await conn.query(
         `SELECT TwoFA_Enabled FROM mydb.TBL_MS_2FA WHERE Id_Usuario_FK = ? LIMIT 1;`,
-        [usuario?.Id_Usuario_PK]
+        [idUsuario]
       );
+      
       const requires2FA = twofaRows?.[0]?.TwoFA_Enabled === 1;
 
       await conn.commit();
-      conn.release();
 
       // 🚦 Si tiene 2FA activo → frontend pedirá código
       if (requires2FA) {
         return NextResponse.json({
           ok: true,
-          requires2FA,
-          idUsuario: usuario.Id_Usuario_PK,
+          requires2FA: true,
+          idUsuario,
           tipoUsuario: 'FIREBASE',
           correo,
         });
@@ -134,9 +123,9 @@ export async function POST(req: Request) {
       // 🔐 Si no → generar JWT
       const secret = new TextEncoder().encode(process.env.APP_JWT_SECRET!);
       const appToken = await new SignJWT({
-        uid: usuario.Id_Usuario_PK,
+        uid: idUsuario,
         email: correo,
-        rol: rolDefecto,
+        rol: usuarioData.Id_Rol_FK || rolDefecto,
       })
         .setProtectedHeader({ alg: 'HS256' })
         .setExpirationTime('1d')
@@ -145,7 +134,14 @@ export async function POST(req: Request) {
       const resp = NextResponse.json({
         ok: true,
         message: 'Usuario sincronizado correctamente',
-        usuario,
+        usuario: {
+          Id_Usuario_PK: idUsuario,
+          Correo_Electronico: correo,
+          Correo: correo,
+          Id_Rol_FK: usuarioData.Id_Rol_FK,
+          Nombre_Usuario: usuarioData.Nombre_Usuario || correo,
+          Rol: usuarioData.Rol || 'Usuario',
+        },
         requires2FA: false,
       });
 
@@ -158,9 +154,10 @@ export async function POST(req: Request) {
       });
 
       return resp;
-    } catch (e) {
+      
+    } catch (e: any) {
+      console.error('Error en transacción:', e);
       await conn.query('ROLLBACK');
-      conn.release();
       throw e;
     }
   } catch (err: any) {
@@ -169,5 +166,7 @@ export async function POST(req: Request) {
       { error: 'Fallo en registro o sincronización', detail: err?.message },
       { status: 500 }
     );
+  } finally {
+    if (conn) conn.release();
   }
 }
