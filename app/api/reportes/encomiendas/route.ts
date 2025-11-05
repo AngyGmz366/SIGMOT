@@ -6,10 +6,10 @@ import { db } from '@/lib/db';
 export async function GET() {
   try {
     const [rows]: any = await db.query(
-      'CALL mydb.sp_reportes_encomiendas(NULL, NULL, NULL, NULL);' // Si no tienes filtros, usa NULL o pasa parámetros desde el frontend
+      'CALL mydb.sp_reportes_encomiendas(NULL, NULL, NULL, NULL, NULL);'  // Ejecuta el SP
     );
 
-    const data = Array.isArray(rows) ? rows[0] || [] : [];
+    const data = Array.isArray(rows) ? rows[0] || [] : [];  // Asegúrate de que los datos estén en el formato correcto
 
     return NextResponse.json({ ok: true, data });
   } catch (error: any) {

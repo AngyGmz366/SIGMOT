@@ -6,7 +6,7 @@ export async function GET() {
   try {
     // 🔹 Llamada al procedimiento almacenado
     const [rows]: any = await db.query(
-      'CALL mydb.sp_reportes_incidencias(NULL, NULL, NULL, NULL, NULL, NULL);'
+      'CALL mydb.sp_reportes_incidencias(NULL, NULL, NULL, NULL, NULL);'
     );
 
     // 🔹 Normalizar resultado (MySQL devuelve array anidado)

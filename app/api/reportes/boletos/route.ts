@@ -5,7 +5,7 @@ import { db } from '@/lib/db';
 export async function GET() {
   try {
     // 🔹 Llamar al procedimiento almacenado
-    const [rows]: any = await db.query('CALL mydb.sp_reportes_boletos;');
+    const [rows]: any = await db.query('CALL mydb.sp_reportes_boletos(NULL, NULL, NULL, NULL, NULL, NULL);');
 
     // 🔹 Normalizar resultado
     const data = Array.isArray(rows) ? rows[0] || [] : [];
