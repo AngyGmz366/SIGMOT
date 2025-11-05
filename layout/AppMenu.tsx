@@ -73,7 +73,7 @@ const AppMenu = () => {
                 ...(puedeVer('boletos') ? [{ label: 'Boletos', icon: 'pi pi-ticket', to: '/pages/Ventas' }] : []),
                 ...(puedeVer('unidades') ? [{ label: 'Unidades', icon: 'pi pi-car', to: '/vehiculos' }] : []),
                 ...(puedeVer('rutas') ? [{ label: 'Rutas', icon: 'pi pi-map', to: '/admin/rutas-admin' }] : []),
-                ...(puedeVer('reportes') ? [{ label: 'Reportes', icon: 'pi pi-chart-line', to: '/admin/reportes' }] : []),
+                ...(puedeVer('reportes') ? [{ label: 'Reportes', icon: 'pi pi-chart-line', to: '/reportes' }] : []),
 
                 ...(puedeVer('seguridad') ||
                 puedeVer('roles') ||

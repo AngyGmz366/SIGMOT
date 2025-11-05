@@ -230,71 +230,155 @@ function cerrarDetalle() {
 
   const buildAllTablesForExport = () => {
     return [
-      {
-        title: 'Reportes de Empleados',
-        columns: ['Nombre', 'Departamento', 'Salario (L)'],
-        rows: [] as any[],
-        mapRow: (r: any) => [r.nombre, r.departamento, r.salario],
-      },
+      // ✅ 1. Boletos
       {
         title: 'Reportes de Boletos',
-        columns: ['Tipo', 'Cliente', 'Origen', 'Destino', 'Fecha', 'Estado', 'Metodo de Pago', 'Total (L)'],
-        rows: [],
-        mapRow: (r: any) => [r.tipo, r.cliente, r.origen, r.destino, r.fecha, r.estado, r.metodo_pago, r.total],
+        columns: ['Código', 'Cliente', 'Cédula', 'Teléfono', 'Origen', 'Destino', 'Unidad', 'Asiento', 'Método Pago', 'Estado', 'Precio (Lps)', 'Fecha'],
+        rows: boletos,
+        mapRow: (r: any) => [
+          r.Codigo_Ticket || '',
+          r.Cliente || '',
+          r.Cedula || '',
+          r.Telefono || '',
+          r.Origen || '',
+          r.Destino || '',
+          r.Autobus || '',
+          r.Numero_Asiento || '',
+          r.MetodoPago || '',
+          r.Estado || '',
+          r.Precio_Total || '',
+          r.Fecha_Hora_Compra || ''
+        ],
       },
-      {
-        title: 'Reportes de Ventas / Facturación',
-        columns: ['N° Factura', 'Cliente', 'Fecha', 'Método de Pago', 'Total (L)'],
-        rows: [],
-        mapRow: (r: any) => [r.numero, r.cliente, r.fecha, r.metodo, r.total],
-      },
+      
+      // ✅ 2. Encomiendas
       {
         title: 'Reportes de Encomiendas',
-        columns: ['Código', 'Remitente', 'Destinatario', 'Destino', 'Estado', 'Fecha'],
-        rows: [],
-        mapRow: (r: any) => [r.codigo, r.remitente, r.destinatario, r.destino, r.estado, r.fecha],
+        columns: ['ID', 'Cliente', 'Origen', 'Destino', 'Costo (Lps)', 'Descripción', 'Estado', 'Fecha Realizada'],
+        rows: encomiendas,
+        mapRow: (r: any) => [
+          r.Id_Encomiendas_PK || '',
+          r.Cliente || '',
+          r.Origen || '',
+          r.Destino || '',
+          r.Costo || '',
+          r.Descripcion || '',
+          r.Estado || '',
+          r.Fecha_Realizada || ''
+        ],
       },
+      
+      // ✅ 3. Rutas
       {
         title: 'Reportes de Rutas',
-        columns: ['ID', 'Origen', 'Destino', 'Estado', 'Tiempo Estimado', 'Precio', 'Horarios', 'Unidades', 'Descripción'],
-        rows: [],
-        mapRow: (r: any) => [r.id, r.origen, r.destino, r.estado, r.tiempo_estimado, r.precio, r.horarios, r.unidades, r.descripcion],
+        columns: ['ID', 'Origen', 'Destino', 'Distancia (km)', 'Tiempo', 'Precio (Lps)', 'Estado', 'Descripción'],
+        rows: rutas,
+        mapRow: (r: any) => [
+          r.Id_Ruta_PK || '',
+          r.Origen || '',
+          r.Destino || '',
+          r.Distancia || '',
+          r.Tiempo_Estimado || '',
+          r.Precio || '',
+          r.Estado || '',
+          r.Descripcion || ''
+        ],
       },
+      
+      // ✅ 4. Mantenimientos
       {
-        title: 'Reportes de Mantenimiento',
-        columns: ['Vehículo', 'Placa', 'Tipo de Servicio', 'Fecha Programada', 'Fecha Realizada', 'Próximo Mantenimiento', 'Kilometraje', 'Taller', 'Costo (L)'],
-        rows: [],
-        mapRow: (r: any) => [r.vehiculo, r.placa, r.tipo_servicio, r.fecha_programada, r.fecha_realizada, r.proximo_mantenimiento, r.kilometraje, r.taller, r.costo],
+        title: 'Reportes de Mantenimientos',
+        columns: ['ID', 'Placa', 'Tipo', 'Estado', 'Fecha Prog.', 'Fecha Real.', 'Próximo', 'Km', 'Taller', 'Repuestos', 'Costo (Lps)'],
+        rows: mantenimientos,
+        mapRow: (r: any) => [
+          r.Id_Mantenimiento_PK || '',
+          r.Placa || '',
+          r.Tipo_Mantenimiento || '',
+          r.Estado || '',
+          r.Fecha_Programada || '',
+          r.Fecha_Realizada || '',
+          r.Proximo_Mantenimiento || '',
+          r.Kilometraje || '',
+          r.Taller || '',
+          r.Repuestos || '',
+          r.Costo_Total || ''
+        ],
       },
+      
+      // ✅ 5. Incidencias
       {
         title: 'Reportes de Incidencias',
-        columns: ['Título', 'Categoría', 'Estado', 'Responsable', 'Fecha'],
-        rows: [],
-        mapRow: (r: any) => [r.titulo, r.categoria, r.estado, r.responsable, r.fecha],
+        columns: ['ID', 'Usuario', 'Estado', 'Asunto', 'Descripción', 'Fecha Creación'],
+        rows: incidencias,
+        mapRow: (r: any) => [
+          r.Id_Incidencia_PK || '',
+          r.Usuario || '',
+          r.Estado || '',
+          r.Asunto || '',
+          r.Descripcion || '',
+          r.Fecha_Creacion || ''
+        ],
       },
+      
+      // ✅ 6. Reservaciones
       {
         title: 'Reportes de Reservaciones',
-        columns: ['ID', 'Cliente', 'Tipo', 'Ruta', 'Unidad', 'Asientos/Costo', 'Estado'],
-        rows: [],
-        mapRow: (r: any) => [r.id, r.cliente, r.tipo, r.ruta, r.asiento_costo, r.estado],
+        columns: ['ID', 'Cliente', 'Tipo', 'Estado', 'Fecha', 'Asiento'],
+        rows: reservaciones,
+        mapRow: (r: any) => [
+          r.Id_Reserva_PK || '',
+          r.Cliente || '',
+          r.Tipo_Reserva || '',
+          r.Estado || '',
+          r.Fecha_Reserva || '',
+          r.Asiento || ''
+        ],
       },
+      
+      // ✅ 7. Unidades
       {
         title: 'Reportes de Unidades',
         columns: ['Placa', 'Marca', 'Modelo', 'Asientos', 'Descripción', 'Año', 'Estado'],
-        rows: [],
-        mapRow: (r: any) => [r.placa, r.marca, r.modelo, r.asientos, r.descripcion, r.anio, r.estado],
+        rows: unidades,
+        mapRow: (r: any) => [
+          r.placa || '',
+          r.marca || '',
+          r.modelo || '',
+          r.asientos || '',
+          r.descripcion || '',
+          r.anio || '',
+          r.estado || ''
+        ],
       },
+      
+      // ✅ 8. Clientes
       {
         title: 'Reportes de Clientes',
-        columns: ['Nombre', 'Identidad', 'Teléfono', 'Correo', 'Estado'],
-        rows: [],
-        mapRow: (r: any) => [r.nombre, r.identidad, r.telefono, r.correo, r.estado],
+        columns: ['ID', 'Nombre', 'DNI', 'Teléfono', 'Estado'],
+        rows: clientes,
+        mapRow: (r: any) => [
+          r.Id_Cliente || '',
+          r.Nombre_Completo || '',
+          r.DNI || '',
+          r.Telefono || '',
+          r.Estado || ''
+        ],
       },
+      
+      // ✅ 9. Personas
       {
         title: 'Reportes de Personas',
-        columns: ['Nombres', 'Apellidos','DNI', 'Tipo Persona', 'Género', 'Teléfono', 'Correo', 'Departamento', 'Municipio'],
-        rows: [],
-        mapRow: (r: any) => [r.nombres, r.apellidos, r.dni, r.tipo_persona, r.genero, r.telefono, r.correo, r.departamento, r.municipio],
+        columns: ['ID', 'Nombres', 'Apellidos', 'DNI', 'Teléfono', 'Género', 'Estado'],
+        rows: personas,
+        mapRow: (r: any) => [
+          r.Id_Persona || '',
+          r.Nombres || '',
+          r.Apellidos || '',
+          r.DNI || '',
+          r.Telefono || '',
+          r.Genero || '',
+          r.Estado || ''
+        ],
       },
     ];
   };
@@ -546,8 +630,6 @@ function cerrarDetalle() {
           x: { grid: { display: false } }
         }
       };
-
-
 
 
       const [unidades, setUnidades] = useState<any[]>([]);
@@ -842,43 +924,6 @@ function cerrarDetalle() {
       <h2 className="text-2xl font-bold mb-4">Reportes Generales</h2>
 
       <Toast ref={toast} />
-
-     {/* Tarjetas estadísticas */}
-<div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-3 mt-6">
-  {estadisticas.map((e, i) => (
-    <div
-      key={i}
-      className="bg-white rounded-xl border border-gray-100 shadow-sm p-3 flex flex-col items-center justify-center text-center transition-all duration-100 hover:shadow-md"
-    >
-      <div className="text-xs text-gray-200 uppercase tracking-wide">{e.titulo}</div>
-      <div className="text-2xl font-bold text-indigo-300 mt-1">{e.valor}</div>
-    </div>
-  ))}
-</div>
-
-
-      {/* Gráficos: uno al lado del otro */}
-      <div className="flex flex-col md:flex-row justify-between gap-8 mt-10">
-        {/* Gráfico de ventas */}
-        <div className="flex-1 bg-white p-4 shadow-md rounded-lg">
-          <h3 className="text-lg font-semibold mb-4">Ventas Mensuales</h3>
-          <Chart type="bar" data={datosGrafico} options={opcionesGrafico} style={{ width: '100%', height: '200px' }} />
-        </div>
-
-        {/* Gráfico de distribución de pasajeros */}
-        <div className="flex-1 bg-white p-4 shadow-md rounded-lg">
-          <h3 className="text-lg font-semibold mb-2">Distribución de pasajeros</h3>
-          <div className="flex justify-around text-sm text-gray-700 font-medium mb-4">
-            <span>Niños: { datos.niños } </span>
-            <span>Hombres: { datos.hombres } </span>
-            <span>Mujeres: { datos.mujeres } </span>
-          </div>
-          <div style={{ width: '100%', height: '200px' }}>
-            <Pie data={pieData} options={pieOptions} />
-          </div>
-        </div>
-      </div>
-
       {/* Tabla de reportes */}
       <div>
         <Toolbar className="mb-4" left={leftToolbarTemplate} />
