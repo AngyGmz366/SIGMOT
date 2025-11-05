@@ -165,7 +165,7 @@ const MapaInteractivo: React.FC<Props> = ({ rutas }) => {
 
   const header = (
     <div className="pb-3">
-      <h2 className="text-xl font-bold">🗺️ Mapa </h2>
+      <h2 className="text-xl font-bold"> Mapa </h2>
       <div className="mt-2">
         <small className="text-gray-600">
           RUTAS <strong>SAENZ</strong> - 

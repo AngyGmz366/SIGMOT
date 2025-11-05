@@ -88,9 +88,9 @@ export default function PageRutas() {
       <div className="p-4 md:p-6">
         {/* === Header informativo === */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Rutas Disponibles</h1>
+          <h1 className="text-2xl font-bold text-gray-800">Rutas</h1>
           <p className="text-gray-600">
-            Explora nuestras rutas disponibles y selecciona tu viaje
+            
           </p>
         </div>
 
