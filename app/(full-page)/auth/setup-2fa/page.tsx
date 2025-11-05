@@ -29,27 +29,69 @@ export default function Setup2FAPage() {
   // 🔹 Al montar, generar el QR
   useEffect(() => {
     const activar2FA = async () => {
+      console.log('🔍 Iniciando activación 2FA...');
+      console.log('📌 idUsuario desde localStorage:', idUsuario);
+
+      if (!idUsuario || idUsuario === '0') {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se encontró el ID de usuario. Por favor, inicia sesión nuevamente.',
+          confirmButtonColor: '#6366f1',
+        }).then(() => router.push('/auth/login'));
+        return;
+      }
+
       try {
-        const res = await fetch('/api/2fa/enable', {
+        console.log('📡 Enviando petición a /api/auth/2fa/setup...');
+        
+        // ✅ SOLO ENVIAR idUsuario - el backend hará el resto
+        const requestBody = { 
+          idUsuario: Number(idUsuario)
+        };
+        console.log('📦 Body de la petición:', requestBody);
+
+        const res = await fetch('/api/auth/2fa/setup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idUsuario: Number(idUsuario) }),
+          body: JSON.stringify(requestBody),
         });
+
+        console.log('📩 Respuesta recibida. Status:', res.status);
+        
         const data = await res.json();
+        console.log('📋 Datos de respuesta:', data);
+
         if (res.ok && data.qr) {
+          console.log('✅ QR generado correctamente');
           setQr(data.qr);
           setSecret(data.secret);
         } else {
-          Swal.fire('Error', data.error || 'No se pudo activar el 2FA', 'error');
+          console.error('❌ Error en la respuesta:', data);
+          
+          Swal.fire({
+            icon: 'error',
+            title: 'Error al generar 2FA',
+            html: `<p>${data.error || 'No se pudo activar el 2FA'}</p>`,
+            confirmButtonColor: '#6366f1',
+          });
         }
-      } catch (e) {
-        console.error(e);
-        Swal.fire('Error', 'No se pudo conectar con el servidor', 'error');
+      } catch (e: any) {
+        console.error('💥 Excepción capturada:', e);
+        
+        Swal.fire({
+          icon: 'error',
+          title: 'Error de conexión',
+          text: 'No se pudo conectar con el servidor. Verifica tu conexión.',
+          confirmButtonColor: '#6366f1',
+        });
       }
     };
 
-    if (idUsuario && idUsuario !== '0') activar2FA();
-  }, [idUsuario]);
+    if (idUsuario && idUsuario !== '0') {
+      activar2FA();
+    }
+  }, [idUsuario, router]);
 
   // 🔹 Verificar el código introducido
   const handleVerify = async () => {
@@ -60,14 +102,14 @@ export default function Setup2FAPage() {
 
     setLoading(true);
     try {
-      const res = await fetch('/api/2fa/verify', {
+      const res = await fetch('/api/auth/2fa/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idUsuario: Number(idUsuario), token }),
       });
       const data = await res.json();
 
-      if (data.valid) {
+      if (data.valid || data.ok) {
         Swal.fire({
           icon: 'success',
           title: '2FA activado correctamente',
@@ -87,10 +129,7 @@ export default function Setup2FAPage() {
 
   return (
     <div className={containerClassName}>
-        
-
       <div className="flex flex-column align-items-center justify-content-center">
-        
         <div
           style={{
             borderRadius: '40px',
@@ -128,7 +167,10 @@ export default function Setup2FAPage() {
                 <small className="text-gray-500">Código secreto: {secret}</small>
               </div>
             ) : (
-              <p className="text-center text-gray-500">Generando código QR...</p>
+              <div className="text-center py-4">
+                <i className="pi pi-spin pi-spinner text-4xl text-blue-500 mb-3"></i>
+                <p className="text-gray-500">Generando código QR...</p>
+              </div>
             )}
 
             <InputText
