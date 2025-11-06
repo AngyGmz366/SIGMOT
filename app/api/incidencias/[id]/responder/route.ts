@@ -41,11 +41,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const correoCliente = fields.correoCliente?.[0] || "";
     const idAdmin = fields.idAdmin?.[0] || 1;
 
-    // 💌 Configuración SMTP
+  // 💌 Configuración SMTP
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST, // smtp.gmail.com
   port: Number(process.env.SMTP_PORT), // 465 for secure SMTP
-  secure: true, // Ensure it uses SSL/TLS
+  secure: true, // Usar SSL/TLS
   auth: {
     user: process.env.SMTP_USER, // Gmail user
     pass: process.env.SMTP_PASS, // Gmail password or app-specific password
