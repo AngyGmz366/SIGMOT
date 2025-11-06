@@ -667,7 +667,7 @@ function EmpleadosPage() {
             visible={detalleEmpleadoDialog}
             style={{ width: '40rem', borderRadius: '1rem' }}
             breakpoints={{ '960px': '75vw', '641px': '90vw' }}
-            header={
+            header={ 
               <div className="flex flex-column">
                 <h3 className="text-xl font-semibold text-gray-800">
                   Detalles del Empleado: {detalleEmpleado?.Nombre_Persona} {detalleEmpleado?.Apellido_Persona}
