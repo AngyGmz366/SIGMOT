@@ -741,7 +741,6 @@ function EmpleadosPage() {
               </div>
             )}
           </Dialog>
-
         </div>
       </div>
     </div>
