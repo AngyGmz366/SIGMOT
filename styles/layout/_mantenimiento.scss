@@ -1,0 +1,482 @@
+// ============================================
+// ESTILOS PARA MÓDULO DE MANTENIMIENTO
+// ============================================
+
+// ====================================
+// 🔔 ANIMACIÓN DEL BOTÓN DE NOTIFICACIONES
+// ====================================
+.bell-animate {
+  animation: bellRing 1s ease-in-out infinite;
+}
+
+@keyframes bellRing {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  10%, 30% {
+    transform: rotate(-10deg);
+  }
+  20%, 40% {
+    transform: rotate(10deg);
+  }
+  50% {
+    transform: rotate(0deg);
+  }
+}
+
+// ====================================
+// 🎨 ESTILOS DE BOTONES DE ACCIONES
+// ====================================
+.btn-ver {
+  color: #3b82f6 !important;
+  
+  &:hover {
+    background-color: #dbeafe !important;
+  }
+}
+
+.btn-editar {
+  color: #f59e0b !important;
+  
+  &:hover {
+    background-color: #fef3c7 !important;
+  }
+}
+
+.btn-eliminar {
+  color: #ef4444 !important;
+  
+  &:hover {
+    background-color: #fee2e2 !important;
+  }
+}
+
+// ====================================
+// 📊 TARJETAS DE RESUMEN
+// ====================================
+.resumen-card {
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  
+  &.verde {
+    background-color: #dcfce7;
+    border: 2px solid #22c55e;
+    
+    h6, p {
+      color: #166534;
+    }
+  }
+  
+  &.amarillo {
+    background-color: #fef3c7;
+    border: 2px solid #f59e0b;
+    
+    h6, p {
+      color: #92400e;
+    }
+  }
+  
+  &.rojo {
+    background-color: #fee2e2;
+    border: 2px solid #ef4444;
+    
+    h6, p {
+      color: #991b1b;
+    }
+  }
+}
+
+// ====================================
+// 🔔 PANEL DE NOTIFICACIONES
+// ====================================
+.notificaciones-panel {
+  min-width: 360px;
+  max-width: 400px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  
+  .notificacion-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    
+    i {
+      color: #f59e0b;
+    }
+  }
+  
+  .seccion-titulo {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    color: #374151;
+    font-weight: 600;
+  }
+  
+  .alerta-item {
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    border-radius: 0.375rem;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    
+    .alerta-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      
+      .alerta-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        
+        i {
+          font-size: 1.2rem;
+        }
+        
+        span {
+          font-size: 0.9rem;
+          font-weight: 500;
+          color: #374151;
+        }
+      }
+      
+      .alerta-estado {
+        font-size: 0.75rem;
+        font-weight: bold;
+      }
+    }
+    
+    .alerta-detalle {
+      margin-left: 0.75rem;
+      font-size: 0.8rem;
+      color: #6b7280;
+    }
+    
+    .alerta-fecha {
+      margin-left: 0.75rem;
+      font-size: 0.8rem;
+      color: #374151;
+      font-style: italic;
+    }
+    
+    // Estados de alerta
+    &.fecha {
+      background-color: #f9fafb;
+      
+      &.vencido {
+        border-left: 5px solid #ef4444;
+        
+        .alerta-estado {
+          color: #dc2626;
+        }
+      }
+      
+      &.urgente {
+        border-left: 5px solid #f59e0b;
+        
+        .alerta-estado {
+          color: #d97706;
+        }
+      }
+      
+      &.proxima {
+        border-left: 5px solid #f59e0b;
+        
+        .alerta-estado {
+          color: #16a34a;
+        }
+      }
+      
+      &.lejos {
+        border-left: 5px solid #22c55e;
+        
+        .alerta-estado {
+          color: #16a34a;
+        }
+      }
+    }
+    
+    &.proximo {
+      &.azul-vencido {
+        border-left: 5px solid #1e3a8a;
+        background-color: #e0e7ff;
+        
+        .alerta-info i {
+          color: #1e3a8a;
+        }
+        
+        .alerta-estado,
+        .alerta-detalle,
+        .alerta-fecha {
+          color: #1e3a8a;
+        }
+      }
+      
+      &.azul-cercano {
+        border-left: 5px solid #2563eb;
+        background-color: #dbeafe;
+        
+        .alerta-info i {
+          color: #2563eb;
+        }
+        
+        .alerta-estado,
+        .alerta-detalle,
+        .alerta-fecha {
+          color: #2563eb;
+        }
+      }
+      
+      &.azul-normal {
+        border-left: 5px solid #3b82f6;
+        background-color: #e0f2fe;
+        
+        .alerta-info i {
+          color: #3b82f6;
+        }
+        
+        .alerta-estado,
+        .alerta-detalle,
+        .alerta-fecha {
+          color: #3b82f6;
+        }
+      }
+      
+      &.azul-lejano {
+        border-left: 5px solid #93c5fd;
+        background-color: #f0f9ff;
+        
+        .alerta-info i {
+          color: #93c5fd;
+        }
+        
+        .alerta-estado,
+        .alerta-detalle,
+        .alerta-fecha {
+          color: #93c5fd;
+        }
+      }
+    }
+  }
+}
+
+// ====================================
+// 📋 TABLA DE DATOS
+// ====================================
+.datatable-responsive {
+  .p-datatable-thead > tr > th {
+    background-color: #f8fafc;
+    color: #1e293b;
+    font-weight: 600;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  
+  .p-datatable-tbody > tr {
+    &:hover {
+      background-color: #f1f5f9;
+    }
+    
+    > td {
+      border-bottom: 1px solid #e2e8f0;
+    }
+  }
+}
+
+// ====================================
+// 📅 CALENDARIO
+// ====================================
+.fc {
+  .fc-event {
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 2px 4px;
+    font-size: 0.85rem;
+    
+    &:hover {
+      opacity: 0.8;
+    }
+  }
+  
+  .fc-toolbar-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1e293b;
+  }
+  
+  .fc-button {
+    background-color: #3b82f6 !important;
+    border-color: #3b82f6 !important;
+    
+    &:hover {
+      background-color: #2563eb !important;
+      border-color: #2563eb !important;
+    }
+  }
+}
+
+// ====================================
+// 🎯 ACORDEÓN DE VEHÍCULOS
+// ====================================
+.p-accordion {
+  .p-accordion-header {
+    .p-accordion-header-link {
+      padding: 1rem 1.5rem;
+      
+      &:hover {
+        background-color: #f8fafc;
+      }
+    }
+  }
+  
+  .vehiculo-header-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding-right: 0.5rem;
+    
+    .vehiculo-datos {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      
+      i {
+        font-size: 2rem;
+      }
+      
+      h6 {
+        margin: 0;
+        font-size: 1.125rem;
+        font-weight: 700;
+      }
+      
+      p {
+        margin: 0;
+        font-size: 0.875rem;
+        color: #64748b;
+      }
+    }
+    
+    .vehiculo-estadisticas {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      
+      .stat-item {
+        text-align: center;
+        
+        p {
+          margin: 0;
+          font-size: 0.75rem;
+          color: #64748b;
+          margin-top: 0.25rem;
+        }
+      }
+    }
+  }
+}
+
+// ====================================
+// 💳 TARJETAS DE INFORMACIÓN
+// ====================================
+.info-card {
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  
+  &.ultimo-servicio {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    
+    h6 {
+      color: #3b82f6;
+      margin: 0 0 0.5rem 0;
+    }
+    
+    p {
+      margin: 0;
+      
+      strong {
+        color: #475569;
+      }
+    }
+  }
+  
+  &.estadisticas {
+    background-color: #f0fdf4;
+    border: 1px solid #22c55e;
+    
+    h6 {
+      color: #166534;
+      margin: 0 0 0.5rem 0;
+    }
+    
+    p {
+      margin: 0;
+      
+      strong {
+        color: #166534;
+      }
+    }
+  }
+}
+
+// ====================================
+// 📱 RESPONSIVE
+// ====================================
+@media (max-width: 768px) {
+  .notificaciones-panel {
+    min-width: 300px;
+    max-width: 90vw;
+  }
+  
+  .vehiculo-header-info {
+    flex-direction: column;
+    gap: 1rem;
+    
+    .vehiculo-estadisticas {
+      width: 100%;
+      justify-content: space-around;
+    }
+  }
+  
+  .datatable-responsive {
+    font-size: 0.875rem;
+  }
+}
+
+// ====================================
+// 🎨 UTILIDADES ADICIONALES
+// ====================================
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shadow-custom {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 
+              0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+// Badge personalizado para contador
+.badge-contador {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  font-size: 0.85rem;
+  background-color: #0061a9;
+  color: white;
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.2);
+}

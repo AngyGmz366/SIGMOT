@@ -30,12 +30,38 @@ import {
     listarMantenimientos, crearMantenimiento, actualizarMantenimiento, eliminarMantenimiento
 } from '@/modulos/mantenimientos/servicios/mantenimientos.servicios';
 
+// 🎨 Importar estilos
+import '@/styles/layout/_mantenimiento.scss';
+
+// Interfaces
+interface TipoMantenimiento {
+    Id: number;
+    Servicio: string;
+    Descripcion: string;
+}
+
+interface EstadoMantenimiento {
+    Id: number;
+    Estado: string;
+    Descripcion: string;
+}
+
+interface Unidad {
+    Id_Unidad_PK: number;
+    Numero_Placa: string;
+    Marca_Unidad: string;
+    Modelo: string;
+    Año: number;
+}
+
 const MantenimientoTransporte = () => {
     const emptyServicio = {
         id: null, vehiculo: '', placa: '', tipoServicio: '', fecha: null,
         fechaRealizada: null, proximoMantenimiento: null, kilometraje: 0,
         estado: '', descripcion: '', costo: 0, taller: '', repuestos: '',
     };
+
+    // Estados
     const [servicios, setServicios] = useState<any[]>([]);
     const [servicio, setServicio] = useState<any>(emptyServicio);
     const [servicioDialog, setServicioDialog] = useState(false);
@@ -45,16 +71,20 @@ const MantenimientoTransporte = () => {
     const [submitted, setSubmitted] = useState(false);
     const [alertas, setAlertas] = useState<any[]>([]);
     const [vehiculosDetalle, setVehiculosDetalle] = useState<any[]>([]);
-    const toast = useRef<Toast>(null);
     const [tiposMantenimiento, setTiposMantenimiento] = useState<TipoMantenimiento[]>([]);
     const [estadosMantenimiento, setEstadosMantenimiento] = useState<EstadoMantenimiento[]>([]);
     const [resumen, setResumen] = useState({ verde: 0, amarillo: 0, rojo: 0 });
-    //Cargar mantenimientos
+    const [unidades, setUnidades] = useState<Unidad[]>([]);
+    const [filtroPlaca, setFiltroPlaca] = useState('');
+
+    const toast = useRef<Toast>(null);
+    const op = useRef<OverlayPanel>(null);
+
+    // Cargar mantenimientos
     useEffect(() => {
         async function cargarMantenimientos() {
             try {
                 const data = await listarMantenimientos();
-                // ✅ usar los alias exactos del SP
                 const transformados = data.map((m: any) => ({
                     id: m.id,
                     vehiculo: m.vehiculo || '',
@@ -78,7 +108,8 @@ const MantenimientoTransporte = () => {
         }
         cargarMantenimientos();
     }, []);
-    //Cargar catálogos
+
+    // Cargar catálogos
     useEffect(() => {
         async function cargarCatalogos() {
             try {
@@ -94,7 +125,21 @@ const MantenimientoTransporte = () => {
         }
         cargarCatalogos();
     }, []);
-    //Configurar locale del calendario español
+
+    // Cargar unidades
+    useEffect(() => {
+        async function cargarUnidades() {
+            try {
+                const data = await listarUnidades();
+                setUnidades(data);
+            } catch (error) {
+                console.error('❌ Error al cargar unidades:', error);
+            }
+        }
+        cargarUnidades();
+    }, []);
+
+    // Configurar locale del calendario español
     useEffect(() => {
         addLocale('es', {
             firstDayOfWeek: 1,
@@ -107,16 +152,16 @@ const MantenimientoTransporte = () => {
             clear: 'Limpiar'
         });
     }, []);
+
+    // Calcular alertas
     useEffect(() => {
         const hoy = new Date();
         const hoySinHora = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
         const nuevasAlertas: any[] = [];
         const nuevoResumen = { verde: 0, amarillo: 0, rojo: 0 };
-        // Recorrer todos los servicios para evaluar fechas y próximos mantenimientos
+
         servicios.forEach((s) => {
-            // ============================
-            // 🔸 FECHAS PROGRAMADAS (solo si NO hay fechaRealizada)
-            // ============================
+            // FECHAS PROGRAMADAS
             if (!s.fechaRealizada && s.fecha) {
                 const fechaServicio = new Date(s.fecha);
                 const fechaServicioSinHora = new Date(
@@ -127,6 +172,7 @@ const MantenimientoTransporte = () => {
                 const diferenciaDias = Math.floor(
                     (fechaServicioSinHora.getTime() - hoySinHora.getTime()) / (1000 * 60 * 60 * 24)
                 );
+
                 if (diferenciaDias > 7) {
                     nuevoResumen.verde++;
                     nuevasAlertas.push({
@@ -165,9 +211,8 @@ const MantenimientoTransporte = () => {
                     });
                 }
             }
-            // ============================
-            // 🔹 PRÓXIMO MANTENIMIENTO
-            // ============================
+
+            // PRÓXIMO MANTENIMIENTO
             if (s.proximoMantenimiento) {
                 const fechaProx = new Date(s.proximoMantenimiento);
                 const fechaProxSinHora = new Date(
@@ -205,29 +250,33 @@ const MantenimientoTransporte = () => {
                 });
             }
         });
+
         setAlertas(nuevasAlertas);
-        setResumen(nuevoResumen); // 👈 este resumen solo considera "fecha programada"
+        setResumen(nuevoResumen);
     }, [servicios]);
-    // Funciones para abrir/cerrar diálogos
+
+    // Funciones CRUD
     const openNew = () => {
         setServicio(emptyServicio);
         setSubmitted(false);
         setServicioDialog(true);
     };
+
     const hideDialog = () => {
         setSubmitted(false);
         setServicioDialog(false);
     };
+
     const hideDetalleDialog = () => {
         setDetalleDialog(false);
     };
+
     const hideDetalleServicioDialog = () => {
         setDetalleServicioDialog(false);
         setServicioSeleccionado(null);
     };
-    // Ver detalle por vehículo
+
     const verDetalle = () => {
-        // Agrupar servicios por vehículo y placa
         const vehiculosAgrupados = servicios.reduce((acc, servicio) => {
             const key = `${servicio.vehiculo}-${servicio.placa}`;
             if (!acc[key]) {
@@ -243,51 +292,22 @@ const MantenimientoTransporte = () => {
             acc[key].servicios.push(servicio);
             acc[key].totalServicios++;
             acc[key].costoTotal += parseFloat(servicio.costo) || 0;
-            // Encontrar el último servicio (más reciente)
+
             if (!acc[key].ultimoServicio || new Date(servicio.fecha) > new Date(acc[key].ultimoServicio.fecha)) {
                 acc[key].ultimoServicio = servicio;
             }
             return acc;
         }, {});
-        // Convertir a array y ordenar servicios por fecha
+
         const vehiculosArray = Object.values(vehiculosAgrupados).map((vehiculo: any) => ({
             ...vehiculo,
             servicios: vehiculo.servicios.sort((a: any, b: any) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
         }));
+
         setVehiculosDetalle(vehiculosArray);
         setDetalleDialog(true);
     };
-    // Funciones para manejar cambios en inputs
-    const onInputChange = (e: any, name: string) => {
-        const val = (e.target && e.target.value) || '';
-        let _servicio = { ...servicio };
-        _servicio[name] = val;
-        setServicio(_servicio);
-    };
-    // Función específica para InputNumber
-    const onInputNumberChange = (e: any, name: string) => {
-        const val = e.value || 0;
-        let _servicio = { ...servicio };
-        _servicio[name] = val;
-        setServicio(_servicio);
-    };
-    // Función específica para Dropdown Tipo de Servicio
-    const onCategoryChange = (e: any) => {
-        let _servicio = { ...servicio };
-        _servicio['tipoServicio'] = e.value;
-        setServicio(_servicio);
-    };
-    // Función específica para Dropdown Estado
-    const onEstadoChange = (e: any) => {
-        let _servicio = { ...servicio };
-        _servicio['estado'] = e.value;
-        setServicio(_servicio);
-    };
-    // Generar ID único
-    const createId = () => {
-        return Math.random().toString(36).substr(2, 9);
-    };
-    // Editar servicio
+
     const editServicio = (rowData: any) => {
         const tipoSeleccionado = tiposMantenimiento.find(
             (t: any) => t.Servicio === rowData.tipoServicio
@@ -298,6 +318,7 @@ const MantenimientoTransporte = () => {
         const unidadSeleccionada = unidades.find(
             (u) => `${u.Marca_Unidad} ${u.Modelo} (${u.Año})` === rowData.vehiculo
         );
+
         setServicio({
             ...rowData,
             Id_TipoManto_FK: tipoSeleccionado ? tipoSeleccionado.Id : null,
@@ -309,7 +330,7 @@ const MantenimientoTransporte = () => {
         });
         setServicioDialog(true);
     };
-    // Eliminar servicio
+
     const deleteServicio = async (rowData: any) => {
         try {
             await eliminarMantenimiento(rowData.id);
@@ -331,26 +352,15 @@ const MantenimientoTransporte = () => {
             });
         }
     };
-    // Ver detalle de servicio
+
     const verDetalleServicio = (rowData: any) => {
         setServicioSeleccionado(rowData);
         setDetalleServicioDialog(true);
     };
-    // Template para acciones en la tabla
-    const accionesTemplate = (rowData: any) => (
-        <div className="flex gap-2">
-            <Button icon="pi pi-eye" rounded text severity="info" aria-label="Ver Detalle" onClick={() => verDetalleServicio(rowData)} />
-            <Button icon="pi pi-pencil" rounded text severity="warning" aria-label="Editar" onClick={() => editServicio(rowData)} />
-            <Button icon="pi pi-trash" rounded text severity="danger" aria-label="Eliminar" onClick={() => deleteServicio(rowData)} />
-        </div>
-    );
-    interface TipoMantenimiento { Id: number; Servicio: string; Descripcion: string; } // Definición de la interfaz para los tipos de mantenimiento
-    interface EstadoMantenimiento { Id: number; Estado: string; Descripcion: string; }// Definición de la interfaz para los estados de mantenimiento
-    // Guardar servicio (crear o actualizar)
+
     const saveServicio = async () => {
         setSubmitted(true);
         try {
-            // Validar campos obligatorios del formulario
             if (!servicio.Id_Unidad_FK) {
                 toast.current?.show({
                     severity: 'warn',
@@ -359,7 +369,8 @@ const MantenimientoTransporte = () => {
                     life: 3000,
                 });
                 return;
-            } if (!servicio.Id_TipoManto_FK) {
+            }
+            if (!servicio.Id_TipoManto_FK) {
                 toast.current?.show({
                     severity: 'warn',
                     summary: 'Tipo requerido',
@@ -367,7 +378,8 @@ const MantenimientoTransporte = () => {
                     life: 3000,
                 });
                 return;
-            } if (!servicio.Id_EstadoManto_FK) {
+            }
+            if (!servicio.Id_EstadoManto_FK) {
                 toast.current?.show({
                     severity: 'warn',
                     summary: 'Estado requerido',
@@ -375,7 +387,8 @@ const MantenimientoTransporte = () => {
                     life: 3000,
                 });
                 return;
-            } if (!servicio.proximoMantenimiento) {
+            }
+            if (!servicio.proximoMantenimiento) {
                 toast.current?.show({
                     severity: 'warn',
                     summary: 'Fecha requerida',
@@ -383,7 +396,8 @@ const MantenimientoTransporte = () => {
                     life: 3000,
                 });
                 return;
-            } if (servicio.fecha && servicio.proximoMantenimiento <= servicio.fecha) {
+            }
+            if (servicio.fecha && servicio.proximoMantenimiento <= servicio.fecha) {
                 toast.current?.show({
                     severity: 'warn',
                     summary: 'Fecha inválida',
@@ -392,14 +406,13 @@ const MantenimientoTransporte = () => {
                 });
                 return;
             }
-            // Si el estado es "Cancelado", eliminar las alertas de fechas programadas
+
             if (servicio.estado === 'Cancelado') {
-                // Eliminar alertas de tipo 'fecha'
                 setAlertas((prevAlertas) =>
                     prevAlertas.filter((alerta) => alerta.tipo !== 'fecha')
                 );
             }
-            // 🔧 Mapeo de campos reales que espera el SP `sp_mantenimiento_crear`
+
             const payload = {
                 Id_Unidad_FK: servicio.Id_Unidad_FK,
                 Id_TipoManto_FK: servicio.Id_TipoManto_FK,
@@ -419,8 +432,8 @@ const MantenimientoTransporte = () => {
                 Taller: servicio.taller,
                 Repuestos: servicio.repuestos,
             };
+
             if (servicio.id) {
-                // 🔄 Actualizar mantenimiento existente
                 await actualizarMantenimiento(servicio.id, payload);
                 toast.current?.show({
                     severity: 'success',
@@ -429,7 +442,6 @@ const MantenimientoTransporte = () => {
                     life: 3000,
                 });
             } else {
-                // 🆕 Crear nuevo mantenimiento
                 await crearMantenimiento(payload);
                 toast.current?.show({
                     severity: 'success',
@@ -438,7 +450,7 @@ const MantenimientoTransporte = () => {
                     life: 3000,
                 });
             }
-            // Refrescar lista y cerrar modal
+
             const data = await listarMantenimientos();
             setServicios(data);
             setServicioDialog(false);
@@ -453,27 +465,8 @@ const MantenimientoTransporte = () => {
             });
         }
     };
-    // Definición de la interfaz para las unidades
-    interface Unidad { Id_Unidad_PK: number; Numero_Placa: string; Marca_Unidad: string; Modelo: string; Año: number; }
-    // Cargar unidades para el dropdown
-    const [unidades, setUnidades] = useState<Unidad[]>([]);
-    useEffect(() => {
-        async function cargarUnidades() {
-            try {
-                const data = await listarUnidades();
-                setUnidades(data);
-            } catch (error) {
-                console.error('❌ Error al cargar unidades:', error);
-            }
-        }
-        cargarUnidades();
-    }, []);
-    // Nombres de meses en español
-    const meses = [
-        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-    ];
-    // Formatear fecha y hora en español (Honduras)
+
+    // Funciones auxiliares
     const formatearFechaHora = (fechaISO: string) => {
         const fecha = new Date(fechaISO);
         return fecha.toLocaleString('es-HN', {
@@ -485,38 +478,11 @@ const MantenimientoTransporte = () => {
             hour12: true
         });
     };
-    // Formatear fecha para alertas
-    const formatearFechaAlerta = (fechaISO: string) => {
-        const fecha = new Date(fechaISO);
-        return fecha.toLocaleString('es-HN', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-        }).replace(',', ' a las');
-    };
 
-    const [filtroPlaca, setFiltroPlaca] = useState('');// Estado para el filtro de placa
     const serviciosFiltrados = servicios.filter(
         (s) => (s.placa?.toLowerCase() || '').includes(filtroPlaca.toLowerCase())
-    );// Filtrar servicios por placa
+    );
 
-    // Función para obtener colores de alerta según días restantes
-    const getAlertColor = (diasRestantes: number) => {
-        if (diasRestantes < 0) {
-            return { bg: 'surface-100', text: 'text-red-800', border: 'border-red-500' };
-        } else if (diasRestantes >= 0 && diasRestantes < 3) {
-            return { bg: 'surface-100', text: 'text-red-800', border: 'border-red-500' };
-        } else if (diasRestantes >= 3 && diasRestantes <= 7) {
-            return { bg: 'surface-100', text: 'text-yellow-800', border: 'border-yellow-500' };
-        } else {
-            return { bg: 'surface-100', text: 'text-green-800', border: 'border-green-500' };
-        }
-    };
-
-    // Funciones para obtener badges de Tipo de Servicio y Estado
     const getTipoServicioBadge = (tipo: string) => {
         switch (tipo) {
             case 'Preventivo':
@@ -530,7 +496,6 @@ const MantenimientoTransporte = () => {
         }
     };
 
-    // Función para obtener badge de Estado
     const getEstadoBadge = (estado: string) => {
         if (!estado) return <Badge value="Sin estado" severity="secondary" />;
         const estadoUpper = estado.toUpperCase().trim();
@@ -547,9 +512,15 @@ const MantenimientoTransporte = () => {
                 return <Badge value={estado} severity="secondary" />;
         }
     };
-    const op = useRef<OverlayPanel>(null);// Ref para el OverlayPanel de notificaciones
 
-    // Footer del diálogo de servicio
+    const accionesTemplate = (rowData: any) => (
+        <div className="flex gap-2">
+            <Button icon="pi pi-eye" rounded text aria-label="Ver Detalle" className="btn-ver" onClick={() => verDetalleServicio(rowData)} />
+            <Button icon="pi pi-pencil" rounded text aria-label="Editar" className="btn-editar" onClick={() => editServicio(rowData)} />
+            <Button icon="pi pi-trash" className="btn-eliminar" rounded text severity="danger" aria-label="Eliminar" onClick={() => deleteServicio(rowData)} />
+        </div>
+    );
+
     const servicioDialogFooter = (
         <>
             <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={hideDialog} />
@@ -561,7 +532,6 @@ const MantenimientoTransporte = () => {
         <div className="grid">
             <Toast ref={toast} />
             <div className="col-12">
-                {/* Botones principales */}
                 <Toolbar
                     className="mb-4"
                     left={
@@ -571,52 +541,36 @@ const MantenimientoTransporte = () => {
                         </div>
                     }
                 />
-                {/* 🔔 Botón de notificaciones mejorado */}
+
+                {/* Botón de notificaciones */}
                 <div className="flex justify-content-end mb-3 relative">
-                    <Button icon="pi pi-bell" rounded text
+                    <Button
+                        icon="pi pi-bell"
+                        rounded
+                        text
                         style={{
-                            backgroundColor: '#094293', color: 'white', width: '3rem', height: '3rem', position: 'relative',
+                            backgroundColor: '#094293',
+                            color: 'white',
+                            width: '3rem',
+                            height: '3rem',
+                            position: 'relative',
                         }}
                         className={alertas.length > 0 ? 'bell-animate' : ''}
                         aria-label="Notificaciones"
                         onClick={(e) => op.current?.toggle(e)}
                     />
 
-                    {/* 🔢 Contador de alertas filtradas (únicamente tipo 'fecha') */}
                     {alertas.length > 0 && (
                         <Badge
                             value={alertas.length}
                             severity="danger"
-                            style={{
-                                position: 'absolute',
-                                top: '-6px',
-                                right: '-6px',
-                                fontSize: '0.85rem',
-                                backgroundColor: '#0061a9',
-                                color: 'white',
-                                width: '1.8rem',
-                                height: '1.8rem',
-                                borderRadius: '50%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontWeight: '700',
-                                boxShadow: '0 0 6px rgba(0,0,0,0.2)',
-                            }}
+                            className="badge-contador"
                         />
                     )}
-                    {/* OverlayPanel para mostrar las alertas */}
+
                     <OverlayPanel ref={op} showCloseIcon dismissable>
-                        <div
-                            style={{
-                                minWidth: '360px',
-                                maxWidth: '400px',
-                                maxHeight: '420px',
-                                overflowY: 'auto',
-                                paddingRight: '0.5rem',
-                            }}
-                        >
-                            <h6 className="mb-3 text-primary font-bold flex align-items-center gap-2">
+                        <div className="notificaciones-panel">
+                            <h6 className="notificacion-header mb-3 text-primary font-bold">
                                 <i className="pi pi-exclamation-triangle text-yellow-500"></i>
                                 Alertas de Mantenimiento
                             </h6>
@@ -624,8 +578,7 @@ const MantenimientoTransporte = () => {
                                 <p className="text-center text-500">No hay alertas pendientes 🚘</p>
                             ) : (
                                 <>
-                                    {/* 🔸 SECCIÓN: Mantenimientos Programados */}
-                                    <h6 className="mt-2 mb-2 text-700">Fechas Programadas</h6>
+                                    <h6 className="seccion-titulo">Fechas Programadas</h6>
                                     {alertas
                                         .filter((a) => a.tipo === 'fecha')
                                         .map((alerta, i) => {
@@ -640,200 +593,128 @@ const MantenimientoTransporte = () => {
                                             const fechaFormateada = alerta.fecha
                                                 ? new Date(alerta.fecha).toLocaleDateString('es-HN')
                                                 : '-';
+
                                             return (
                                                 <div
                                                     key={`fecha-${i}`}
-                                                    className="p-2 mb-2 border-round shadow-1 flex flex-column"
-                                                    style={{
-                                                        borderLeft: `5px solid ${color}`,
-                                                        backgroundColor: '#f9fafb',
-                                                    }}
+                                                    className={`alerta-item fecha ${alerta.prioridad}`}
                                                 >
-                                                    <div className="flex align-items-center justify-content-between">
-                                                        <div className="flex align-items-center gap-2">
+                                                    <div className="alerta-header">
+                                                        <div className="alerta-info">
                                                             <i
                                                                 className="pi pi-exclamation-circle"
-                                                                style={{ color, fontSize: '1.2rem' }}
+                                                                style={{ color }}
                                                             />
-                                                            <span
-                                                                style={{
-                                                                    fontSize: '0.9rem',
-                                                                    fontWeight: '500',
-                                                                    color: '#374151',
-                                                                }}
-                                                            >
-                                                                {mensaje}
-                                                            </span>
+                                                            <span>{mensaje}</span>
                                                         </div>
-                                                        <span
-                                                            style={{
-                                                                fontSize: '0.75rem',
-                                                                fontWeight: 'bold',
-                                                                color: vencida ? '#dc2626' : '#16a34a',
-                                                            }}
-                                                        >
-                                                            {estado}
-                                                        </span>
+                                                        <span className="alerta-estado">{estado}</span>
                                                     </div>
-                                                    <small
-                                                        className="ml-3 text-500"
-                                                        style={{ fontSize: '0.8rem', color: '#6b7280' }}
-                                                    >
+                                                    <small className="alerta-detalle">
                                                         {vencida
                                                             ? `Vencida hace ${Math.abs(alerta.diasRestantes)} días`
                                                             : `En ${alerta.diasRestantes} días`}
                                                     </small>
-                                                    {/* 🗓️ Mostrar fecha programada */}
                                                     {alerta.fecha && (
-                                                        <small
-                                                            className="ml-3 text-500"
-                                                            style={{
-                                                                fontSize: '0.8rem',
-                                                                color: '#374151',
-                                                                fontStyle: 'italic',
-                                                            }}
-                                                        >
+                                                        <small className="alerta-fecha">
                                                             Fecha programada: {fechaFormateada}
                                                         </small>
                                                     )}
                                                 </div>
                                             );
                                         })}
-                                    {/* 🔹 SECCIÓN: Próximos Mantenimientos */}
-                                    <h6 className="mt-4 mb-2 text-700">Próximos Mantenimientos</h6>
+
+                                    <h6 className="seccion-titulo mt-4">Próximos Mantenimientos</h6>
                                     {alertas
                                         .filter((a) => a.tipo === 'proximo')
                                         .map((alerta, i) => {
-                                            let color = '#3b82f6'; // azul base
-                                            let fondo = '#eff6ff';
+                                            let color = '#3b82f6';
                                             let estado = '🔷 PRÓXIMO';
 
                                             switch (alerta.prioridad) {
                                                 case 'azul-vencido':
                                                     color = '#1e3a8a';
-                                                    fondo = '#e0e7ff';
                                                     estado = '🔵 VENCIDO';
                                                     break;
                                                 case 'azul-cercano':
                                                     color = '#2563eb';
-                                                    fondo = '#dbeafe';
                                                     estado = '🔷 CERCANO';
                                                     break;
                                                 case 'azul-normal':
                                                     color = '#3b82f6';
-                                                    fondo = '#e0f2fe';
                                                     estado = '🔹 PROGRAMADO';
                                                     break;
                                                 case 'azul-lejano':
                                                     color = '#93c5fd';
-                                                    fondo = '#f0f9ff';
                                                     estado = '⚪ LEJANO';
                                                     break;
-                                                default:
-                                                    break;
                                             }
+
                                             const mensaje = `${alerta.vehiculo} (${alerta.placa}) • ${alerta.tipoServicio}`;
                                             const fechaProx = alerta.proximoMantenimiento
                                                 ? new Date(alerta.proximoMantenimiento).toLocaleDateString('es-HN')
                                                 : '-';
+
                                             return (
                                                 <div
                                                     key={`prox-${i}`}
-                                                    className="p-2 mb-2 border-round shadow-1 flex flex-column"
-                                                    style={{
-                                                        borderLeft: `5px solid ${color}`,
-                                                        backgroundColor: fondo,
-                                                    }}
+                                                    className={`alerta-item proximo ${alerta.prioridad}`}
                                                 >
-                                                    <div className="flex align-items-center justify-content-between">
-                                                        <div className="flex align-items-center gap-2">
-                                                            <i className="pi pi-wrench" style={{ color, fontSize: '1.2rem' }} />
-                                                            <span
-                                                                style={{
-                                                                    fontSize: '0.9rem',
-                                                                    fontWeight: '500',
-                                                                    color: '#1e3a8a',
-                                                                }}
-                                                            >
-                                                                {mensaje}
-                                                            </span>
+                                                    <div className="alerta-header">
+                                                        <div className="alerta-info">
+                                                            <i className="pi pi-wrench" style={{ color }} />
+                                                            <span>{mensaje}</span>
                                                         </div>
-                                                        <span
-                                                            style={{
-                                                                fontSize: '0.75rem',
-                                                                fontWeight: 'bold',
-                                                                color,
-                                                            }}
-                                                        >
-                                                            {estado}
-                                                        </span>
+                                                        <span className="alerta-estado" style={{ color }}>{estado}</span>
                                                     </div>
-                                                    <small
-                                                        className="ml-3 text-500"
-                                                        style={{ fontSize: '0.8rem', color: color }}
-                                                    >
+                                                    <small className="alerta-detalle" style={{ color }}>
                                                         {alerta.diasRestantes < 0
                                                             ? `Vencido hace ${Math.abs(alerta.diasRestantes)} días`
                                                             : `En ${alerta.diasRestantes} días`}
                                                     </small>
-                                                    {/* 🗓️ Mostrar próxima fecha */}
                                                     {alerta.proximoMantenimiento && (
-                                                        <small
-                                                            className="ml-3 text-500"
-                                                            style={{
-                                                                fontSize: '0.8rem',
-                                                                color,
-                                                                fontStyle: 'italic',
-                                                            }}
-                                                        >
+                                                        <small className="alerta-fecha" style={{ color }}>
                                                             Próximo mantenimiento: {fechaProx}
                                                         </small>
                                                     )}
                                                 </div>
                                             );
                                         })}
-
                                 </>
                             )}
                         </div>
                     </OverlayPanel>
                 </div>
+
                 {/* RESUMEN DE MANTENIMIENTOS */}
                 <div className="card">
                     <h5>Resumen de Mantenimientos</h5>
                     <div className="grid">
                         <div className="col-12 md:col-4">
-                            <div className="p-4 border-round shadow-2" style={{
-                                backgroundColor: '#dcfce7', border: '2px solid #22c55e'
-                            }}>
-                                <h6 className="m-0 mb-2" style={{ color: '#166534' }}>
+                            <div className="resumen-card verde">
+                                <h6 className="m-0 mb-2">
                                     Mantenimientos mayores a 7 días
                                 </h6>
-                                <p className="text-4xl m-0 font-bold" style={{ color: '#166534' }}>
+                                <p className="text-4xl m-0 font-bold">
                                     {resumen.verde}
                                 </p>
                             </div>
                         </div>
                         <div className="col-12 md:col-4">
-                            <div className="p-4 border-round shadow-2" style={{
-                                backgroundColor: '#fef3c7', border: '2px solid #f59e0b'
-                            }}>
-                                <h6 className="m-0 mb-2" style={{ color: '#92400e' }}>
+                            <div className="resumen-card amarillo">
+                                <h6 className="m-0 mb-2">
                                     Mantenimientos en 3-7 días
                                 </h6>
-                                <p className="text-4xl m-0 font-bold" style={{ color: '#92400e' }}>
+                                <p className="text-4xl m-0 font-bold">
                                     {resumen.amarillo}
                                 </p>
                             </div>
                         </div>
                         <div className="col-12 md:col-4">
-                            <div className="p-4 border-round shadow-2" style={{
-                                backgroundColor: '#fee2e2', border: '2px solid #ef4444'
-                            }}>
-                                <h6 className="m-0 mb-2" style={{ color: '#991b1b' }}>
+                            <div className="resumen-card rojo">
+                                <h6 className="m-0 mb-2">
                                     Mantenimientos menores a 3 días
                                 </h6>
-                                <p className="text-4xl m-0 font-bold" style={{ color: '#991b1b' }}>
+                                <p className="text-4xl m-0 font-bold">
                                     {resumen.rojo}
                                 </p>
                             </div>
@@ -859,7 +740,6 @@ const MantenimientoTransporte = () => {
                         </div>
                     </div>
 
-                    {/* 🔹 Tabla principal */}
                     <DataTable
                         value={serviciosFiltrados}
                         paginator
@@ -913,17 +793,7 @@ const MantenimientoTransporte = () => {
                             }
                             sortable style={{ minWidth: '8rem' }}
                         />
-                        <Column
-                            header="Acciones"
-                            body={(rowData) => (
-                                <div className="flex gap-2 justify-content-center">
-                                    <Button icon="pi pi-eye" rounded text severity="info" tooltip="Ver detalle" onClick={() => verDetalleServicio(rowData)} />
-                                    <Button icon="pi pi-pencil" rounded text severity="warning" tooltip="Editar" onClick={() => editServicio(rowData)} />
-                                    <Button icon="pi pi-trash" rounded text severity="danger" tooltip="Eliminar" onClick={() => deleteServicio(rowData)} />
-                                </div>
-                            )}
-                            style={{ width: '8rem' }}
-                        />
+                        <Column body={accionesTemplate} header="Acciones" />
                     </DataTable>
                 </div>
 
@@ -969,12 +839,9 @@ const MantenimientoTransporte = () => {
                 footer={servicioDialogFooter}
                 onHide={hideDialog}
             >
-                {/* 🚍 Unidad / Vehículo */}
                 <div className="field">
                     <label htmlFor="vehiculo">Unidad / Vehículo</label>
-
                     {servicio.id ? (
-                        // 🔒 Modo edición: solo lectura
                         <InputText
                             id="vehiculo"
                             value={servicio.vehiculo}
@@ -987,7 +854,6 @@ const MantenimientoTransporte = () => {
                             }}
                         />
                     ) : (
-                        // 🆕 Modo creación: dropdown activo
                         <Dropdown
                             id="vehiculo"
                             value={servicio.Id_Unidad_FK}
@@ -1010,10 +876,9 @@ const MantenimientoTransporte = () => {
                             placeholder="Selecciona una unidad"
                             className="w-full"
                         />
-
                     )}
                 </div>
-                {/* 🔧 Tipo de Mantenimiento */}
+
                 <div className="field">
                     <label htmlFor="tipoServicio">Tipo de mantenimiento</label>
                     <Dropdown
@@ -1031,7 +896,6 @@ const MantenimientoTransporte = () => {
                     />
                 </div>
 
-                {/* 📅 Fecha Programada */}
                 <div className="field">
                     <label htmlFor="fecha">Fecha Programada</label>
                     <Calendar
@@ -1044,7 +908,6 @@ const MantenimientoTransporte = () => {
                     />
                 </div>
 
-                {/* 📅 Fecha Realizada (solo visible al editar) */}
                 {servicio.id && (
                     <div className="field">
                         <label htmlFor="fechaRealizada">Fecha Realizada</label>
@@ -1060,8 +923,6 @@ const MantenimientoTransporte = () => {
                     </div>
                 )}
 
-
-                {/* 📅 Próximo Mantenimiento (obligatorio y > fecha programada) */}
                 <div className="field">
                     <label htmlFor="proximoMantenimiento">Próximo Mantenimiento</label>
                     <Calendar
@@ -1072,10 +933,8 @@ const MantenimientoTransporte = () => {
                         className="w-full"
                         disabled
                     />
-
                 </div>
 
-                {/* 🧭 Kilometraje */}
                 <div className="field">
                     <label htmlFor="kilometraje">Kilometraje</label>
                     <InputNumber
@@ -1088,15 +947,14 @@ const MantenimientoTransporte = () => {
                             if (servicio.fecha) {
                                 const base = new Date(servicio.fecha);
 
-                                // 📅 Lógica automática según kilometraje
                                 if (nuevoKm > 5000 && nuevoKm <= 10000) {
-                                    base.setDate(base.getDate() + 20); // +20 días
+                                    base.setDate(base.getDate() + 20);
                                 } else if (nuevoKm > 10000 && nuevoKm <= 20000) {
-                                    base.setDate(base.getDate() + 15); // +15 días
+                                    base.setDate(base.getDate() + 15);
                                 } else if (nuevoKm > 20000) {
-                                    base.setDate(base.getDate() + 10); // +10 días
+                                    base.setDate(base.getDate() + 10);
                                 } else {
-                                    base.setDate(base.getDate() + 5); // Por defecto +5 días
+                                    base.setDate(base.getDate() + 5);
                                 }
 
                                 nuevaFechaProx = base;
@@ -1109,11 +967,11 @@ const MantenimientoTransporte = () => {
                             });
                         }}
                         min={0}
-                        placeholder="Ej. 150000" className="w-full"
+                        placeholder="Ej. 150000"
+                        className="w-full"
                     />
                 </div>
 
-                {/* 🏷️ Estado del mantenimiento */}
                 <div className="field">
                     <label htmlFor="estado">Estado del mantenimiento</label>
                     <Dropdown
@@ -1131,7 +989,6 @@ const MantenimientoTransporte = () => {
                     />
                 </div>
 
-                {/* 💬 Descripción */}
                 <div className="field">
                     <label htmlFor="descripcion">Descripción</label>
                     <InputTextarea
@@ -1145,7 +1002,6 @@ const MantenimientoTransporte = () => {
                     />
                 </div>
 
-                {/* 💰 Costo total */}
                 <div className="field">
                     <label htmlFor="costo">Costo Total (L)</label>
                     <InputNumber
@@ -1154,11 +1010,13 @@ const MantenimientoTransporte = () => {
                         onValueChange={(e) =>
                             setServicio({ ...servicio, costo: e.value || 0 })
                         }
-                        mode="currency" currency="HNL" locale="es-HN" className="w-full"
+                        mode="currency"
+                        currency="HNL"
+                        locale="es-HN"
+                        className="w-full"
                     />
                 </div>
 
-                {/* 🧰 Taller */}
                 <div className="field">
                     <label htmlFor="taller">Taller</label>
                     <InputText
@@ -1169,7 +1027,6 @@ const MantenimientoTransporte = () => {
                     />
                 </div>
 
-                {/* 🔩 Repuestos */}
                 <div className="field">
                     <label htmlFor="repuestos">Repuestos utilizados</label>
                     <InputText
@@ -1291,20 +1148,20 @@ const MantenimientoTransporte = () => {
                             <AccordionTab
                                 key={index}
                                 header={
-                                    <div className="flex justify-content-between align-items-center w-full pr-2">
-                                        <div className="flex align-items-center gap-3">
+                                    <div className="vehiculo-header-info">
+                                        <div className="vehiculo-datos">
                                             <i className="pi pi-car text-2xl"></i>
                                             <div>
                                                 <h6 className="m-0 text-lg font-bold">{vehiculoData.vehiculo}</h6>
                                                 <p className="m-0 text-sm text-500">Placa: {vehiculoData.placa}</p>
                                             </div>
                                         </div>
-                                        <div className="flex align-items-center gap-4">
-                                            <div className="text-center">
+                                        <div className="vehiculo-estadisticas">
+                                            <div className="stat-item">
                                                 <Badge value={vehiculoData.totalServicios} severity="info" />
                                                 <p className="m-0 text-xs text-500 mt-1">Servicios</p>
                                             </div>
-                                            <div className="text-center">
+                                            <div className="stat-item">
                                                 <span className="text-lg font-bold text-primary">
                                                     {(() => {
                                                         const costoTotalNum = parseFloat(
@@ -1318,18 +1175,16 @@ const MantenimientoTransporte = () => {
                                                 </span>
                                                 <p className="m-0 text-xs text-500 mt-1">Total</p>
                                             </div>
-
                                         </div>
                                     </div>
                                 }
                             >
                                 <div className="grid">
-                                    {/* Información general del vehículo */}
                                     <div className="col-12 mb-4">
                                         <div className="grid">
                                             <div className="col-12 md:col-6">
-                                                <div className="p-3 border-round shadow-1" style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                                                    <h6 className="m-0 mb-2 text-primary">Último Servicio</h6>
+                                                <div className="info-card ultimo-servicio">
+                                                    <h6>Último Servicio</h6>
                                                     <p className="m-0"><strong>Tipo:</strong> {getTipoServicioBadge(vehiculoData.ultimoServicio.tipoServicio)}</p>
                                                     <p className="m-0"><strong>Estado:</strong> {getEstadoBadge(vehiculoData.ultimoServicio.estado)}</p>
                                                     <p className="m-0"><strong>Fecha:</strong> {formatearFechaHora(vehiculoData.ultimoServicio.fecha)}</p>
@@ -1337,24 +1192,18 @@ const MantenimientoTransporte = () => {
                                                 </div>
                                             </div>
                                             <div className="col-12 md:col-6">
-                                                <div
-                                                    className="p-3 border-round shadow-1"
-                                                    style={{ backgroundColor: '#f0fdf4', border: '1px solid #22c55e' }}
-                                                >
-                                                    <h6 className="m-0 mb-2" style={{ color: '#166534' }}>Estadísticas</h6>
+                                                <div className="info-card estadisticas">
+                                                    <h6>Estadísticas</h6>
                                                     <p className="m-0">
                                                         <strong>Total de Servicios:</strong> {vehiculoData.totalServicios}
                                                     </p>
                                                     {(() => {
-                                                        // 🔹 Limpieza del valor: quitar letras o caracteres raros
                                                         const costoTotalNum = parseFloat(
                                                             String(vehiculoData.costoTotal || '0').replace(/[^\d.-]/g, '')
                                                         ) || 0;
-                                                        // 🔹 Cálculo del promedio
                                                         const promedio = vehiculoData.totalServicios > 0
                                                             ? costoTotalNum / vehiculoData.totalServicios
                                                             : 0;
-                                                        // 🔹 Formateo de moneda local
                                                         const format = (n: number) =>
                                                             `L.${n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
                                                         return (
@@ -1373,11 +1222,16 @@ const MantenimientoTransporte = () => {
                                         </div>
                                     </div>
 
-                                    {/* Historial de servicios */}
                                     <div className="col-12">
                                         <h6 className="mb-3">Historial de Servicios</h6>
                                         <DataTable
-                                            value={vehiculoData.servicios} paginator rows={5} showGridlines size="small" responsiveLayout="scroll" emptyMessage="No hay servicios para este vehículo."
+                                            value={vehiculoData.servicios}
+                                            paginator
+                                            rows={5}
+                                            showGridlines
+                                            size="small"
+                                            responsiveLayout="scroll"
+                                            emptyMessage="No hay servicios para este vehículo."
                                         >
                                             <Column field="tipoServicio" header="Tipo" body={(rowData) => getTipoServicioBadge(rowData.tipoServicio)} style={{ width: '120px' }} />
                                             <Column field="estado" header="Estado" body={(rowData) => getEstadoBadge(rowData.estado || 'Pendiente')} style={{ width: '100px' }} />
@@ -1388,7 +1242,7 @@ const MantenimientoTransporte = () => {
                                                 field="descripcion"
                                                 header="Descripción"
                                                 body={(rowData) => (
-                                                    <div style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    <div className="text-ellipsis" style={{ maxWidth: '200px' }}>
                                                         {rowData.descripcion || '-'}
                                                     </div>
                                                 )}
@@ -1397,7 +1251,7 @@ const MantenimientoTransporte = () => {
                                                 field="repuestos"
                                                 header="Repuestos"
                                                 body={(rowData) => (
-                                                    <div style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    <div className="text-ellipsis" style={{ maxWidth: '150px' }}>
                                                         {rowData.repuestos || '-'}
                                                     </div>
                                                 )}
@@ -1423,4 +1277,5 @@ const MantenimientoTransporte = () => {
         </div>
     );
 };
+
 export default MantenimientoTransporte;
