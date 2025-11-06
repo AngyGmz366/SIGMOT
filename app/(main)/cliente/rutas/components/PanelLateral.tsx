@@ -142,7 +142,7 @@ const PanelLateral: React.FC<PanelLateralProps> = ({
                   <Button
                     label="Reservar"
                     icon="pi pi-ticket"
-                    className={`w-full text-sm py-2 ${sel ? "bg-white text-blue-600 border-white hover:bg-gray-100 hover:text-blue-700" : "p-button-primary"}`}
+                    className={`w-full text-sm py-2 ${sel ? "bg-white text-blue-300 border-white hover:bg-gray-100 hover:text-blue-400" : "p-button-primary"}`}
                     size="small"
                     onClick={(e) => handleReservar(ruta, e)}
                   />

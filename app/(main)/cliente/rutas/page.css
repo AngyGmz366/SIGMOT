@@ -1,32 +1,70 @@
-
-
-.content-desktop {
-  margin-left: 0 !important;
+/* Estilos generales para los botones */
+.p-button {
+  font-size: 0.875rem; /* Botón más pequeño */
+  padding: 0.75rem 1rem; /* Ajuste de padding */
+  border-radius: 8px; /* Bordes redondeados */
+  width: 100%; /* El botón ocupará todo el ancho disponible */
+  margin-top: 1rem; /* Espaciado superior */
+  text-align: center; /* Centrar el texto en el botón */
 }
 
-/* Asegurar que el contenido ocupe todo el ancho */
-.min-h-screen {
-  min-height: 100vh;
-}
-
-/* Estilo de las tarjetas */
+/* Estilos para la tarjeta de la reserva */
 .card-ruta {
+  width: 100%; /* Aseguramos que la tarjeta ocupe el ancho completo */
+  max-width: 400px; /* Limitar el ancho máximo de la tarjeta */
+  padding: 1rem; /* Espaciado interno de la tarjeta */
+  margin: 1rem 0; /* Espaciado entre tarjetas */
   border-radius: 12px; /* Bordes redondeados */
-  transition: all 0.3s ease; /* Transición suave */
-  cursor: pointer; /* Cambio de cursor para indicar interactividad */
+  background-color: #f7f7f7; /* Fondo claro para la tarjeta */
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Sombra suave */
+  transition: all 0.3s ease-in-out; /* Transición suave para hover */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
-/* Efecto de hover: color morado */
+/* Asegura que los botones sean más pequeños */
+.p-button {
+  font-size: 0.875rem; /* Tamaño pequeño para los botones */
+  padding: 0.6rem 1.2rem; /* Padding ajustado */
+  border-radius: 8px; /* Bordes redondeados */
+}
+
+/* Ajustes específicos para pantallas pequeñas */
+@media (max-width: 768px) {
+  /* Ajuste de la tarjeta de reserva */
+  .card-ruta {
+    padding: 0.8rem; /* Menos padding en pantallas pequeñas */
+    max-width: 100%; /* La tarjeta ocupará todo el ancho en dispositivos móviles */
+    margin: 0.5rem 0; /* Espaciado reducido en pantallas pequeñas */
+  }
+
+  /* Tamaño de los botones más pequeños */
+  .p-button {
+    font-size: 0.75rem; /* Botones más pequeños */
+    padding: 0.5rem 1rem; /* Menos padding */
+  }
+
+  /* Ajuste del mapa */
+  .map-container {
+    height: 300px; /* Ajuste el mapa para pantallas más pequeñas */
+    min-height: 250px;
+  }
+
+  /* Ajuste de la grilla para las rutas en pantallas pequeñas */
+  .grid {
+    grid-template-columns: 1fr; /* Mostrar una columna */
+  }
+}
+
+/* Hover en la tarjeta */
 .card-ruta:hover {
-  background: linear-gradient(to bottom right, #d3a7f7, #b18dff); /* Color morado bonito */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Sombra suave para resaltar */
-  transform: translateY(-5px); /* Pequeño levantamiento de la tarjeta */
-  border: 1px solid #9c6eff; /* Borde morado al hacer hover */
+  box-shadow: 0px 8px 12px rgba(0, 0, 0, 0.2); /* Sombra más intensa al pasar el ratón */
+  background-color: #ececec; /* Cambio de color de fondo */
 }
 
+/* Modificación del color y tamaño de la tarjeta seleccionada */
 .card-ruta.selected {
-  background: linear-gradient(to bottom right, #9c6eff, #7a4bff); /* Cambio de fondo cuando está seleccionada */
-  border: 1px solid #5a2aff; /* Borde morado más oscuro para la selección */
-  color: white; /* Texto blanco para una mejor visual */
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Sombra más intensa para selección */
+  background-color: #e2baff;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
 }

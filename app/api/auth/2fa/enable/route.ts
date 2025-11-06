@@ -7,11 +7,7 @@ export async function POST(req: Request) {
   const conn = await db.getConnection();
   
   try {
-    const body = await req.json();
-    console.log("📦 Body recibido:", body);
-
-    // Aceptar tanto 'id' como 'idUsuario' para compatibilidad
-    const idUsuario = body.idUsuario || body.id;
+    const { idUsuario } = await req.json();
 
     if (!idUsuario) {
       return NextResponse.json(
@@ -40,13 +36,6 @@ export async function POST(req: Request) {
 
     if (!rows || rows.length === 0) {
       console.error("❌ Usuario no encontrado con ID:", idUsuario);
-      
-      // Debug: Mostrar cuántos usuarios hay en la tabla
-      const [countRows]: any = await conn.query(
-        "SELECT COUNT(*) as total FROM mydb.TBL_MS_USUARIO;"
-      );
-      console.log("📊 Total de usuarios en la BD:", countRows[0]?.total || 0);
-      
       return NextResponse.json(
         { ok: false, error: "Usuario no encontrado en la base de datos." },
         { status: 404 }
@@ -83,18 +72,13 @@ export async function POST(req: Request) {
 
     // 🔹 PASO 2: Generar secreto y QR
     const secret = authenticator.generateSecret();
-    const otpauth = authenticator.keyuri(correo, "SAENZ", secret);
+    const otpauth = authenticator.keyuri(correo, "SIGMOT", secret);
     const qrDataUrl = await QRCode.toDataURL(otpauth);
 
     console.log("🔐 Secreto generado:", secret.substring(0, 8) + "...");
 
     // 🔹 PASO 3: Guardar secreto en BD usando el identificador correcto
     try {
-      console.log("💾 Llamando a sp_2fa_guardar_secreto con:");
-      console.log("   - Identificador:", identificador);
-      console.log("   - Tipo:", tipoUsuario);
-      console.log("   - Secret (primeros 8 chars):", secret.substring(0, 8));
-      
       await conn.query("CALL sp_2fa_guardar_secreto(?, ?, ?);", [
         identificador,
         tipoUsuario,
@@ -104,21 +88,16 @@ export async function POST(req: Request) {
       console.log("✅ Secreto guardado correctamente en la BD");
     } catch (dbError: any) {
       console.error("❌ Error al ejecutar sp_2fa_guardar_secreto:", dbError);
-      console.error("   SQL:", dbError.sql);
-      console.error("   Message:", dbError.sqlMessage);
       
       // Verificar si el error es por usuario no encontrado
       if (dbError.sqlMessage?.includes('Usuario no encontrado')) {
         // Hacer una verificación adicional
-        const column = tipoUsuario === 'FIREBASE' ? 'Firebase_UID' : 'Correo_Electronico';
         const [verifyRows]: any = await conn.query(
-          `SELECT Id_Usuario_PK, ${column} FROM mydb.TBL_MS_USUARIO 
-           WHERE ${column} = ? 
+          `SELECT Id_Usuario_PK FROM mydb.TBL_MS_USUARIO 
+           WHERE ${tipoUsuario === 'FIREBASE' ? 'Firebase_UID' : 'Correo_Electronico'} = ? 
            LIMIT 1;`,
           [identificador]
         );
-        
-        console.log(`🔍 Verificación directa de ${column}:`, verifyRows);
         
         if (!verifyRows || verifyRows.length === 0) {
           return NextResponse.json(
@@ -127,14 +106,6 @@ export async function POST(req: Request) {
               error: `El ${tipoUsuario === 'FIREBASE' ? 'Firebase_UID' : 'correo'} "${identificador}" no existe en la base de datos. Verifica que el usuario esté correctamente registrado.`
             },
             { status: 404 }
-          );
-        } else {
-          return NextResponse.json(
-            { 
-              ok: false, 
-              error: `Usuario encontrado (ID: ${verifyRows[0].Id_Usuario_PK}) pero el SP falla. Verifica el procedimiento almacenado.`
-            },
-            { status: 500 }
           );
         }
       }
@@ -150,16 +121,12 @@ export async function POST(req: Request) {
       message: "Secreto 2FA generado correctamente.",
     });
   } catch (err: any) {
-    console.error("❌ Error general en /api/auth/2fa/setup:", err);
+    console.error("❌ Error en /api/2fa/enable:", err);
     return NextResponse.json(
       { 
         ok: false, 
         error: err.sqlMessage || err.message || "Error al generar el secreto 2FA",
-        details: process.env.NODE_ENV === 'development' ? {
-          sql: err.sql,
-          message: err.sqlMessage,
-          stack: err.stack
-        } : undefined
+        details: process.env.NODE_ENV === 'development' ? err.sql : undefined
       },
       { status: 500 }
     );
