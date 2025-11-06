@@ -28,7 +28,7 @@ const InfoRutaSeleccionada: React.FC<Props> = ({ rutaSeleccionada }) => {
       } 
       className="shadow-1 h-full"
     >
-      <div className="space-y-4 p-2"> {/* 🔼 AUMENTADO ESPACIADO */}
+      <div className="space-y-4 p-2">
         {/* Duración */}
         <div className="bg-blue-50 p-3 rounded-lg border-1 border-blue-200">
           <div className="flex items-center space-x-3">

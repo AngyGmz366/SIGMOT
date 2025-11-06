@@ -1,19 +1,15 @@
 {
   "compilerOptions": {
-    "target": "es5",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "target": "ES2020",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "node",
+    "module": "ESNext",
+    "moduleResolution": "Node",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
@@ -24,22 +20,18 @@
       }
     ],
     "paths": {
-      "@/*": [
-        "./*"
-      ], 
-      "@/app/*": [
-        "./app/*"
-      ],
+      "@/*": ["./*"],
+      "@/app/*": ["./app/*"]
     },
-    "types": ["leaflet", "react-leaflet"]
+    "typeRoots": ["./node_modules/@types"],
+    "types": ["leaflet"] // 👈 solo leaflet, sin react-leaflet
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }

@@ -79,7 +79,7 @@ export default function Page2FA() {
         life: 2000,
       });
 
-      localStorage.clear();
+      
       setTimeout(() => router.push('/dashboard'), 1200);
     } catch (err: any) {
       toast.current?.show({

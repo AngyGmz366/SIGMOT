@@ -77,6 +77,7 @@
     padding: 8px 20px;
     border-radius: 20px;
     transition: 0.3s ease;
+    text-decoration: none;
 
     &:hover {
       background: #c6dbff;
@@ -90,6 +91,7 @@
     padding: 8px 20px;
     border-radius: 20px;
     transition: 0.3s ease;
+    text-decoration: none;
 
     &:hover {
       background: lighten(#c6dbff, 10%);
@@ -102,33 +104,163 @@
   background: none;
   border: none;
   color: #ffffff;
-  font-size: 1.6rem;
+  font-size: 1.8rem;
+  cursor: pointer;
+  padding: 8px;
+  transition: color 0.3s ease;
+
+  &:hover {
+    color: #c6dbff;
+  }
+}
+
+.mobileActions {
+  display: none;
+}
+
+// Overlay para cerrar el menú al hacer clic fuera
+.overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 998;
+
+  &.open {
+    display: block;
+  }
+}
+
+// Menú móvil tipo sidebar
+.mobileMenu {
+  position: fixed;
+  top: 0;
+  right: -100%;
+  width: 280px;
+  height: 100vh;
+  background: #000048;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3);
+  transition: right 0.3s ease;
+  z-index: 999;
+  overflow-y: auto;
+
+  &.open {
+    right: 0;
+  }
+}
+
+.mobileMenuHeader {
+  display: flex;
+  justify-content: flex-end;
+  padding: 1rem;
+  border-bottom: 1px solid rgba(198, 219, 255, 0.2);
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 2rem;
+  cursor: pointer;
+  padding: 8px;
+  transition: color 0.3s ease;
+
+  &:hover {
+    color: #c6dbff;
+  }
+}
+
+.mobileMenuContent {
+  display: flex;
+  flex-direction: column;
+  padding: 2rem 0;
+
+  a {
+    text-decoration: none;
+    color: #ffffff;
+    font-weight: 600;
+    padding: 1rem 2rem;
+    transition: background 0.3s ease;
+    border-left: 3px solid transparent;
+
+    &:hover {
+      background: rgba(198, 219, 255, 0.1);
+      border-left-color: #c6dbff;
+    }
+  }
+}
+
+.mobileMenuActions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem 2rem;
+  border-top: 1px solid rgba(198, 219, 255, 0.2);
+
+  .login {
+    border: 2px solid #c6dbff;
+    color: #c6dbff;
+    padding: 12px 20px;
+    border-radius: 20px;
+    transition: 0.3s ease;
+    text-align: center;
+    text-decoration: none;
+    font-weight: 600;
+
+    &:hover {
+      background: #c6dbff;
+      color: #000048;
+    }
+  }
+
+  .register {
+    background: #c6dbff;
+    color: #000048;
+    padding: 12px 20px;
+    border-radius: 20px;
+    transition: 0.3s ease;
+    text-align: center;
+    text-decoration: none;
+    font-weight: 600;
+
+    &:hover {
+      background: lighten(#c6dbff, 10%);
+    }
+  }
 }
 
 @media (max-width: 768px) {
   .nav {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    width: 100%;
-    background: #000048;
-    flex-direction: column;
-    align-items: center;
     display: none;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    padding: 1rem 0;
-
-    &.open {
-      display: flex;
-    }
-
-    a {
-      padding: 10px 0;
-    }
   }
 
   .actions {
     display: none;
+  }
+
+  .mobileActions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+
+    .login {
+      border: 2px solid #c6dbff;
+      color: #c6dbff;
+      padding: 8px 20px;
+      border-radius: 20px;
+      transition: 0.3s ease;
+      text-decoration: none;
+      font-size: 0.9rem;
+      white-space: nowrap;
+
+      &:hover {
+        background: #c6dbff;
+        color: #000048;
+      }
+    }
   }
 
   .toggle {

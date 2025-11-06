@@ -15,7 +15,6 @@ type FormProps = {
 };
 
 export default function FormReservacion({ initialData, onSave, onCancel }: FormProps) {
-  // ✅ Garantizar tipo inicial (si no hay initialData, usar por defecto)
   const [formData, setFormData] = useState<Partial<ReservacionBase>>(
     initialData && Object.keys(initialData).length > 0
       ? { ...initialData, fecha: initialData.fecha ? new Date(initialData.fecha) : new Date() }
@@ -29,7 +28,6 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
   const [asientosOptions, setAsientosOptions] = useState<{ label: string; value: number }[]>([]);
   const [asientoSeleccionadoId, setAsientoSeleccionadoId] = useState<number | null>(null);
 
-  /* 🔁 Actualizar form si cambia initialData (editar) */
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
       setFormData({
@@ -39,7 +37,6 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
     }
   }, [initialData]);
 
-  /* 🟩 Cargar rutas activas */
   async function apiGet<T>(url: string): Promise<T> {
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) throw new Error(await res.text());
@@ -59,7 +56,6 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
     })();
   }, []);
 
-  /* 🟨 Cargar viajes por ruta */
   useEffect(() => {
     (async () => {
       if (!rutaSeleccionadaId) {
@@ -83,7 +79,6 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
     })();
   }, [rutaSeleccionadaId]);
 
-  /* 🟦 Cargar asientos disponibles */
   useEffect(() => {
     (async () => {
       if (!viajeSeleccionadoId || formData.tipo !== 'viaje') {
@@ -107,7 +102,6 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
     })();
   }, [viajeSeleccionadoId, formData.tipo]);
 
-  /* 🧾 Guardar */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -147,20 +141,9 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
           onChange={(e) => {
             const newTipo = e.value as 'viaje' | 'encomienda';
             if (newTipo === 'viaje') {
-              setFormData({
-                ...formData,
-                tipo: newTipo,
-                id_encomienda: null,
-                costo: null,
-              });
+              setFormData({ ...formData, tipo: newTipo, id_encomienda: null, costo: null });
             } else {
-              // ✅ Mantener id_viaje al cambiar a encomienda (para vincularla a la unidad/ruta)
-              setFormData({
-                ...formData,
-                tipo: newTipo,
-                id_asiento: null,
-                id_encomienda: null,
-              });
+              setFormData({ ...formData, tipo: newTipo, id_asiento: null, id_encomienda: null });
             }
             setAsientosOptions([]);
             setAsientoSeleccionadoId(null);
@@ -181,7 +164,7 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
         />
       </div>
 
-      {/* Ruta y Unidad */}
+      {/* Ruta */}
       <div className="col-12 md:col-6">
         <Dropdown
           value={rutaSeleccionadaId ?? null}
@@ -197,6 +180,7 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
         />
       </div>
 
+      {/* Unidad / Viaje */}
       <div className="col-12 md:col-6">
         <Dropdown
           value={viajeSeleccionadoId ?? undefined}
@@ -261,9 +245,20 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
       </div>
 
       {/* Botones */}
-      <div className="col-12 flex justify-content-end gap-2">
-        <Button label="Cancelar" icon="pi pi-times" onClick={onCancel} type="button" className="custom-button" />
-        <Button label="Guardar" icon="pi pi-check" type="submit" className="custom-button" />
+      <div className="col-12 flex flex-column md:flex-row justify-content-end gap-2 mt-3">
+        <Button
+          label="Cancelar"
+          icon="pi pi-times"
+          onClick={onCancel}
+          type="button"
+          className="custom-button p-button-sm w-full md:w-auto"
+        />
+        <Button
+          label="Guardar"
+          icon="pi pi-check"
+          type="submit"
+          className="custom-button p-button-sm w-full md:w-auto"
+        />
       </div>
     </form>
   );

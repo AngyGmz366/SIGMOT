@@ -2,15 +2,11 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import nodemailer from "nodemailer";
 import formidable from "formidable";
-import fs from "fs";
-import { Readable } from "stream";
 import { IncomingMessage } from "http";
+import { Readable } from "stream";
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+// Actualización: configuración correcta para Next.js 13+
+export const runtime = "nodejs"; // Define que esta ruta se ejecutará en Node.js
 
 // 🔹 Convierte el objeto Request de Next.js en IncomingMessage (requerido por formidable)
 async function requestToIncomingMessage(req: Request): Promise<IncomingMessage> {
@@ -45,16 +41,16 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const correoCliente = fields.correoCliente?.[0] || "";
     const idAdmin = fields.idAdmin?.[0] || 1;
 
-    // 💌 Configuración SMTP
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT),
-      secure: true,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
+  // 💌 Configuración SMTP
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST, // smtp.gmail.com
+  port: Number(process.env.SMTP_PORT), // 465 for secure SMTP
+  secure: true, // Usar SSL/TLS
+  auth: {
+    user: process.env.SMTP_USER, // Gmail user
+    pass: process.env.SMTP_PASS, // Gmail password or app-specific password
+  },
+});
 
     // 📎 Adjuntos
     let attachments: any[] = [];
@@ -93,9 +89,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       </div>
     `;
 
-    // 📤 Enviar correo
+    // 📤 Enviar correos
     const info = await transporter.sendMail({
-      from: `"Soporte SIGMOT" <${process.env.SMTP_USER}>`,
+      from: `"Soporte SIGMOT" <${process.env.SMTP_FROM}>`,
       to: correoCliente,
       subject: "Respuesta a tu incidencia - SIGMOT",
       html: htmlTemplate,

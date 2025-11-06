@@ -1,22 +1,29 @@
 @use "@/styles/variables" as *;
 
 .rutas {
-  padding: 6rem 2rem 4rem;
+  padding: 7rem 2rem 4rem; 
   text-align: center;
   background: #eaf0ff;
+  min-height: 100vh; // Asegura que ocupe toda la pantalla
 
   h1 {
     color: #000048;
     margin-bottom: 2rem;
+    font-size: 2.5rem;
+    word-wrap: break-word;
+    hyphens: auto;
+    padding: 0 1rem;
+    line-height: 1.3;
   }
 
   .tabla {
     overflow-x: auto;
-
+    margin: 0 auto;
+    max-width: 100%;
+    
     table {
       width: 100%;
       border-collapse: collapse;
-      max-width: 1000px;
       margin: 0 auto;
       background: $white;
       border-radius: $radius;
@@ -27,6 +34,7 @@
       background: #E0DB77;
       color: $white;
       padding: 1rem;
+      font-weight: 600;
     }
 
     td {
@@ -38,5 +46,96 @@
       background: #D7EDFC;
     }
   }
+
+  .loading, .error {
+    padding: 2rem;
+    font-size: 1.1rem;
+  }
 }
 
+/* Tablets */
+@media (max-width: 768px) {
+  .rutas {
+    padding: 7rem 1.5rem 3rem; // Ajustado para tablets
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1.5rem;
+      padding: 0 1rem;
+    }
+  }
+
+  .tabla {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; // Mejor scroll en iOS
+
+    table {
+      min-width: 600px;
+    }
+
+    th, td {
+      padding: 0.75rem;
+      font-size: 14px;
+    }
+
+    th {
+      font-size: 13px;
+    }
+  }
+}
+
+/* Móviles */
+@media (max-width: 480px) {
+  .rutas {
+    padding: 6rem 1rem 2rem; // Padding-top ajustado para móviles
+
+    h1 {
+      font-size: 1.6rem; // Un poco más grande que antes
+      line-height: 1.2;
+      margin-bottom: 1.5rem;
+      padding: 0 0.5rem;
+    }
+  }
+
+  .tabla {
+    padding: 0;
+    margin: 0 -1rem; // Permite que la tabla use todo el ancho
+
+    table {
+      min-width: 500px;
+    }
+
+    th, td {
+      font-size: 12px;
+      padding: 0.6rem 0.4rem;
+    }
+
+    th {
+      font-size: 11px;
+      padding: 0.7rem 0.4rem;
+    }
+  }
+}
+
+/* Móviles pequeños */
+@media (max-width: 360px) {
+  .rutas {
+    padding: 5.5rem 0.5rem 2rem;
+
+    h1 {
+      font-size: 1.4rem;
+      padding: 0 0.5rem;
+    }
+  }
+
+  .tabla {
+    table {
+      min-width: 450px;
+    }
+
+    th, td {
+      font-size: 11px;
+      padding: 0.5rem 0.3rem;
+    }
+  }
+}

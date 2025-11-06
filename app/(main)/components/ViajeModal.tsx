@@ -51,7 +51,7 @@ export default function ViajeModal({
               id="cliente"
               value={viaje.idCliente}
               options={clientes.map((c) => ({
-                label: c.persona ? `${c.persona.nombre} ${c.persona.apellido}` : c.id,
+                label: c.persona ? `${c.persona.Nombres} ${c.persona.Apellidos}` : c.id,
                 value: c.id
               }))}
               onChange={(e) => setViaje({ ...viaje, idCliente: e.value })}

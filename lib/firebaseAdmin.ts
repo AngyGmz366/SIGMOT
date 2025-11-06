@@ -1,24 +1,23 @@
 // lib/firebaseAdmin.ts
 import admin from "firebase-admin";
+console.log("🧩 Clave privada detectada:", process.env.FB_PRIVATE_KEY ? "✅ Cargada" : "❌ VACÍA");
+console.log("📏 Longitud clave:", process.env.FB_PRIVATE_KEY?.length || 0);
 
-let app: admin.app.App;
+if (!admin.apps.length) {
+  console.log("🔍 FB_PROJECT_ID:", process.env.FB_PROJECT_ID);
+  console.log("🔍 FB_CLIENT_EMAIL:", process.env.FB_CLIENT_EMAIL);
+  console.log("🔍 FB_PRIVATE_KEY exists:", !!process.env.FB_PRIVATE_KEY);
+  console.log("🔍 FB_PRIVATE_KEY length:", process.env.FB_PRIVATE_KEY?.length || 0);
 
-export function getFirebaseAdmin() {
-  if (app) return app;
-  const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-  if (!raw) throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON no está definido en .env");
 
-  const creds = JSON.parse(raw);
-  // Corrige los \n de la private_key si vienen escapados
-  if (creds.private_key?.includes("\\n")) {
-    creds.private_key = creds.private_key.replace(/\\n/g, "\n");
-  }
-
-  app = admin.apps.length
-    ? admin.app()
-    : admin.initializeApp({
-        credential: admin.credential.cert(creds),
-      });
-
-  return app;
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FB_PROJECT_ID,
+      clientEmail: process.env.FB_CLIENT_EMAIL,
+      privateKey: process.env.FB_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }),
+  });
 }
+
+export const adminAuth = admin.auth();
+export const adminDB = admin.firestore();

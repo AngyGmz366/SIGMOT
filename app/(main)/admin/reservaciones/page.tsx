@@ -5,7 +5,6 @@ import FormReservacion from "./components/FormReservacion";
 import { Dialog } from "primereact/dialog";
 import { ReservacionBase } from "./components/types";
 import { Toast } from "primereact/toast";
-
 import "primereact/resources/themes/lara-light-indigo/theme.css";
 import "primereact/resources/primereact.min.css";
 import "primeicons/primeicons.css";
@@ -60,12 +59,11 @@ export default function ReservacionesPage() {
     }
   };
 
-  /* 🟢 Carga inicial */
   useEffect(() => {
     cargarReservaciones();
   }, []);
 
-  /* Guardar (crear o actualizar) */
+  /* Guardar */
   const handleSave = async (data: ReservacionBase) => {
     try {
       if (!data.tipo) data.tipo = "viaje";
@@ -84,7 +82,6 @@ export default function ReservacionesPage() {
         showToast("success", "Reservación creada correctamente");
       }
 
-      // 🔄 Recargar datos actualizados desde el servidor
       await cargarReservaciones();
     } catch (err: any) {
       console.error("Error guardando reservación:", err);
@@ -100,7 +97,6 @@ export default function ReservacionesPage() {
     try {
       await apiDelete(`/api/reservas/${encodeURIComponent(id)}`);
       showToast("success", "Reservación eliminada correctamente");
-      // 🔄 Recargar después de eliminar
       await cargarReservaciones();
     } catch (err: any) {
       console.error("Error eliminando reservación:", err);
@@ -113,8 +109,14 @@ export default function ReservacionesPage() {
   };
 
   return (
-    <div className="p-4">
+    <div className="p-3 md:p-5 w-full">
       <Toast ref={toast} />
+
+      <div className="flex justify-content-between align-items-center mb-3 flex-column md:flex-row gap-3">
+        <h2 className="text-center md:text-left text-xl md:text-2xl font-semibold">
+          Gestión de Reservaciones
+        </h2>
+      </div>
 
       <TablaReservaciones
         reservaciones={reservaciones}
@@ -142,8 +144,8 @@ export default function ReservacionesPage() {
           setEditingReserva(null);
         }}
         header={editingReserva ? "Editar Reservación" : "Nueva Reservación"}
-        style={{ width: "50vw" }}
-        breakpoints={{ "960px": "75vw", "640px": "90vw" }}
+        style={{ width: "50vw", maxWidth: "800px" }}
+        breakpoints={{ "960px": "75vw", "640px": "95vw" }}
       >
         <FormReservacion
           initialData={editingReserva ?? undefined}

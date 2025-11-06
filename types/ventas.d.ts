@@ -27,9 +27,9 @@ export type Boleto = VentaItem & {
   cliente: string;
   cedula: string;
   telefono: string;
-  fecha: string;
   origen: string;
   destino: string;
+  asiento: string;
   asiento: string;
   autobus: string;
   horaSalida: string;

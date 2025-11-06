@@ -1,76 +1,56 @@
 'use client';
 
-/* eslint-disable @next/next/no-img-element */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Button } from 'primereact/button';
-import { Dropdown } from 'primereact/dropdown';
+import { FileUpload, FileUploadHandlerEvent } from 'primereact/fileupload';
 import { Toast } from 'primereact/toast';
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 import { Divider } from 'primereact/divider';
 import { Tag } from 'primereact/tag';
 
-type BackupItem = {
-  label: string;
-  value: string;
-  fecha: string;
-  tamano: number;
-};
-
 export default function BackupRestoreSIGMOT() {
   const toast = useRef<Toast>(null);
-  const [backups, setBackups] = useState<BackupItem[]>([]);
-  const [selectedBackup, setSelectedBackup] = useState<string | null>(null);
+  const fileUploadRef = useRef<FileUpload>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    // ✅ Ejecuta solo en cliente
-    if (typeof window === 'undefined') return;
-
-    const ejemplos: BackupItem[] = [
-      {
-        label: 'SIGMOT-2025-08-08-12-09-23.sql',
-        value: 'SIGMOT-2025-08-08-12-09-23.sql',
-        fecha: '2025-08-08T12:09:23',
-        tamano: 5242880,
-      },
-      {
-        label: 'SIGMOT-2025-08-05-21-00-00.sql',
-        value: 'SIGMOT-2025-08-05-21-00-00.sql',
-        fecha: '2025-08-05T21:00:00',
-        tamano: 10485760,
-      },
-      {
-        label: 'SIGMOT-2025-08-01-09-00-00.sql',
-        value: 'SIGMOT-2025-08-01-09-00-00.sql',
-        fecha: '2025-08-01T09:00:00',
-        tamano: 2097152,
-      },
-    ];
-
-    setBackups(ejemplos);
-    setSelectedBackup(ejemplos[0]?.value ?? null);
-  }, []);
-
-  const formatFecha = (fecha: string) => {
-    try {
-      return new Date(fecha).toLocaleString();
-    } catch {
-      return fecha;
-    }
-  };
-
-  const formatSize = (bytes: number) => {
-    const mb = bytes / (1024 * 1024);
-    return `${mb.toFixed(2)} MB`;
-  };
-
+  // Crear y descargar el respaldo
   const crearBackup = async () => {
     setLoading(true);
     try {
+      const response = await fetch('/api/seguridad/respaldos/crear', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detalles || 'Error al crear backup');
+      }
+
+      // Obtener el archivo como blob
+      const blob = await response.blob();
+
+      // Extraer nombre del archivo del header Content-Disposition
+      const contentDisposition = response.headers.get('Content-Disposition');
+      const fileName = contentDisposition
+        ? contentDisposition.split('filename=')[1].replace(/"/g, '')
+        : `SIGMOT_${new Date().toISOString().replace(/:/g, '-')}.sql`;
+
+      // Crear link de descarga temporal
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+
+      // Limpiar
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
       toast.current?.show({
         severity: 'success',
         summary: 'SIGMOT',
-        detail: 'Respaldo generado en el servidor.',
+        detail: 'Respaldo descargado exitosamente',
         life: 2500,
       });
     } catch (err: any) {
@@ -85,12 +65,15 @@ export default function BackupRestoreSIGMOT() {
     }
   };
 
-  const restaurarBackup = () => {
-    if (!selectedBackup) {
+  // Restaurar desde archivo subido
+  const restaurarBackup = async (event: FileUploadHandlerEvent) => {
+    const file = event.files[0];
+
+    if (!file) {
       toast.current?.show({
         severity: 'warn',
         summary: 'Atención',
-        detail: 'Selecciona un respaldo.',
+        detail: 'Selecciona un archivo',
         life: 2500,
       });
       return;
@@ -98,18 +81,36 @@ export default function BackupRestoreSIGMOT() {
 
     confirmDialog({
       header: 'Confirmar restauración',
-      message: `¿Restaurar el sistema desde "${selectedBackup}"? Esta acción sobrescribirá la base de datos.`,
+      message: `¿Restaurar el sistema desde "${file.name}"? Esta acción sobrescribirá la base de datos actual.`,
       icon: 'pi pi-exclamation-triangle',
       acceptClassName: 'p-button-danger',
+      acceptLabel: 'Sí, restaurar',
+      rejectLabel: 'Cancelar',
       accept: async () => {
         setLoading(true);
         try {
+          const formData = new FormData();
+          formData.append('file', file);
+
+          const response = await fetch('/api/seguridad/respaldos/restaurar', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detalles || 'Error al restaurar');
+          }
+
           toast.current?.show({
             severity: 'success',
             summary: 'SIGMOT',
             detail: 'La base de datos fue restaurada correctamente.',
             life: 3000,
           });
+
+          // Limpiar el componente de subida
+          fileUploadRef.current?.clear();
         } catch (err: any) {
           toast.current?.show({
             severity: 'error',
@@ -128,7 +129,9 @@ export default function BackupRestoreSIGMOT() {
     <div className="flex align-items-center justify-content-between mb-3">
       <div>
         <h2 className="m-0 text-2xl">SIGMOT · Respaldo y Restauración</h2>
-        <small className="text-600">Protege y recupera tus datos del sistema.</small>
+        <small className="text-600">
+          Protege y recupera tus datos del sistema.
+        </small>
       </div>
       <Tag value="Administración" icon="pi pi-shield" severity="info" />
     </div>
@@ -142,23 +145,25 @@ export default function BackupRestoreSIGMOT() {
       <Divider />
 
       <div className="grid">
-        {/* CREAR RESPALDO */}
+        {/* CREAR Y DESCARGAR RESPALDO */}
         <div className="col-12 md:col-6">
           <div
             className="surface-card p-4 border-round shadow-1"
             style={{ borderTop: '4px solid #0ea5e9' }}
           >
             <div className="flex align-items-center gap-2 mb-2">
-              <i className="pi pi-database text-primary" />
-              <h3 className="m-0">Crear Respaldo</h3>
+              <i className="pi pi-download text-primary" />
+              <h3 className="m-0">Descargar Respaldo</h3>
             </div>
             <p className="text-600 mb-4">
-              Genera una copia de seguridad completa de la base de datos SIGMOT en el servidor.
+              Genera y descarga una copia de seguridad completa de la base de
+              datos SIGMOT. El archivo se descargará directamente a tu
+              computadora.
             </p>
 
             <Button
-              label="Crear respaldo ahora"
-              icon="pi pi-cloud-upload"
+              label="Crear y descargar respaldo"
+              icon="pi pi-cloud-download"
               className="p-button-primary p-button-lg w-full"
               loading={loading}
               onClick={crearBackup}
@@ -166,30 +171,13 @@ export default function BackupRestoreSIGMOT() {
 
             <Divider />
 
-            <h4 className="mt-0">Disponibles en el servidor</h4>
-            {backups.length === 0 ? (
-              <p className="text-600">No hay respaldos aún.</p>
-            ) : (
-              <ul className="list-none p-0 m-0">
-                {backups.map((b) => (
-                  <li
-                    key={b.value}
-                    className="flex align-items-center justify-content-between py-2"
-                  >
-                    <div className="flex align-items-center gap-2">
-                      <span
-                        className="pi pi-circle-fill text-500"
-                        style={{ fontSize: '0.5rem' }}
-                      />
-                      <span className="font-medium">{b.label}</span>
-                    </div>
-                    <small className="text-600">
-                      {formatFecha(b.fecha)} · {formatSize(b.tamano)}
-                    </small>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <div className="flex align-items-start gap-2 text-600">
+              <i className="pi pi-info-circle mt-1" />
+              <small>
+                El archivo SQL se descargará a tu carpeta de descargas. Guárdalo
+                en un lugar seguro como respaldo.
+              </small>
+            </div>
           </div>
         </div>
 
@@ -200,35 +188,43 @@ export default function BackupRestoreSIGMOT() {
             style={{ borderTop: '4px solid #22c55e' }}
           >
             <div className="flex align-items-center gap-2 mb-2">
-              <i className="pi pi-history text-green-500" />
+              <i className="pi pi-upload text-green-500" />
               <h3 className="m-0">Restaurar Respaldo</h3>
             </div>
             <p className="text-600 mb-3">
-              Selecciona un archivo de respaldo existente para restaurar la base de datos.
+              Selecciona un archivo de respaldo (.sql) desde tu computadora para
+              restaurar la base de datos.
             </p>
 
-            <Dropdown
-              value={selectedBackup}
-              options={backups.map((b) => ({ label: b.label, value: b.value }))}
-              onChange={(e) => setSelectedBackup(e.value)}
-              placeholder="Selecciona un respaldo"
-              className="w-full mb-3"
-              showClear
-            />
-
-            <Button
-              label="Restaurar"
-              icon="pi pi-refresh"
-              className="p-button-success p-button-lg w-full"
-              loading={loading}
-              onClick={restaurarBackup}
+            <FileUpload
+              ref={fileUploadRef}
+              mode="basic"
+              name="backup"
+              accept=".sql"
+              maxFileSize={100000000}
+              customUpload
+              uploadHandler={restaurarBackup}
+              chooseOptions={{
+                label: 'Seleccionar archivo .sql',
+                icon: 'pi pi-upload',
+                className: 'p-button-success w-full p-button-lg'
+              }}
+              disabled={loading}
+              auto
             />
 
             <Divider />
-            <small className="text-600">
-              <i className="pi pi-info-circle mr-2" />
-              Esta operación sobreescribe los datos actuales. Asegúrate de tener un respaldo reciente.
-            </small>
+
+            <div className="surface-100 p-3 border-round">
+              <div className="flex align-items-start gap-2 text-600">
+                <i className="pi pi-exclamation-triangle text-orange-500 mt-1" />
+                <small>
+                  <strong>Advertencia:</strong> Esta operación sobrescribe los
+                  datos actuales. Asegúrate de tener un respaldo reciente antes
+                  de restaurar.
+                </small>
+              </div>
+            </div>
           </div>
         </div>
       </div>

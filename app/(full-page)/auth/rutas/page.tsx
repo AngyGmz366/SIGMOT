@@ -29,17 +29,17 @@ export default function Rutas() {
 
       if (!data.ok) throw new Error(data.error || 'Error en la respuesta del servidor');
 
-      // 🔹 Filtrar solo las rutas ACTIVAS
-      const rutasFormateadas = (data.items ?? [])
-        .filter((r: any) => r.estado?.toUpperCase() === 'ACTIVA')
+      // 🔹 Aquí se cambia de 'items' a 'data' según la estructura correcta de la respuesta
+      const rutasFormateadas = (data.data ?? [])
+        .filter((r: any) => r.Estado?.toUpperCase() === 'ACTIVA')
         .map((r: any) => ({
-          id: r.id,
-          origen: r.origen,
-          destino: r.destino,
-          estado: r.estado ?? 'N/A',
-          tiempoEstimado: r.tiempoEstimado || '00:00:00',
-          precio: Number(r.precio ?? 0),
-          horarios: Array.isArray(r.horarios) ? r.horarios : [],
+          id: r.Id_Ruta_PK || r.id,
+          origen: r.Origen || r.origen,
+          destino: r.Destino || r.destino,
+          estado: r.Estado ?? 'N/A',
+          tiempoEstimado: r.Tiempo_Estimado || '00:00:00',
+          precio: Number(r.Precio ?? 0),
+          horarios: Array.isArray(r.Horarios) ? r.Horarios : [],
         }));
 
       setRutas(rutasFormateadas);
@@ -79,7 +79,7 @@ export default function Rutas() {
               <tbody>
                 {rutas.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '1rem' }}>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '1rem' }}>
                       No hay rutas activas actualmente.
                     </td>
                   </tr>
@@ -107,4 +107,3 @@ export default function Rutas() {
     </>
   );
 }
-

@@ -206,7 +206,7 @@ export default function LoginPage() {
           title: 'Verificación 2FA requerida',
           text: 'Ingresa el código de autenticación para continuar.',
           confirmButtonColor: '#6366F1',
-        }).then(() => router.push('/verificar-2fa'));
+        }).then(() => router.push('/auth/verificar-2fa'));
       } else {
         router.push('/dashboard');
       }

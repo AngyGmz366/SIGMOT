@@ -2,7 +2,7 @@
 .form-wrapper {
   padding: 2rem 3rem;
   max-width: 1100px;
-  margin-left: 2rem;
+  margin: 0 auto; /* centrado universal */
 }
 
 /* Header */
@@ -10,6 +10,8 @@
   display: flex;
   align-items: center;
   margin-bottom: 1.5rem;
+  flex-wrap: wrap; /* evita desbordes */
+  gap: 1rem;
 }
 
 /* Tarjeta principal */
@@ -29,6 +31,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  align-items: center;
 }
 
 /* Bloque de políticas */
@@ -47,6 +50,8 @@
   height: 3rem;
   display: flex;
   align-items: center;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Botones */
@@ -61,18 +66,16 @@
   background-color: #f3f4f6 !important;
 }
 
-/* ================================
-   Campo de Precio (solo lectura)
-================================ */
+/* Campo de Precio (solo lectura) */
 .input-precio {
-  width: 60%;
+  width: 100%;
   font-weight: 600;
   color: #374151;
   border: 1px solid #d1d5db;
   background-color: #ffffff;
   border-radius: 0.4rem;
-  padding: 0.6rem 0.10rem;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  padding: 0.6rem 0.8rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -85,4 +88,203 @@
 .input-precio[readonly] {
   background-color: #f9fafb;
   cursor: not-allowed;
+}
+
+/* ================================
+   🧩 Media Queries Responsive
+================================ */
+
+/* Tablet */
+@media (max-width: 1024px) {
+  .form-wrapper {
+    padding: 1.5rem 2rem;
+  }
+
+  .card-form {
+    padding: 1.5rem;
+  }
+}
+
+/* Móvil mediano */
+@media (max-width: 768px) {
+  .form-wrapper {
+    padding: 1rem;
+    max-width: 100%;
+  }
+
+  .header-reservacion {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .card-form,
+  .panel-lateral {
+    padding: 1rem;
+  }
+
+  .panel-lateral {
+    margin-top: 1.5rem;
+  }
+
+  .politicas {
+    padding: 1rem;
+  }
+
+  .input-std,
+  .p-dropdown,
+  .p-inputtext,
+  .p-calendar {
+    height: 2.8rem;
+  }
+}
+
+/* Móvil pequeño (<480 px) */
+@media (max-width: 480px) {
+  .form-wrapper {
+    padding: 0.75rem;
+  }
+
+  .card-form {
+    padding: 1rem;
+    overflow: hidden;
+  }
+
+  .header-reservacion h2 {
+    font-size: 1.25rem;
+  }
+
+  .input-precio {
+    font-size: 0.9rem;
+    padding: 0.5rem 0.7rem;
+  }
+
+  /* Corrige dropdowns largos */
+  .p-dropdown,
+  .p-dropdown-label,
+  .p-dropdown-item {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    max-width: 100%;
+  }
+}
+
+/* Extra pequeño (<400 px) */
+@media (max-width: 400px) {
+  .form-wrapper {
+    padding: 0.5rem !important;
+  }
+
+  .card-form {
+    padding: 0.75rem !important;
+    border-radius: 0.75rem;
+    overflow: hidden;
+  }
+
+  .p-dropdown,
+  .p-inputtext,
+  .input-precio {
+    font-size: 0.85rem;
+  }
+
+  /* Forzar que nada se desborde */
+  .p-dropdown,
+  .p-inputtext,
+  .input-precio,
+  .p-calendar {
+    width: 100% !important;
+    max-width: 100%;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+
+  /* Que los menús de dropdown se abran hacia arriba */
+  .p-dropdown-panel {
+    bottom: 100% !important;
+    top: auto !important;
+  }
+
+  .header-reservacion h2 {
+    font-size: 1.1rem;
+  }
+
+  .header-reservacion p {
+    font-size: 0.9rem;
+  }
+}
+
+/* Ajuste fino entre 450 px y 400 px */
+@media (max-width: 450px) and (min-width: 400px) {
+  .form-wrapper {
+    padding: 0.5rem !important;
+  }
+
+  .card-form {
+    padding: 0.85rem !important;
+    border-radius: 0.75rem;
+    width: 95%;
+    margin: 0 auto;
+  }
+
+  .p-dropdown,
+  .p-inputtext,
+  .p-calendar,
+  .input-precio {
+    font-size: 0.9rem;
+    height: 2.6rem;
+    max-width: 100%;
+  }
+
+  .header-reservacion h2 {
+    font-size: 1.15rem;
+    text-align: center;
+  }
+
+  .header-reservacion p {
+    font-size: 0.9rem;
+    text-align: center;
+  }
+}
+
+/* ==============================================
+   🧩 Corrección final: texto largo en Dropdowns
+================================================= */
+
+.p-dropdown,
+.p-dropdown-label,
+.p-dropdown-item {
+  max-width: 100% !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.p-dropdown {
+  width: 100% !important;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  box-sizing: border-box !important;
+  min-width: 0 !important;
+}
+
+.p-dropdown-trigger {
+  flex-shrink: 0 !important;
+}
+
+.p-dropdown-label {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+
+@media (max-width: 480px) {
+  .p-dropdown {
+    padding: 0 0.25rem !important;
+  }
+
+  .p-dropdown-label {
+    font-size: 0.85rem !important;
+  }
+
+  
 }
