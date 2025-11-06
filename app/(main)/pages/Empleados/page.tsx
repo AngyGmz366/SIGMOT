@@ -287,10 +287,8 @@ function EmpleadosPage() {
     if (empleado.horaentrada && empleado.horasalida) {
       const [horaEntrada, minEntrada] = empleado.horaentrada.split(':').map(Number);
       const [horaSalida, minSalida] = empleado.horasalida.split(':').map(Number);
-
       const minutosEntrada = horaEntrada * 60 + minEntrada;
       const minutosSalida = horaSalida * 60 + minSalida;
-
       if (minutosSalida <= minutosEntrada) {
         setTimeError('La hora de salida debe ser mayor a la hora de entrada');
         toast.current?.show({
@@ -504,6 +502,7 @@ function EmpleadosPage() {
             paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
             currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} empleados"
             globalFilter={globalFilter}
+            responsiveLayout="scroll"
             emptyMessage="No se encontraron empleados."
             header={header}
             stripedRows
@@ -518,7 +517,7 @@ function EmpleadosPage() {
             <Column field="fechacontratacion" header="Fecha Contratación" sortable body={(rowData) => formatDate(rowData.fechacontratacion)} />
             <Column field="horaentrada" header="Hora Entrada" sortable />
             <Column field="horasalida" header="Hora Salida" sortable />
-            <Column body={actionTemplate} header="Acciones" headerStyle={{ minWidth: '10rem' }} />
+            <Column body={actionTemplate} header="Acciones" />
           </DataTable>
 
           {/* Diálogo para crear/editar */}
