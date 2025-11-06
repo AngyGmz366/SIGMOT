@@ -1,4 +1,6 @@
-// @/types/ventas.ts
+// ----------------------
+// 🧾 Venta base
+// ----------------------
 export type VentaItem = {
   id: number | null;
   tipoVenta: 'boleto' | 'encomienda';
@@ -6,9 +8,13 @@ export type VentaItem = {
   precio: number;
   descuento: number;
   total: number;
-
   estado: string;
   metodoPago: string;
+
+  // 🔗 Cliente genérico para ambos tipos
+  Id_ClienteGeneral_FK?: number | null;
+    Id_Cliente_FK?: number | null;           // ✅ agregado aquí
+
 };
 
 // ----------------------
@@ -24,15 +30,19 @@ export type Boleto = VentaItem & {
   fecha: string;
   origen: string;
   destino: string;
-  asiento: string;      
+  asiento: string;
   autobus: string;
   horaSalida: string;
   horaLlegada: string;
-  horario?: string | null;  
+  horario?: string | null;
+  
   precio: number;
 
+  // 🔹 Fecha nacimiento (para calcular edad/tercera edad)
+  fechaNacimiento?: string | null;
 
   // 🔗 FKs (únicos que vamos a usar para persistencia)
+  Id_Ticket_PK?: number | null;      // para compatibilidad con SP
   Id_Cliente_FK?: number | null;
   Id_Viaje_FK?: number | null;
   Id_Asiento_FK?: number | null;
@@ -62,19 +72,19 @@ export type Encomienda = VentaItem & {
   estado?: 'enviado' | 'entregado' | 'en_transito' | 'cancelado';
 
   // 🔗 FKs
+  Id_Encomiendas_PK?: number | null;
   Id_Remitente_FK?: number | null;
   Id_Destinatario_FK?: number | null;
   Id_Origen_FK?: number | null;
   Id_Destino_FK?: number | null;
   Id_PuntoVenta_FK?: number | null;
- metodoPago?: string;  // 👈 acepta cualquier string
-
+  Id_MetodoPago_FK?: number | null;
   Id_EstadoEncomienda_FK?: number | null;
   Codigo_Encomienda?: string;
 };
 
 // ----------------------
-// Catálogo genérico
+// 📋 Catálogo genérico
 // ----------------------
 export type Opcion = {
   label: string;
@@ -83,4 +93,19 @@ export type Opcion = {
     precio?: number;
     horarios?: string[];
   };
+};
+
+// ----------------------
+// 🧾 Facturación
+// ----------------------
+export type FacturaForm = {
+  descuentoBase: number;
+  descuentoEdad: number;
+  descuentoTotal: number;
+  isv: number;
+  total: number;
+  empleado: number;
+  metodoPago: number;
+  edadCliente: number;
+  tipoDescuento: 'TERCERA_EDAD' | 'ESTUDIANTIL' | 'DISCAPACIDAD' | null; // ✅ agregado
 };

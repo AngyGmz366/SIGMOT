@@ -258,3 +258,18 @@ export async function getCatalogos() {
   ]);
   return { clientes, viajes, unidades, metodos, estados, puntos };
 }
+
+
+
+///facturas 
+// servicios/facturas.ts
+
+export const obtenerDetallesFactura = async (idFactura: number) => {
+  try {
+    const { data } = await axios.get(`/api/facturas/${idFactura}/detalles`);
+    return data; // debe devolver un array con los detalles de la factura
+  } catch (error) {
+    console.error("Error al obtener detalles de factura:", error);
+    return [];
+  }
+};

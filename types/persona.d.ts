@@ -31,6 +31,23 @@ export interface Cliente {
   persona?: Persona;           // Datos de persona vinculada
 }
 
+
+
+// /* =======================================
+//    🔹 EMPLEADO (tabla TBL_EMPLEADOS)
+// ======================================= */
+// export interface Empleado {
+//   id: number;                // Id_Empleado_PK
+//   idPersona: number;         // Id_Persona_FK
+//   codigoEmpleado: string;    // Código interno (ej. "EMP-000001")
+//   cargo: string;             // Cargo del empleado
+//   fechaContratacion: string; // Fecha de ingreso
+//   estado?: string;           // Opcional (ACTIVO/INACTIVO)
+//   persona?: Persona;         // Datos de la persona vinculada
+// }
+
+
+
 // =======================================================
 // 🔹 VIAJE (placeholder para historial futuro)
 // =======================================================

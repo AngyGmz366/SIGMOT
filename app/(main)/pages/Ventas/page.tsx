@@ -15,6 +15,9 @@ import ImprimirEncomienda from '../../components/ImprimirEncomienda';
 import BoletoDialog from '../../components/BoletoModal';
 import EncomiendaDialog from '../../components/EncomiendaModal';
 
+import FacturacionModal from '../../components/FacturacionModal';
+
+
 
 
 import axios from "axios"; 
@@ -27,6 +30,7 @@ import {
   crearBoleto,
   actualizarBoleto,
   eliminarBoleto,
+  obtenerDetallesFactura
 } from '@/modulos/boletos/servicios/ventas.servicios';
 
 // Type Guards
@@ -122,6 +126,72 @@ export default function VentasPage() {
     estado: { value: null, matchMode: FilterMatchMode.EQUALS },
   });
 
+
+
+  ///crear estado para modal factura 
+// Estado para controlar la visibilidad del modal de factura
+const [facturaModalVisible, setFacturaModalVisible] = useState(false);
+
+// Estado para guardar la factura seleccionada (para mostrar en el modal)
+const [facturaSeleccionada, setFacturaSeleccionada] = useState<VentaItem | null>(null);
+
+// Estado para guardar los detalles de la factura (productos, precios, etc.)
+const [detalleFactura, setDetalleFactura] = useState<any[]>([]);
+
+ 
+
+///funcion para abrir modal factura 
+const abrirFactura = async (item: VentaItem) => {
+  try {
+    if (!item.id) return;
+
+    // Traer la factura relacionada (puede ser un GET a tu API)
+    const { data } = await axios.get(`/api/facturas/por-boleto/${item.id}`);
+    
+    setDetalleFactura(data.detalles || []); // Detalles de TBL_DETALLES_FACTURAS
+    setFacturaSeleccionada(item);
+    setFacturaModalVisible(true);
+  } catch (err) {
+    console.error("❌ Error cargando factura:", err);
+    toast.current?.show({
+      severity: 'error',
+      summary: 'Error',
+      detail: 'No se pudieron cargar los detalles de la factura',
+      life: 3000,
+    });
+  }
+};
+
+
+
+  const pagarItem = async (item: VentaItem) => {
+  if (!isBoleto(item) || !item.id) return;
+
+  try {
+    // Aquí llamas tu servicio para marcar como pagado
+    await axios.post(`/api/boletos/${item.id}/pagar`);
+
+    // Actualiza la lista local
+    const updated = await listarBoletos();
+    setVentaItems(updated);
+
+    toast.current?.show({
+      severity: 'success',
+      summary: 'Éxito',
+      detail: 'Boleto pagado correctamente',
+      life: 3000,
+    });
+  } catch (err) {
+    console.error('❌ Error al pagar boleto:', err);
+    toast.current?.show({
+      severity: 'error',
+      summary: 'Error',
+      detail: 'No se pudo pagar el boleto',
+      life: 3000,
+    });
+  }
+};
+
   // Cargar tickets al montar
 
 useEffect(() => {
@@ -136,6 +206,7 @@ useEffect(() => {
     }
   })();
 }, []);
+
 
 
 
@@ -689,30 +760,48 @@ const editItem = async (item: VentaItem) => {
             <Column field="total" header="Total" body={precioBodyTemplate} sortable style={{ minWidth: '8rem' }} />
 
             <Column
-              header="Acciones"
-              body={(rowData) => (
-                <div className="flex gap-2">
-                  <Button
-                    icon="pi pi-pencil"
-                    rounded
-                    text
-                    severity="warning"
-                    onClick={() => editItem(rowData)}
-                    tooltip="Editar"
-                    tooltipOptions={{ position: 'top' }}
-                  />
-                  <Button
-                    icon="pi pi-print"
-                    rounded
-                    text
-                    severity="info"
-                    onClick={() => imprimirItem(rowData)}
-                    tooltip="Imprimir"
-                    tooltipOptions={{ position: 'top' }}
-                  />
-                </div>
-              )}
-            />
+  header="Acciones"
+  body={(rowData) => (
+    <div className="flex gap-2">
+      {/* ✏️ Editar */}
+      <Button
+        icon="pi pi-pencil"
+        rounded
+        text
+        severity="warning"
+        tooltip="Editar"
+        tooltipOptions={{ position: 'top' }}
+        onClick={() => editItem(rowData)}
+      />
+
+      {/* 🖨️ Imprimir boleto */}
+      <Button
+        icon="pi pi-print"
+        rounded
+        text
+        severity="info"
+        tooltip="Imprimir"
+        tooltipOptions={{ position: 'top' }}
+        onClick={() => imprimirItem(rowData)}
+      />
+
+      {/* 🧾 Crear / Ver Factura */}
+      <Button
+        icon="pi pi-file"
+        rounded
+        text
+        severity="help"
+        tooltip="Facturar"
+        tooltipOptions={{ position: 'top' }}
+        onClick={() => {
+          setFacturaSeleccionada(rowData);
+          setFacturaModalVisible(true);
+        }}
+      />
+    </div>
+  )}
+/>
+
           </DataTable>
 
      <BoletoDialog
@@ -726,6 +815,15 @@ const editItem = async (item: VentaItem) => {
   setBoleto={setBoleto}
   onSave={saveBoleto}
   submitted={submitted}
+/>
+<FacturacionModal
+  visible={facturaModalVisible}
+  onHide={() => setFacturaModalVisible(false)}
+  boleto={facturaSeleccionada as Boleto}
+  onSave={(factura) => {
+    console.log('✅ Factura creada:', factura);
+    setFacturaModalVisible(false);
+  }}
 />
 
 

@@ -38,10 +38,7 @@ export async function cargarPersonas(tipoPersona?: number): Promise<Persona[]> {
 export async function guardarPersona(persona: Persona): Promise<Persona> {
   try {
     // 🔹 Mapear tipo de persona textual -> ID numérico
-    const tipoPersonaMap: Record<string, number> = {
-      Cliente: 1,
-      Empleado: 2,
-    };
+  
 
     // 🔹 Determinar el estado de la persona
     let estadoPersona: number;
@@ -62,20 +59,33 @@ export async function guardarPersona(persona: Persona): Promise<Persona> {
     }
 
     // 🔹 Construcción del payload
-    const payload = {
-      nombres: persona.Nombres?.trim() || null,
-      apellidos: persona.Apellidos?.trim() || null,
-      dni: persona.DNI?.trim() || null,
-      telefono: persona.Telefono?.trim() || null,
-      correo: persona.Correo?.trim() || '',
-      genero_id: persona.Genero ? Number(persona.Genero) : null,
-      fecha_nac: fechaNormalizada, // ✅ ya corregido
-      departamento: persona.Departamento?.trim() || '',
-      municipio: persona.Municipio?.trim() || '',
-      tipo_persona: tipoPersonaMap[persona.TipoPersona] || 1,
-      id_usuario_admin: 1,
-      estado_persona: estadoPersona, // 👈 numérico garantizado
-    };
+// 🔹 Determinar tipo_persona correctamente (numérico o texto)
+const tipoPersonaMap: Record<string, number> = {
+  Cliente: 1,
+  Empleado: 2,
+};
+
+const tipoPersonaFinal =
+  typeof persona.TipoPersona === 'number'
+    ? persona.TipoPersona
+    : tipoPersonaMap[persona.TipoPersona as keyof typeof tipoPersonaMap] || 1;
+
+// 🔹 Construcción del payload
+const payload = {
+  nombres: persona.Nombres?.trim() || null,
+  apellidos: persona.Apellidos?.trim() || null,
+  dni: persona.DNI?.trim() || null,
+  telefono: persona.Telefono?.trim() || null,
+  correo: persona.Correo?.trim() || '',
+  genero_id: persona.Genero ? Number(persona.Genero) : null,
+  fecha_nac: fechaNormalizada,
+  departamento: persona.Departamento?.trim() || '',
+  municipio: persona.Municipio?.trim() || '',
+  tipo_persona: tipoPersonaFinal, // ✅ corregido
+  id_usuario_admin: 1,
+  estado_persona: estadoPersona, // 👈 numérico garantizado
+};
+
 
     console.log('📤 Payload enviado al backend:', payload);
 

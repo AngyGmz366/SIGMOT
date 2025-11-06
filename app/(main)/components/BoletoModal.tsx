@@ -94,35 +94,37 @@ const BoletoDialog: React.FC<Props> = ({
     })();
   }, [viajeSeleccionadoId]);
 
-  /* 🟢 Sincronizar valores iniciales al editar boleto */
-  useEffect(() => {
-    if (visible && boleto?.id) {
-      if (boleto.Id_Cliente_FK)
-        setBoleto((prev) => ({ ...prev, Id_Cliente_FK: Number(boleto.Id_Cliente_FK) }));
 
+useEffect(() => {
+  if (!visible || !boleto?.id || cargando) return;
+
+  const syncData = async () => {
+    try {
       if (boleto.Id_Viaje_FK) {
-        setRutaSeleccionadaId(Number(boleto.Id_Viaje_FK));
-        setViajeSeleccionadoId(Number(boleto.Id_Viaje_FK));
+        const { data } = await axios.get(`/api/rutas_viaje/${boleto.Id_Viaje_FK}`);
+        const rutaId = data?.Id_Ruta_FK ?? null;
+
+        if (rutaId) {
+          setRutaSeleccionadaId(rutaId);
+          setViajeSeleccionadoId(Number(boleto.Id_Viaje_FK));
+        }
+
+        // Asegúrate de asignar correctamente los valores de autobus y asiento aquí
+        setBoleto((prev) => ({
+          ...prev,
+          autobus: data?.autobus || '',  
+          asiento: data?.asiento || '',   
+        }));
       }
-
-      if (boleto.Id_Asiento_FK)
-        setBoleto((prev) => ({ ...prev, Id_Asiento_FK: Number(boleto.Id_Asiento_FK) }));
-
-      if (boleto.Id_MetodoPago_FK)
-        setBoleto((prev) => ({ ...prev, Id_MetodoPago_FK: Number(boleto.Id_MetodoPago_FK) }));
-
-      if (boleto.Id_EstadoTicket_FK)
-        setBoleto((prev) => ({ ...prev, Id_EstadoTicket_FK: Number(boleto.Id_EstadoTicket_FK) }));
+    } catch (err) {
+      console.error("❌ Error sincronizando datos del boleto:", err);
     }
-  }, [visible, boleto]);
-
-  // 🧮 Calcular total
-  const calcularTotal = () => {
-    const precio = Number(boleto.precio) || 0;
-    const descuento = Number(boleto.descuento || 0);
-    const total = precio - descuento;
-    return total < 0 ? 0 : total;
   };
+
+  syncData();
+}, [visible, cargando, boleto]); // Reagregar 'boleto' en las dependencias
+
+
 
   // 🔘 Footer
   const dialogFooter = (
@@ -255,34 +257,8 @@ const BoletoDialog: React.FC<Props> = ({
           />
         </div>
 
-        {/* Precio / Descuento / Total */}
-        <div className="col-12 md:col-4">
-          <label className="font-bold">Precio *</label>
-          <InputNumber
-            value={boleto.precio ?? 0}
-            onValueChange={(e) => setBoleto({ ...boleto, precio: e.value ?? 0 })}
-            mode="currency"
-            currency="HNL"
-            locale="es-HN"
-            disabled
-          />
-        </div>
 
-        <div className="col-12 md:col-4">
-          <label className="font-bold">Descuento</label>
-          <InputNumber
-            value={boleto.descuento ?? 0}
-            onValueChange={(e) => setBoleto({ ...boleto, descuento: e.value ?? 0 })}
-            mode="currency"
-            currency="HNL"
-            locale="es-HN"
-          />
-        </div>
 
-        <div className="col-12 md:col-4">
-          <label className="font-bold">Total</label>
-          <InputNumber value={calcularTotal()} mode="currency" currency="HNL" locale="es-HN" disabled />
-        </div>
 
         {/* Método de Pago */}
         <div className="col-12 md:col-6">
