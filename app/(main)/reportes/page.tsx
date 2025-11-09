@@ -73,7 +73,7 @@ const pieData = {
   ],
 };
 
-// ==================== Reutilizables para secciones y tablas ====================
+      // ==================== Reutilizables para secciones y tablas ====================
 type ColumnDef = { field: string; header: string; body?: (row: any) => React.ReactNode };
 
 function ReportSection({ title, children }: { title: string; children: React.ReactNode }) {
@@ -85,43 +85,244 @@ function ReportSection({ title, children }: { title: string; children: React.Rea
   );
 }
 
-    function ReportTable({
-      title,
-      columns,
-      data,
-      onView,
-    }: {
-      title: string;
-      columns: ColumnDef[];
-      data: any[];
-      onView?: (row: any) => void;
-    }) {
-      const accionesBody = (row: any) => (
-        <div className="report-actions">
-          <button
-            type="button"
-            className="p-button p-component btn-detalle"
-            onClick={() => onView?.(row)}
-            title="Ver detalle"
-          >
-            <span className="p-button-icon pi pi-eye" />
-            <span className="p-button-label">Ver detalle</span>
-          </button>
-        </div>
-      );
+        //Función para tablas de reportes individual
+        function ReportTable({
+          title,
+          columns,
+          data,
+          onView,
+        }: {
+          title: string;
+          columns: { field: string; header: string; body?: (row: any) => React.ReactNode }[];
+          data: any[];
+          onView?: (row: any) => void;
+        }) {
+          // Función para exportar módulo individual a PDF
+          const exportModuloPDF = async () => {
+            const doc = new jsPDF({ unit: "pt", format: "a4", compress: true });
+            const meta = {
+              title: title,
+              by: "Usuario: ",
+              at: new Date().toLocaleString(),
+              filters: []
+            };
+        
+            const PDF_COLORS = {
+              primary: "#1976d2",
+              secondary: "#42a5f5",
+              accent: "#90caf9",
+              text: "#000000",
+              zebra: "#e3f2fd",
+            };
+        
+            async function toDataURL(path: string): Promise<string | null> {
+              try {
+                const res = await fetch(path);
+                const blob = await res.blob();
+                return await new Promise((resolve) => {
+                  const reader = new FileReader();
+                  reader.onload = () => resolve(reader.result as string);
+                  reader.readAsDataURL(blob);
+                });
+              } catch {
+                return null;
+              }
+            }
+        
+            const logoDataURL = await toDataURL("demo/images/login/LOGO-SIGMOT.png");
+            const { HEADER_H } = { HEADER_H: 86 };
+            let y = HEADER_H + 16;
+        
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(12);
+            doc.setTextColor(PDF_COLORS.text);
+            doc.text(title, 40, y);
+            y += 8;
+        
+            autoTable(doc, {
+              startY: y,
+              head: [columns.map(c => c.header)],
+              body: data.map((row) => columns.map(c => row[c.field] || '')),
+              theme: "striped",
+              styles: { fontSize: 9, cellPadding: 5, textColor: PDF_COLORS.text },
+              headStyles: { fillColor: PDF_COLORS.primary, textColor: "#FFFFFF", fontStyle: "bold" },
+              alternateRowStyles: { fillColor: PDF_COLORS.zebra },
+              margin: { left: 40, right: 40, top: HEADER_H + 8, bottom: 50 },
+            });
+        
+            function paintHeaderFooter(doc: any, logoDataURL: string | null, meta: {
+              title: string;
+              by?: string;
+              at?: string;
+              filters?: string[];
+            }) {
+              const pageWidth = doc.internal.pageSize.getWidth();
+              const pageHeight = doc.internal.pageSize.getHeight();
+              const HEADER_H = 86;
+              const FOOTER_H = 36;
+            
+              const drawHeader = () => {
+                doc.setFillColor(PDF_COLORS.primary);
+                doc.rect(0, 0, pageWidth, 6, "F");
+            
+                const LOGO_W = 90;
+                const LOGO_H = 70;
+                const LOGO_X = 32;
+                const LOGO_Y = 20;
+            
+                if (logoDataURL) {
+                  doc.addImage(logoDataURL, "PNG", LOGO_X, LOGO_Y, LOGO_W, LOGO_H);
+                }
+                
+                doc.setTextColor(PDF_COLORS.text);
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(14);
+                doc.text(meta.title, pageWidth - 32, 32, { align: "right" });
+        
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
+                const lines: string[] = [];
+                if (meta.by) lines.push(meta.by);
+                if (meta.at) lines.push(meta.at);
+                if (meta.filters?.length) lines.push(...meta.filters);
+                lines.forEach((line, i) => {
+                  doc.text(line, pageWidth - 32, 50 + i * 12, { align: "right" });
+                });
+                
+                doc.setFillColor(PDF_COLORS.secondary);
+                doc.rect(0, HEADER_H - 10, pageWidth, 10, "F");
+                doc.setFillColor(PDF_COLORS.accent);
+                doc.rect(0, HEADER_H - 10, pageWidth * 0.35, 10, "F");
+              };
+        
+              const drawFooter = (pageNum: number, pageCount: number) => {
+                doc.setFontSize(9);
+                doc.setTextColor(PDF_COLORS.text);
+                doc.setDrawColor(PDF_COLORS.zebra);
+                doc.line(32, pageHeight - FOOTER_H, pageWidth - 32, pageHeight - FOOTER_H);
+                doc.text("SIGMOT · Sistema de Gestión y Monitoreo de Transportes", 32, pageHeight - 16);
+                doc.text(`Página ${pageNum} de ${pageCount}`, pageWidth - 32, pageHeight - 16, { align: "right" });
+              };
+        
+              const pages = doc.internal.getNumberOfPages();
+              for (let i = 1; i <= pages; i++) {
+                doc.setPage(i);
+                drawHeader();
+                drawFooter(i, pages);
+              }
+        
+              return { HEADER_H, FOOTER_H };
+            }
+        
+            paintHeaderFooter(doc, logoDataURL, meta);
+            const fecha = new Date().toISOString().slice(0, 10);
+            doc.save(`${title}_${fecha}.pdf`);
+          };
+        
+          // Función para exportar módulo individual a Excel
+          const exportModuloExcel = () => {
+            const wb = XLSX.utils.book_new();
+            const sheetData = [
+              columns.map(c => c.header),
+              ...data.map((row) => columns.map(c => row[c.field] || ''))
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(sheetData);
+            XLSX.utils.book_append_sheet(wb, ws, title.slice(0, 31));
+            const fecha = new Date().toISOString().slice(0, 10);
+            XLSX.writeFile(wb, `${title}_${fecha}.xlsx`);
+          };
+        
+          // Función para exportar módulo individual a CSV
+          const exportModuloCSV = () => {
+            let csvContent = columns.map(c => `"${c.header}"`).join(',') + '\n';
+            data.forEach((row) => {
+              csvContent += columns.map(c => `"${row[c.field] || ''}"`).join(',') + '\n';
+            });
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            const fecha = new Date().toISOString().slice(0, 10);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `${title}_${fecha}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          };
+        
+          const accionesBody = (row: any) => (
+            <Button
+              icon="pi pi-eye"
+              rounded
+              text
+              severity="help"
+              onClick={() => onView?.(row)}
+              tooltip="Ver detalle"
+            />
+          );
+        
+          return (
+            <section className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden mb-6">
+              {/* Header con título y botones exportar */}
+              <div className="bg-gradient-to-r from-indigo-500 to-blue-500 px-6 py-4 flex justify-between items-center">
+                <h3 className="text-lg font-bold text-white">{title}</h3>
+                
+                {/* Botones Exportar Individual - HORIZONTAL */}
+                <div className="flex gap-2">
+                  <Button
+                    icon="pi pi-file-pdf"
+                    label="PDF"
+                    tooltip="Exportar PDF"
+                    style={{ 
+                      backgroundColor: '#ef4444', 
+                      border: 'none',
+                      color: 'white',
+                      fontSize: '0.875rem',
+                      padding: '0.5rem 1rem'
+                    }}
+                    onClick={() => exportModuloPDF()}
+                  />
+                  <Button
+                    icon="pi pi-file-excel"
+                    label="Excel"
+                    tooltip="Exportar Excel"
+                    style={{ 
+                      backgroundColor: '#16a34a', 
+                      border: 'none',
+                      color: 'white',
+                      fontSize: '0.875rem',
+                      padding: '0.5rem 1rem'
+                    }}
+                    onClick={() => exportModuloExcel()}
+                  />
+                  <Button
+                    icon="pi pi-file"
+                    label="CSV"
+                    tooltip="Exportar CSV"
+                    style={{ 
+                      backgroundColor: '#3b82f6', 
+                      border: 'none',
+                      color: 'white',
+                      fontSize: '0.875rem',
+                      padding: '0.5rem 1rem'
+                    }}
+                    onClick={() => exportModuloCSV()}
+                  />
+                </div>
+              </div>
 
-      return (
-        <ReportSection title={title}>
-          <DataTable value={data} stripedRows responsiveLayout="scroll">
-            {columns.map((c, i) => (
-              <Column key={i} field={c.field} header={c.header} body={c.body ? (row) => c.body!(row) : undefined} />
-            ))}
-            {/* Columna de acciones */}
-            {onView && <Column header="Acciones" body={accionesBody} style={{ width: 140 }} />}
-          </DataTable>
-        </ReportSection>
-      );
-    }
+              {/* Tabla */}
+              <div className="p-6">
+                <DataTable value={data} stripedRows responsiveLayout="scroll" paginator rows={10} emptyMessage="No hay datos disponibles">
+                  {columns.map((c, i) => (
+                    <Column key={i} field={c.field} header={c.header} body={c.body} sortable />
+                  ))}
+                  {onView && <Column header="Acciones" body={accionesBody} style={{ width: '100px' }} />}
+                </DataTable>
+              </div>
+            </section>
+                    );
+        }
 
 const ReportesPage = () => {
   const [fechaInicio, setFechaInicio] = useState<Date | null>(null);
@@ -478,6 +679,7 @@ function cerrarDetalle() {
         return { HEADER_H, FOOTER_H };
       }
 
+
   // -------------------- EXPORTAR A PDF (TODAS LAS TABLAS) --------------------
   const exportReportesPDF = async () => {
   const doc = new jsPDF({ unit: "pt", format: "a4", compress: true }); // A4 vertical
@@ -580,6 +782,33 @@ function cerrarDetalle() {
     XLSX.writeFile(wb, `Reportes_Generales_${stamp}.xlsx`);
   };
 
+  function exportReportesCSV(tables: any[]) {
+    let csvContent = '';
+    tables.forEach((table) => {
+      csvContent += `\n"${table.title}"\n`;
+      csvContent += table.columns.map((col: string) => `"${col}"`).join(',') + '\n';
+      table.rows.forEach((row: any) => {
+        const mappedRow = table.mapRow(row);
+        csvContent += mappedRow.map((val: any) => `"${val || ''}"`).join(',') + '\n';
+      });
+      csvContent += '\n';
+    });
+  
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    const fecha = new Date().toISOString().slice(0, 10);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Reportes_Generales_${fecha}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+  
+
+
   // -------------------- BÚSQUEDA (placeholder simple) --------------------
   const onSearch = () => {
     // Por ahora solo notifica. Luego, puedes aplicar este 'searchText'
@@ -598,39 +827,6 @@ function cerrarDetalle() {
       <Button icon="pi pi-trash" className="btn-eliminar" rounded text severity="danger" onClick={() => confirmarEliminacion(rowData)} />
     </div>
   )
-  const leftToolbarTemplate = () => (
-    <Button label="Nuevo Reporte" icon="pi pi-plus" className="btn-verde" onClick={abrirNuevo} />
-  );
-
-      const estadisticas = [
-        { titulo: 'Ventas del día', valor: 'L. 12,500' },
-        { titulo: 'Boletos vendidos', valor: '342' },
-        { titulo: 'Ocupación promedio', valor: '78%' }
-      ];
-
-      const datosGrafico = {
-        labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May'],
-        datasets: [
-          {
-            label: 'Ventas mensuales (L)',
-            data: [12000, 15000, 11000, 17000, 14500],
-            backgroundColor: '#6366f1',
-          }
-        ]
-      };
-
-      const opcionesGrafico = {
-        responsive: true,
-        plugins: {
-          legend: { display: true },
-          tooltip: { mode: 'index', intersect: false }
-        },
-        scales: {
-          y: { beginAtZero: true },
-          x: { grid: { display: false } }
-        }
-      };
-
 
       const [unidades, setUnidades] = useState<any[]>([]);
       const [encomiendas, setEncomiendas] = useState<any[]>([]);
@@ -919,346 +1115,308 @@ function cerrarDetalle() {
   }, []);
 
       
-  return (
-    <div className="p-6 space-y-6">
-      <h2 className="text-2xl font-bold mb-4">Reportes Generales</h2>
-
-      <Toast ref={toast} />
-      {/* Tabla de reportes */}
-      <div>
-        <Toolbar className="mb-4" left={leftToolbarTemplate} />
-        <DataTable value={reportes} stripedRows responsiveLayout="scroll">
-          <Column field="tipo" header="Tipo" sortable />
-          <Column field="fecha" header="Fecha" sortable />
-          <Column field="total" header="Total (L)" sortable />
-          <Column body={accionesTemplate} header="Acciones" />
-        </DataTable>
-      </div>
-
-      {/* Diálogo de reporte */}
-      <Dialog
-        header={reporteActual?.id ? 'Editar Reporte' : 'Nuevo Reporte'}
-        visible={dialogVisible}
-        style={{ width: '90vw', maxWidth: '600px' }}
-        onHide={() => setDialogVisible(false)}
-        className="p-fluid shadow-2 border-round-xl"
-      >
-        <form
-          onSubmit={(e) => { e.preventDefault(); guardarReporte(); }}
-          className="grid grid-cols-1 md:grid-cols-2 gap-4"
-        >
-          <div className="p-float-label w-full mt-2">
-            <InputText
-              id="tipo"
-              value={reporteActual?.tipo || ''}
-              onChange={(e) => setReporteActual({ ...reporteActual!, tipo: e.target.value })}
-              className="w-full"
-            />
-            <label htmlFor="tipo">Tipo</label>
-          </div>
-
-          <div className="p-float-label w-full">
-            <InputText
-              id="fecha"
-              value={reporteActual?.fecha || ''}
-              onChange={(e) => setReporteActual({ ...reporteActual!, fecha: e.target.value })}
-              className="w-full"
-            />
-            <label htmlFor="fecha">Fecha</label>
-          </div>
-
-          <div className="p-float-label w-full">
-            <InputNumber
-              id="total"
-              value={reporteActual?.total || 0}
-              onValueChange={(e) => setReporteActual({ ...reporteActual!, total: e.value ?? 0 })}
-              className="w-full"
-            />
-            <label htmlFor="total">Total (L)</label>
-          </div>
-
-          <div className="col-span-1 md:col-span-2 flex justify-center md:justify-end mt-4 gap-2">
-            <Button label="Cancelar" icon="pi pi-times" className="btn-cancelar" onClick={() => setDialogVisible(false)} />
-            <Button label="Guardar" icon="pi pi-check" className="btn-guardar" type="submit" />
-          </div>
-        </form>
-      </Dialog>
-          {/* Modal de Detalle */}
-          <Dialog
-            header="Detalle del Reporte"
-            visible={detalleVisible}
-            style={{ width: '90vw', maxWidth: '600px' }}
-            onHide={() => setDetalleVisible(false)}
-            className="shadow-2 border-round-xl">
-            <div className="detalle-vehiculo space-y-2">
-              <p><strong>Tipo:</strong> {reporteDetalle?.tipo}</p>
-              <p><strong>Fecha:</strong> {reporteDetalle?.fecha}</p>
-              <p><strong>Total:</strong> L. {reporteDetalle?.total}</p>
+    return (
+      <div className="p-6 space-y-6 max-w-[1800px] mx-auto">
+        <h2 className="text-3xl font-bold mb-6 text-gray-800">Reportes Generales</h2>
+        <Toast ref={toast} />
+    
+        {/* ==================== BARRA DE BÚSQUEDA Y EXPORTACIÓN GENERAL ==================== */}
+        <section className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-md border border-blue-100 p-6 mb-8">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-gray-800 mb-1">Exportación General</h3>
+              <p className="text-sm text-gray-600">Exporta todos los reportes en diferentes formatos o busca por módulo.</p>
             </div>
-          </Dialog>
-
-          {/* Modal de Confirmación */}
-          <Dialog
-            header="Confirmar"
-            visible={confirmVisible}
-            style={{ width: '90vw', maxWidth: '600px' }}
-            onHide={() => setConfirmVisible(false)}
-            className="shadow-2 border-round-xl">
-            <div className="flex items-center gap-3">
-              <i className="pi pi-exclamation-triangle text-xl text-yellow-500"></i>
-              <p className="text-base">
-                ¿Está seguro de eliminar el reporte de tipo <strong>{reporteAEliminar?.tipo}</strong>?
-              </p>
-            </div>
-            <div className="flex justify-center gap-4 mt-4">
-              <Button label="No" icon="pi pi-times" className="btn-cancelar" onClick={() => setConfirmVisible(false)} />
-              <Button label="Sí" icon="pi pi-check" className="btn-guardar" onClick={eliminarConfirmado} />
-            </div>
-          </Dialog>
-
-        {/* ==================== ACCIONES: REPORTES GENERALES (Buscar + Exportar) ==================== */}
-        <section className="mt-10">
-          <div className="bg-white rounded-lg shadow-sm border p-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h3 className="text-lg font-semibold">Reportes Generales</h3>
-              <p className="text-sm text-gray-600">Unifica la exportación de todas las tablas mostradas abajo.</p>
-            </div>
-
-            <div className="flex flex-col md:flex-row gap-2 md:items-center">
-              {/* Reutilizamos tu rango de fechas existente (fechaInicio/fechaFin) */}
-              <span className="p-input-icon-left">
+    
+            <div className="flex flex-col sm:flex-row gap-3 lg:w-auto">
+              {/* Búsqueda */}
+              <span className="p-input-icon-left flex-1 sm:flex-initial">
                 <i className="pi pi-search" />
                 <InputText
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
-                  placeholder="Buscar en reportes..."
-                  className="w-full md:w-16rem"
+                  placeholder="Buscar módulo..."
+                  className="w-full sm:w-64"
                 />
               </span>
-              <Button label="Buscar" icon="pi pi-filter" className="btn-morado" onClick={onSearch} />
-
-              <Button
-                label="Exportar PDF"
-                icon="pi pi-file-pdf"
-                className="p-button-danger"
-                onClick={exportReportesPDF}
-              />
-              <Button
-                label="Exportar Excel"
-                icon="pi pi-file-excel"
-                className="p-button-success"
-                onClick={exportReportesExcel}
-              />
+    
+              {/* Botón Exportar con menú desplegable */}
+              <div className="relative">
+                <Button
+                  label="Exportar como"
+                  icon="pi pi-download"
+                  className="p-button-info w-full sm:w-auto"
+                  onClick={(e) => {
+                    const menu = document.getElementById('export-menu');
+                    if (menu) menu.classList.toggle('hidden');
+                  }}
+                />
+                
+                {/* Menú desplegable - CORREGIDO: ahora va hacia la derecha */}
+                <div
+                  id="export-menu"
+                  className="hidden absolute left-0 mt-2 w-56 bg-white rounded-lg shadow-xl z-50 border border-gray-200 overflow-hidden"
+                >
+                  <button
+                    onClick={() => {
+                      exportReportesPDF();
+                      document.getElementById('export-menu')?.classList.add('hidden');
+                    }}
+                    className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-red-50 transition-colors"
+                  >
+                    <i className="pi pi-file-pdf text-red-500 mr-3 text-lg"></i>
+                    <span className="font-medium">PDF</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      exportReportesExcel();
+                      document.getElementById('export-menu')?.classList.add('hidden');
+                    }}
+                    className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-green-50 transition-colors border-t"
+                  >
+                    <i className="pi pi-file-excel text-green-600 mr-3 text-lg"></i>
+                    <span className="font-medium">Excel (XLSX)</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      exportReportesCSV(buildAllTablesForExport());
+                      document.getElementById('export-menu')?.classList.add('hidden');
+                    }}
+                    className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors border-t"
+                  >
+                    <i className="pi pi-file text-blue-500 mr-3 text-lg"></i>
+                    <span className="font-medium">CSV</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </section>
-        {/* ================== Sección: Reportes de Empleados ================== */}
-          <ReportTable
-            title="Reportes de Empleados"
-            data={[]} // usa tu arreglo real; si no, [].
-            columns={[
-              { field: 'nombre', header: 'Nombre' },
-              { field: 'departamento', header: 'Departamento' },
-              { field: 'salario', header: 'Salario (L)' },
-            ]}
-            onView={(row) => abrirDetalle('Empleados', row)}
-          />
-    {/* ================== Sección: Reportes de Boletos ================== */}
-
-        <ReportTable
-        title="Reportes de Boletos"
-        data={boletos} // conectado al backend
-        columns={[
-          { field: 'Codigo_Ticket', header: 'Código Ticket' },
-          { field: 'Cliente', header: 'Cliente' },
-          { field: 'Cedula', header: 'Cédula' },
-          { field: 'Telefono', header: 'Teléfono' },
-          { field: 'Origen', header: 'Origen' },
-          { field: 'Destino', header: 'Destino' },
-          { field: 'Autobus', header: 'Unidad' },
-          { field: 'Numero_Asiento', header: 'Asiento' },
-          { field: 'MetodoPago', header: 'Método de Pago' },
-          { field: 'Estado', header: 'Estado' },
-          { field: 'Precio_Total', header: 'Precio Total (Lps)' },
-          { field: 'Fecha_Hora_Compra', header: 'Fecha Compra' },
-        ]}
-          onView={(row) => abrirDetalle('Boletos', row)}
-        />
-          {/* ==================== Reportes de Ventas / Facturación ==================== */}
-      <ReportTable
-        title="Reportes de Ventas / Facturación"
-        data={[]}
-        columns={[
-          { field: 'numero',   header: 'Nº' },
-          { field: 'cliente',  header: 'Cliente' },
-          { field: 'documento',header: 'Documento' }, // factura/boleta
-          { field: 'fecha',    header: 'Fecha' },
-          { field: 'total',    header: 'Total (L)' },
-          { field: 'estado',   header: 'Estado' },
-        ]}
-        onView={(row) => abrirDetalle('Ventas', row)}
-      />
-      {/* ==================== Reportes de Encomiendas ==================== */}
-      <ReportTable
-        title="Reportes de Encomiendas"
-        data={encomiendas}  // Los datos deben coincidir con el formato esperado por el frontend
-        columns={[
-          { field: 'Id_Encomienda_PK', header: 'ID' },
-          { field: 'Cliente', header: 'Cliente' },
-          { field: 'Origen', header: 'Origen' },
-          { field: 'Destino', header: 'Destino' },
-          { field: 'Costo', header: 'Costo (Lps)' },
-          { field: 'Descripcion', header: 'Descripción' },
-          { field: 'Estado', header: 'Estado' },
-          { field: 'Fecha_Realizada', header: 'Fecha Realizada' },
-        ]}
-        onView={(row) => abrirDetalle('Encomiendas', row)}
-      />
-
-      {/* ==================== Reportes de Rutas ==================== */}
-      <ReportTable
-        title="Reportes de Rutas"
-        data={rutas}
-        columns={[
-          { field: 'Id_Ruta_PK', header: 'ID Ruta' },
-          { field: 'Origen', header: 'Origen' },
-          { field: 'Destino', header: 'Destino' },
-          { field: 'Distancia', header: 'Distancia (km)' },
-          { field: 'Tiempo_Estimado', header: 'Tiempo Estimado' },
-          { field: 'Precio', header: 'Precio (Lps)' },
-          { field: 'Estado', header: 'Estado' },
-          { field: 'Descripcion', header: 'Descripción' },
-        ]}
-        onView={(row) => abrirDetalle('Rutas', row)}
-      />
-
-      {/* ==================== Reportes de Mantenimiento ==================== */}
-      <ReportTable
-        title="Reportes de Mantenimientos"
-        data={mantenimientos}
-        columns={[
-          { field: 'Id_Mantenimiento_PK', header: 'ID' },
-          { field: 'Placa', header: 'Unidad' },
-          { field: 'Tipo_Mantenimiento', header: 'Tipo' },
-          { field: 'Estado', header: 'Estado' },
-          { field: 'Fecha_Programada', header: 'Fecha Programada' },
-          { field: 'Fecha_Realizada', header: 'Fecha Realizada' },
-          { field: 'Proximo_Mantenimiento', header: 'Próximo Mantenimiento' },
-          { field: 'Kilometraje', header: 'Kilometraje' },
-          { field: 'Taller', header: 'Taller' },
-          { field: 'Repuestos', header: 'Repuestos' },
-          { field: 'Costo_Total', header: 'Costo (Lps)' },
-          { field: 'Descripcion', header: 'Descripción' },
-        ]}
-        onView={(row) => abrirDetalle('Mantenimiento', row)}
-      />
-
-      {/* ==================== Reportes de Incidencias ==================== */}
-      <ReportTable
-        title="Reportes de Incidencias"
-        data={incidencias}
-        columns={[
-          { field: 'Id_Incidencia_PK', header: 'ID' },
-          { field: 'Usuario', header: 'Usuario' },
-          { field: 'Tipo_Incidencia', header: 'Tipo' },
-          { field: 'Estado', header: 'Estado' },
-          { field: 'Asunto', header: 'Asunto' },
-          { field: 'Descripcion', header: 'Descripción' },
-          { field: 'Respuesta_Admin', header: 'Respuesta Admin' },
-          { field: 'Fecha_Creacion', header: 'Creada' },
-          { field: 'Fecha_Actualizacion', header: 'Actualizada' },
-          { field: 'Cerrada_Por', header: 'Cerrada Por' },
-          { field: 'Fecha_Cierre', header: 'Fecha de Cierre' },
-        ]}
-        onView={(row) => abrirDetalle('Incidencias', row)}
-      />
-
-      {/* ==================== Reportes de Reservaciones ==================== */}
-      <ReportTable
-        title="Reportes de Reservaciones"
-        data={reservaciones}
-        columns={[
-          { field: 'Id_Reserva_PK', header: 'ID' },
-          { field: 'Cliente', header: 'Cliente' },
-          { field: 'Tipo_Reserva', header: 'Tipo' },
-          { field: 'Estado', header: 'Estado' },
-          { field: 'Motivo_Cancelacion', header: 'Motivo Cancelación' },
-          { field: 'Fecha_Reserva', header: 'Fecha de Reserva' },
-          { field: 'Asiento', header: 'Asiento' },
-          { field: 'Es_Activa', header: 'Activa' },
-        ]}
-        onView={(row) => abrirDetalle('Reservaciones', row)}
-      />
-
-      {/* ==================== Reportes de Unidades ==================== */}
-          <ReportTable
-          title="Reportes de Unidades"
-          data={unidades}
-          columns={[
-            { field: 'placa', header: 'Placa' },
-            { field: 'marca', header: 'Marca' },
-            { field: 'modelo', header: 'Modelo' },
-            { field: 'asientos', header: 'Asientos' },
-            { field: 'descripcion', header: 'Descripción' },
-            { field: 'anio', header: 'Año' },
-            { field: 'estado', header: 'Estado' },
-          ]}
-          onView={(row) => abrirDetalle('Vehículos', row)}
-      />
-      
-      {/* ==================== Reportes de Clientes ==================== */}
-      <ReportTable
-        title="Reportes de Clientes"
-        data={clientes}
-        columns={[
-          { field: 'Id_Cliente', header: 'ID Cliente' },
-          { field: 'Nombre_Completo', header: 'Nombre Completo' },
-          { field: 'DNI', header: 'DNI' },
-          { field: 'Telefono', header: 'Teléfono' },
-          { field: 'Estado', header: 'Estado' },
-        ]}
-        onView={(row) => abrirDetalle('Clientes', row)}
-      />
-
-      {/* ==================== Reportes de Personas ==================== */}
-      <ReportTable
-        title="Reportes de Personas"
-        data={personas}
-        columns={[
-          { field: 'Id_Persona', header: 'ID' },
-          { field: 'Nombres', header: 'Nombres' },
-          { field: 'Apellidos', header: 'Apellidos' },
-          { field: 'DNI', header: 'DNI' },
-          { field: 'Telefono', header: 'Teléfono' },
-          { field: 'Fecha_Nacimiento', header: 'Nacimiento' },
-          { field: 'Genero', header: 'Género' },
-          { field: 'Tipo_Persona', header: 'Tipo Persona' },
-          { field: 'Estado', header: 'Estado' },
-        ]}
-        onView={(row) => abrirDetalle('Personas', row)}
-      />
-                <Dialog
+    
+        {/* ==================== MÓDULOS DE REPORTES ==================== */}
+        <div className="space-y-8">
+          {/* Boletos */}
+          {(!searchText || 'boletos'.includes(searchText.toLowerCase())) && (
+            <div>
+           <h2 className="text-2xl font-bold text-gray-800 mb-4">Reportes de Boletos</h2>
+            <ReportTable
+              title="Reportes de Boletos"
+              data={boletos}
+              columns={[
+                { field: 'Codigo_Ticket', header: 'Código Ticket' },
+                { field: 'Cliente', header: 'Cliente' },
+                { field: 'Cedula', header: 'Cédula' },
+                { field: 'Telefono', header: 'Teléfono' },
+                { field: 'Origen', header: 'Origen' },
+                { field: 'Destino', header: 'Destino' },
+                { field: 'Autobus', header: 'Unidad' },
+                { field: 'Numero_Asiento', header: 'Asiento' },
+                { field: 'MetodoPago', header: 'Método de Pago' },
+                { field: 'Estado', header: 'Estado' },
+                { field: 'Precio_Total', header: 'Precio Total (Lps)' },
+                { field: 'Fecha_Hora_Compra', header: 'Fecha Compra' },
+              ]}
+              onView={(row) => abrirDetalle('Boletos', row)}
+            />
+            </div>
+          )}
+          {/* Encomiendas */}
+          {(!searchText || 'encomiendas'.includes(searchText.toLowerCase())) && (
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Reportes de Encomiendas</h2>
+            <ReportTable
+              title="Reportes de Encomiendas"
+              data={encomiendas}
+              columns={[
+                { field: 'Id_Encomiendas_PK', header: 'ID' },
+                { field: 'Cliente', header: 'Cliente' },
+                { field: 'Origen', header: 'Origen' },
+                { field: 'Destino', header: 'Destino' },
+                { field: 'Costo', header: 'Costo (Lps)' },
+                { field: 'Descripcion', header: 'Descripción' },
+                { field: 'Estado', header: 'Estado' },
+                { field: 'Fecha_Realizada', header: 'Fecha Realizada' },
+              ]}
+              onView={(row) => abrirDetalle('Encomiendas', row)}
+            />
+            </div>
+          )}
+    
+          {/* Rutas */}
+          {(!searchText || 'rutas'.includes(searchText.toLowerCase())) && (
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Reportes de Rutas</h2>
+            <ReportTable
+              title="Reportes de Rutas"
+              data={rutas}
+              columns={[
+                { field: 'Id_Ruta_PK', header: 'ID Ruta' },
+                { field: 'Origen', header: 'Origen' },
+                { field: 'Destino', header: 'Destino' },
+                { field: 'Distancia', header: 'Distancia (km)' },
+                { field: 'Tiempo_Estimado', header: 'Tiempo Estimado' },
+                { field: 'Precio', header: 'Precio (Lps)' },
+                { field: 'Estado', header: 'Estado' },
+                { field: 'Descripcion', header: 'Descripción' },
+              ]}
+              onView={(row) => abrirDetalle('Rutas', row)}
+            />
+            </div>
+          )}
+    
+          {/* Mantenimientos */}
+          {(!searchText || 'mantenimientos'.includes(searchText.toLowerCase()) || 'mantenimiento'.includes(searchText.toLowerCase())) && (
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Reportes de Mantenimientos</h2>
+            <ReportTable
+              title="Reportes de Mantenimientos"
+              data={mantenimientos}
+              columns={[
+                { field: 'Id_Mantenimiento_PK', header: 'ID' },
+                { field: 'Placa', header: 'Unidad' },
+                { field: 'Tipo_Mantenimiento', header: 'Tipo' },
+                { field: 'Estado', header: 'Estado' },
+                { field: 'Fecha_Programada', header: 'Fecha Programada' },
+                { field: 'Fecha_Realizada', header: 'Fecha Realizada' },
+                { field: 'Proximo_Mantenimiento', header: 'Próximo Mantenimiento' },
+                { field: 'Kilometraje', header: 'Kilometraje' },
+                { field: 'Taller', header: 'Taller' },
+                { field: 'Repuestos', header: 'Repuestos' },
+                { field: 'Costo_Total', header: 'Costo (Lps)' },
+              ]}
+              onView={(row) => abrirDetalle('Mantenimiento', row)}
+            />
+            </div>
+          )}
+    
+          {/* Incidencias */}
+          {(!searchText || 'incidencias'.includes(searchText.toLowerCase())) && (
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Reportes de Incidencias</h2>
+            <ReportTable
+              title="Reportes de Incidencias"
+              data={incidencias}
+              columns={[
+                { field: 'Id_Incidencia_PK', header: 'ID' },
+                { field: 'Usuario', header: 'Usuario' },
+                { field: 'Estado', header: 'Estado' },
+                { field: 'Asunto', header: 'Asunto' },
+                { field: 'Descripcion', header: 'Descripción' },
+                { field: 'Fecha_Creacion', header: 'Creada' },
+              ]}
+              onView={(row) => abrirDetalle('Incidencias', row)}
+            />
+            </div>
+          )}
+    
+          {/* Reservaciones */}
+          {(!searchText || 'reservaciones'.includes(searchText.toLowerCase())) && (
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Reportes de Reservaciones</h2>
+            <ReportTable
+              title="Reportes de Reservaciones"
+              data={reservaciones}
+              columns={[
+                { field: 'Id_Reserva_PK', header: 'ID' },
+                { field: 'Cliente', header: 'Cliente' },
+                { field: 'Tipo_Reserva', header: 'Tipo' },
+                { field: 'Estado', header: 'Estado' },
+                { field: 'Fecha_Reserva', header: 'Fecha de Reserva' },
+                { field: 'Asiento', header: 'Asiento' },
+              ]}
+              onView={(row) => abrirDetalle('Reservaciones', row)}
+            />
+            </div>
+          )}
+    
+          {/* Unidades */}
+          {(!searchText || 'unidades'.includes(searchText.toLowerCase())) && (
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Reportes de Unidades</h2>
+            <ReportTable
+              title="Reportes de Unidades"
+              data={unidades}
+              columns={[
+                { field: 'placa', header: 'Placa' },
+                { field: 'marca', header: 'Marca' },
+                { field: 'modelo', header: 'Modelo' },
+                { field: 'asientos', header: 'Asientos' },
+                { field: 'descripcion', header: 'Descripción' },
+                { field: 'anio', header: 'Año' },
+                { field: 'estado', header: 'Estado' },
+              ]}
+              onView={(row) => abrirDetalle('Vehículos', row)}
+            />
+            </div>
+          )}
+    
+          {/* Clientes */}
+          {(!searchText || 'clientes'.includes(searchText.toLowerCase())) && (
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Reportes de Clientes</h2>
+            <ReportTable
+              title="Reportes de Clientes"
+              data={clientes}
+              columns={[
+                { field: 'Id_Cliente', header: 'ID Cliente' },
+                { field: 'Nombre_Completo', header: 'Nombre Completo' },
+                { field: 'DNI', header: 'DNI' },
+                { field: 'Telefono', header: 'Teléfono' },
+                { field: 'Estado', header: 'Estado' },
+              ]}
+              onView={(row) => abrirDetalle('Clientes', row)}
+            />
+            </div>
+          )}
+    
+          {/* Personas */}
+          {(!searchText || 'personas'.includes(searchText.toLowerCase())) && (
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Reportes de Personas</h2>
+            <ReportTable
+              title="Reportes de Personas"
+              data={personas}
+              columns={[
+                { field: 'Id_Persona', header: 'ID' },
+                { field: 'Nombres', header: 'Nombres' },
+                { field: 'Apellidos', header: 'Apellidos' },
+                { field: 'DNI', header: 'DNI' },
+                { field: 'Telefono', header: 'Teléfono' },
+                { field: 'Genero', header: 'Género' },
+                { field: 'Estado', header: 'Estado' },
+              ]}
+              onView={(row) => abrirDetalle('Personas', row)}
+            />
+            </div>
+          )}
+        </div>
+    
+        {/* Modal de Detalle */}
+        <Dialog
           header={`Detalle - ${detalleInfo?.seccion ?? ''}`}
           visible={detalleOpen}
-          style={{ width: '90vw', maxWidth: '640px' }}
+          style={{ width: '90vw', maxWidth: '700px' }}
           onHide={() => setDetalleOpen(false)}
-          className="shadow-2 border-round-xl"
+          className="shadow-2xl"
         >
           {detalleInfo?.row ? (
-            <div className="detalle-grid">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
               {Object.entries(detalleInfo.row).map(([k, v]) => (
-                <div key={k} className="detalle-item">
-                  <div className="detalle-key">{k}</div>
-                  <div className="detalle-val">{String(v ?? '')}</div>
+                <div key={k} className="border-b pb-2">
+                  <div className="text-xs text-gray-500 uppercase font-semibold">{k}</div>
+                  <div className="text-sm text-gray-800 mt-1">{String(v ?? '-')}</div>
                 </div>
               ))}
             </div>
           ) : (
-            <p>No hay datos.</p>
+            <p className="text-gray-500 text-center p-8">No hay datos disponibles.</p>
           )}
         </Dialog>
-    </div>
-  );
-};
+      </div>
+    );
+}
+
 
 export default ReportesPage;
