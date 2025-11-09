@@ -206,7 +206,10 @@ export default function FacturacionModal({ visible, onHide, boleto, onSave }: Pr
           {/* Cliente + tipo descuento */}
           <div className="field col-6">
             <label>Cliente</label>
-            <InputText value={isBoleto(boleto) ? boleto.cliente : boleto.remitente} disabled />
+<InputText
+  value={isBoleto(boleto) ? boleto.cliente : (boleto as Encomienda).remitente}
+  disabled
+/>
           </div>
 
           <div className="field col-6">

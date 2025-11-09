@@ -1,9 +1,9 @@
 import React from 'react';
-import { Venta, Boleto, Encomienda } from '@/types/ventas'; // Asegúrate de importar los tipos
+import { VentaItem, Boleto, Encomienda } from '@/types/ventas'; // Asegúrate de importar los tipos
 import { QRCodeSVG } from 'qrcode.react';
 
 interface ComprobantePrintProps {
-  item: Venta;
+  item: VentaItem;
 }
 
 const ImprimirComprobante: React.FC<ComprobantePrintProps> = ({ item }) => {
