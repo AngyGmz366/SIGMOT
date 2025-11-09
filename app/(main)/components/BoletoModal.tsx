@@ -110,11 +110,12 @@ useEffect(() => {
         }
 
         // Asegúrate de asignar correctamente los valores de autobus y asiento aquí
-        setBoleto((prev) => ({
-          ...prev,
-          autobus: data?.autobus || '',  
-          asiento: data?.asiento || '',   
-        }));
+setBoleto((prev: Boleto) => ({
+  ...prev,
+  autobus: data?.autobus || '',
+  asiento: data?.asiento || '',
+}));
+
       }
     } catch (err) {
       console.error("❌ Error sincronizando datos del boleto:", err);
