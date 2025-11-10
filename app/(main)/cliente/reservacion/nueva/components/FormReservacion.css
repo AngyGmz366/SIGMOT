@@ -146,7 +146,6 @@
 
   .card-form {
     padding: 1rem;
-    overflow: hidden;
   }
 
   .header-reservacion h2 {
@@ -157,74 +156,206 @@
     font-size: 0.9rem;
     padding: 0.5rem 0.7rem;
   }
-
-  /* Corrige dropdowns largos */
-  .p-dropdown,
-  .p-dropdown-label,
-  .p-dropdown-item {
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
-    max-width: 100%;
-  }
 }
 
-/* Extra pequeño (<400 px) */
+/* 🔥 SOLUCIÓN DEFINITIVA PARA <400px - UNA SOLA COLUMNA */
 @media (max-width: 400px) {
+  /* CONTENEDOR PRINCIPAL */
   .form-wrapper {
     padding: 0.5rem !important;
+    max-width: 100vw;
+    overflow-x: hidden;
   }
 
+  /* TARJETA DEL FORMULARIO */
   .card-form {
-    padding: 0.75rem !important;
-    border-radius: 0.75rem;
-    overflow: hidden;
-  }
-
-  .p-dropdown,
-  .p-inputtext,
-  .input-precio {
-    font-size: 0.85rem;
-  }
-
-  /* Forzar que nada se desborde */
-  .p-dropdown,
-  .p-inputtext,
-  .input-precio,
-  .p-calendar {
+    padding: 1.25rem !important;
+    margin: 0 !important;
     width: 100% !important;
-    max-width: 100%;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
+    box-sizing: border-box;
+    border-radius: 0.75rem !important;
   }
 
-  /* Que los menús de dropdown se abran hacia arriba */
+  /* 🔥 CAMBIAR A UNA SOLA COLUMNA EN MÓVILES PEQUEÑOS */
+  .card-form .grid.grid-cols-1.md\\:grid-cols-2 {
+    grid-template-columns: 1fr !important;
+    gap: 1.25rem !important;
+  }
+
+  /* 🔥 FORZAR QUE LOS ELEMENTOS OCUPEN TODA LA COLUMNA */
+  .card-form .grid > * {
+    grid-column: 1 / -1 !important;
+  }
+
+  /* 🔥 DROPDOWNS MÁS GRANDES Y FUNCIONALES */
+  .p-dropdown {
+    height: 3rem !important;
+    font-size: 16px !important;
+    width: 100% !important;
+  }
+
+  .p-dropdown .p-dropdown-label {
+    font-size: 16px !important;
+    padding: 0.875rem !important;
+  }
+
+  /* 🔥 DROPDOWNS COMO MODALES GRANDES */
   .p-dropdown-panel {
-    bottom: 100% !important;
-    top: auto !important;
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 95% !important;
+    max-width: 380px !important;
+    max-height: 70vh !important;
+    z-index: 10000 !important;
+    border-radius: 12px !important;
+  }
+
+  .p-dropdown-items-wrapper {
+    max-height: 60vh !important;
+  }
+
+  .p-dropdown-item {
+    font-size: 16px !important;
+    padding: 1rem !important;
+    min-height: 50px !important;
+    border-bottom: 1px solid #e5e7eb !important;
+  }
+
+  .p-dropdown-item:last-child {
+    border-bottom: none !important;
+  }
+
+  /* 🔥 INPUTS MÁS GRANDES */
+  .input-precio {
+    font-size: 16px !important;
+    height: 3rem !important;
+    padding: 0.875rem !important;
+    width: 100% !important;
+  }
+
+  /* 🔥 BOTÓN GRANDE Y ACCESIBLE */
+  .custom-button {
+    height: 3rem !important;
+    font-size: 16px !important;
+    width: 100% !important;
+    margin-top: 1rem !important;
+  }
+
+  /* 🔥 TEXTAREA MÁS GRANDE */
+  .p-inputtextarea {
+    font-size: 16px !important;
+    min-height: 100px !important;
+    padding: 0.875rem !important;
+  }
+
+  /* 🔥 INPUT NUMBER MÁS GRANDE */
+  .p-inputnumber {
+    width: 100% !important;
+  }
+
+  .p-inputnumber .p-inputnumber-input {
+    font-size: 16px !important;
+    height: 3rem !important;
+    padding: 0.875rem !important;
+  }
+
+  .p-inputnumber-button {
+    min-width: 3rem !important;
+    min-height: 3rem !important;
+    font-size: 16px !important;
+  }
+
+  /* 🔥 POLÍTICAS COMPLETAS Y VISIBLES */
+  .politicas {
+    padding: 1.5rem !important;
+    margin-top: 1.5rem !important;
+    width: 100% !important;
+    box-sizing: border-box;
+    border-radius: 0.75rem !important;
+  }
+
+  .politicas h3 {
+    font-size: 1.1rem !important;
+    margin-bottom: 1rem !important;
+    font-weight: 600 !important;
+  }
+
+  .politicas ul {
+    padding-left: 1.5rem !important;
+    font-size: 1rem !important;
+    margin: 0 !important;
+  }
+
+  .politicas li {
+    margin-bottom: 0.75rem !important;
+    line-height: 1.5 !important;
+    word-wrap: break-word !important;
+    text-align: left !important;
+  }
+
+  /* 🔥 ETIQUETAS MÁS CLARAS */
+  .text-gray-700.text-sm {
+    font-size: 1rem !important;
+    margin-bottom: 0.5rem !important;
+    font-weight: 500 !important;
+    display: block !important;
+  }
+
+  /* 🔥 ESPACIADO GENERAL MEJORADO */
+  .card-form .space-y-4 {
+    gap: 1.5rem !important;
+  }
+
+  .card-form .space-y-6 {
+    gap: 2rem !important;
+  }
+
+  /* 🔥 HEADER MÁS COMPACTO */
+  .header-reservacion {
+    margin-bottom: 1.5rem !important;
+    text-align: center !important;
   }
 
   .header-reservacion h2 {
-    font-size: 1.1rem;
+    font-size: 1.3rem !important;
+    margin: 0.5rem 0 !important;
   }
 
   .header-reservacion p {
-    font-size: 0.9rem;
+    font-size: 0.95rem !important;
+    margin: 0 !important;
+    line-height: 1.4 !important;
+  }
+
+  .header-reservacion i {
+    font-size: 2rem !important;
+  }
+
+  /* 🔥 GARANTIZAR QUE TODO SEA TOCABLE */
+  .p-dropdown,
+  .custom-button,
+  .p-inputnumber-button,
+  .p-dropdown-item {
+    min-height: 44px !important;
+  }
+
+  /* 🔥 OVERLAY PARA MEJOR EXPERIENCIA */
+  .p-component-overlay {
+    background: rgba(0, 0, 0, 0.5) !important;
+    z-index: 9999 !important;
   }
 }
 
 /* Ajuste fino entre 450 px y 400 px */
 @media (max-width: 450px) and (min-width: 400px) {
   .form-wrapper {
-    padding: 0.5rem !important;
+    padding: 0.75rem !important;
   }
 
   .card-form {
-    padding: 0.85rem !important;
-    border-radius: 0.75rem;
-    width: 95%;
-    margin: 0 auto;
+    padding: 1rem !important;
   }
 
   .p-dropdown,
@@ -232,18 +363,15 @@
   .p-calendar,
   .input-precio {
     font-size: 0.9rem;
-    height: 2.6rem;
-    max-width: 100%;
+    height: 2.8rem;
   }
 
   .header-reservacion h2 {
     font-size: 1.15rem;
-    text-align: center;
   }
 
   .header-reservacion p {
     font-size: 0.9rem;
-    text-align: center;
   }
 }
 
@@ -279,12 +407,40 @@
 
 @media (max-width: 480px) {
   .p-dropdown {
-    padding: 0 0.25rem !important;
+    padding: 0 0.5rem !important;
   }
 
   .p-dropdown-label {
-    font-size: 0.85rem !important;
+    font-size: 0.9rem !important;
   }
-
-  
 }
+
+/* 🔥 GARANTIZAR VISIBILIDAD */
+.p-component-overlay {
+  z-index: 9999 !important;
+}
+
+.p-dropdown-panel {
+  z-index: 10000 !important;
+}
+
+/* 🔥 CORRECCIÓN EXTREMA PARA PANTALLAS MUY PEQUEÑAS */
+@media (max-width: 360px) {
+  .card-form {
+    padding: 1rem !important;
+  }
+  
+  .politicas {
+    padding: 1.25rem !important;
+  }
+  
+  .politicas li {
+    font-size: 0.95rem !important;
+  }
+  
+  .card-form .grid.grid-cols-1.md\\:grid-cols-2 {
+    gap: 1rem !important;
+  }
+}
+
+
