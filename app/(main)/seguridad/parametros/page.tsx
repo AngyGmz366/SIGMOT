@@ -146,7 +146,7 @@ export default function ParametrosPage() {
               <span className="p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText
-                  placeholder="Buscar parámetro..."
+                  //placeholder="Buscar parámetro..."
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </span>

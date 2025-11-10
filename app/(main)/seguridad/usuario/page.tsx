@@ -259,7 +259,7 @@ export default function UsuariosPage() {
               <span className="p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText
-                  placeholder="Buscar..."
+                  //placeholder="Buscar..."
                   onChange={(e) => {
                     const q = e.target.value.toLowerCase();
                     setUsuarios((prev) =>

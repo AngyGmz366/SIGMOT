@@ -125,18 +125,24 @@ export default function BackupRestoreSIGMOT() {
     });
   };
 
-  const Header = () => (
-    <div className="flex align-items-center justify-content-between mb-3">
-      <div>
-        <h2 className="m-0 text-2xl">SIGMOT · Respaldo y Restauración</h2>
+ const Header = () => (
+  <div className="mb-3">
+    <div className="flex align-items-start justify-content-between gap-2">
+      <div className="flex-1">
+        <h2 className="m-0 text-xl md:text-2xl">SIGMOT-Respaldo y Restauración</h2>
         <small className="text-600">
           Protege y recupera tus datos del sistema.
         </small>
       </div>
-      <Tag value="Administración" icon="pi pi-shield" severity="info" />
+      <Tag 
+        value="Administración" 
+        icon="pi pi-shield" 
+        severity="info"
+        className="flex-shrink-0"
+      />
     </div>
-  );
-
+  </div>
+);
   return (
     <div className="card">
       <Toast ref={toast} />
