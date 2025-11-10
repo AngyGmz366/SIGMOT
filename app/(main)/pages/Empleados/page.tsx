@@ -354,13 +354,25 @@ function EmpleadosPage() {
 
   const deleteEmpleadoHandler = async () => {
     try {
-      await deleteEmpleado(empleado.Id_Empleado_PK);
-      toast.current?.show({
-        severity: 'success',
-        summary: 'Éxito',
-        detail: 'Empleado eliminado correctamente',
-        life: 3000,
-      });
+      const response = await deleteEmpleado(empleado.Id_Empleado_PK);
+
+      // Verificar si fue despedido o eliminado
+      if (response.accion === 'DESPEDIDO') {
+        toast.current?.show({
+          severity: 'info',
+          summary: 'Empleado Despedido',
+          detail: 'El empleado tiene relaciones con otras tablas. Se ha marcado como DESPEDIDO.',
+          life: 5000,
+        });
+      } else {
+        toast.current?.show({
+          severity: 'success',
+          summary: 'Éxito',
+          detail: 'Empleado eliminado correctamente',
+          life: 3000,
+        });
+      }
+
       await loadEmpleados();
       setDeleteEmpleadoDialog(false);
     } catch (err) {
@@ -429,20 +441,19 @@ function EmpleadosPage() {
   );
 
   const header = (
-    <div className="flex flex-wrap gap-2 align-items-center justify-content-between">
+    <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
       <h4 className="m-0">Gestión de Empleados</h4>
-      <span className="p-input-icon-left">
+      <span className="block mt-2 md:mt-0 p-input-icon-left">
         <i className="pi pi-search" />
         <InputText
           type="search"
           value={globalFilter}
           onChange={(e) => setGlobalFilter(e.target.value)}
           placeholder="Buscar..."
-          className="w-full md:w-1/3"
+          className="w-full"
         />
       </span>
     </div>
-
   );
 
   const empleadoDialogFooter = (

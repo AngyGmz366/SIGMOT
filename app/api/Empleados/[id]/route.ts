@@ -1,14 +1,29 @@
 import { NextResponse } from 'next/server';
 import { getSafeConnection } from '@/lib/db_api';
 
-// DELETE: Eliminar un empleado
+
+// DELETE: Eliminar un empleado o marcarlo como despedido
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   const conn = await getSafeConnection();
   const { id } = params;
 
   try {
-    const [result] = await conn.query('CALL sp_empleados_eliminar(?)', [id]);
-    return NextResponse.json({ message: 'EMPLEADO ELIMINADO CORRECTAMENTE' }, { status: 200 });
+    const [result]: any = await conn.query('CALL sp_empleados_eliminar(?)', [id]);
+
+    // El procedimiento retorna si fue ELIMINADO o DESPEDIDO
+    const accion = result[0]?.[0]?.accion;
+
+    if (accion === 'DESPEDIDO') {
+      return NextResponse.json({
+        message: 'El empleado tiene relaciones con otras tablas. Se ha marcado como DESPEDIDO.',
+        accion: 'DESPEDIDO'
+      }, { status: 200 });
+    } else {
+      return NextResponse.json({
+        message: 'EMPLEADO ELIMINADO CORRECTAMENTE',
+        accion: 'ELIMINADO'
+      }, { status: 200 });
+    }
   } catch (error) {
     console.error('Error al eliminar empleado:', error);
     return NextResponse.json({ error: 'Error al eliminar empleado' }, { status: 500 });
@@ -41,7 +56,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       horasalida,
       Id_Persona_FK
     ]);
-    
+
     return NextResponse.json({ message: 'EMPLEADO ACTUALIZADO CORRECTAMENTE', result }, { status: 200 });
   } catch (error) {
     console.error('Error en la actualización:', error);
@@ -58,12 +73,12 @@ export async function GET(request: Request) {
   const DNI = searchParams.get('DNI') || null;
   const Nombre = searchParams.get('Nombre') || null;
   const Apellido = searchParams.get('Apellido') || null;
-  
+
   console.log('Filtros - DNI:', DNI, 'Nombre:', Nombre, 'Apellido:', Apellido);
-  
+
   try {
     const [rows] = await conn.query('CALL sp_empleados_obtener_por_filtro(?, ?, ?)', [DNI, Nombre, Apellido]);
-    
+
     // rows[0] contiene el primer resultado del procedimiento
     return NextResponse.json(rows[0], { status: 200 });
   } catch (error) {

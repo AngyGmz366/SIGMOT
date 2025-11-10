@@ -290,23 +290,3 @@
   right: 10px; /* Colocarlo a la derecha */
   z-index: 9999; /* Asegurarse de que se muestre por encima de otros elementos */
 }
-
-/* Estilo para la barra de búsqueda */
-.p-input-icon-left .p-inputtext {
-  width: 100%;
-}
-
-/* Ajustes para móviles */
-@media (max-width: 767px) {
-  .p-input-icon-left {
-    width: 100% !important;
-    margin: 0;
-  }
-  .p-input-icon-left input {
-    padding: 0.5rem;
-  }
-  /* Para el botón de búsqueda, ajustar la visibilidad */
-  .p-input-icon-left i {
-    font-size: 1.2rem;
-  }
-}
