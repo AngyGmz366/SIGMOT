@@ -268,7 +268,7 @@ function ReportSection({ title, children }: { title: string; children: React.Rea
                 <h3 className="text-lg font-bold text-white">{title}</h3>
                 
                 {/* Botones Exportar Individual - HORIZONTAL */}
-                <div className="flex gap-2">
+                <div className="flex gap-2 ml-auto">
                   <Button
                     icon="pi pi-file-pdf"
                     label="PDF"
@@ -581,6 +581,25 @@ function cerrarDetalle() {
           r.Estado || ''
         ],
       },
+
+        // ✅ 10. Empleados
+        {
+          title: 'Reportes de Empleados',
+          columns: ['ID', 'Empleado', 'DNI', 'Teléfono', 'Cargo', 'Estado', 'Fecha Contratación', 'Horario'],
+          rows: empleados,
+          mapRow: (r: any) => [
+            r.Id_Empleado_PK || '',
+            r.Empleado || '',
+            r.DNI || '',
+            r.Telefono || '',
+            r.Cargo || '',
+            r.Estado || '',
+            r.Fecha_Contratacion || '',
+            r.Horario || ''
+          ],
+        },
+
+
     ];
   };
 
@@ -837,6 +856,7 @@ function cerrarDetalle() {
       const [clientes, setClientes] = useState<any[]>([]);
       const [personas, setPersonas] = useState<any[]>([]);
       const [reservaciones, setReservaciones] = useState<any[]>([]);
+      const [empleados, setEmpleados] = useState<any[]>([]);
 
 
       useEffect(() => {
@@ -1022,7 +1042,7 @@ function cerrarDetalle() {
           try {
             const res = await fetch('/api/reportes/reservaciones');
             const json = await res.json();
-    
+            
             if (json.ok) {
               setReservaciones(json.data);
               console.log('🎟️ Reportes de reservaciones cargados:', json.data);
@@ -1114,6 +1134,38 @@ function cerrarDetalle() {
     fetchClientes();
   }, []);
 
+
+  useEffect(() => {
+    const fetchEmpleados = async () => {
+      try {
+        const res = await fetch('/api/reportes/empleados');
+        const json = await res.json();
+  
+        if (json.ok) {
+          setEmpleados(json.data);
+          console.log('👥 Reportes de empleados cargados:', json.data);
+        } else {
+          console.warn('⚠️ Error desde backend:', json.error);
+          toast.current?.show({
+            severity: 'warn',
+            summary: 'Advertencia',
+            detail: 'Error al obtener los reportes de empleados.',
+            life: 3000,
+          });
+        }
+      } catch (err) {
+        console.error('❌ Error al conectar con el backend de reportes:', err);
+        toast.current?.show({
+          severity: 'error',
+          summary: 'Error de conexión',
+          detail: 'No se pudo conectar con el servidor.',
+          life: 3000,
+        });
+      }
+    };
+  
+    fetchEmpleados();
+  }, []);
       
     return (
       <div className="p-6 space-y-6 max-w-[1800px] mx-auto">
@@ -1122,10 +1174,10 @@ function cerrarDetalle() {
     
         {/* ==================== BARRA DE BÚSQUEDA Y EXPORTACIÓN GENERAL ==================== */}
         <section className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-md border border-blue-100 p-6 mb-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex-1">
+        <div className="flex items-center justify-between gap-4">
+        <div className="flex-1">
               <h3 className="text-xl font-bold text-gray-800 mb-1">Exportación General</h3>
-              <p className="text-sm text-gray-600">Exporta todos los reportes en diferentes formatos o busca por módulo.</p>
+              <p className="text-sm text-gray-600">Búsqueda por módulo</p>
             </div>
     
             <div className="flex flex-col sm:flex-row gap-3 lg:w-auto">
@@ -1351,7 +1403,7 @@ function cerrarDetalle() {
             />
             </div>
           )}
-    
+         
           {/* Clientes */}
           {(!searchText || 'clientes'.includes(searchText.toLowerCase())) && (
             <div>
@@ -1389,6 +1441,28 @@ function cerrarDetalle() {
               ]}
               onView={(row) => abrirDetalle('Personas', row)}
             />
+            </div>
+          )}
+
+                {/* Empleados */}
+          {(!searchText || 'empleados'.includes(searchText.toLowerCase())) && (
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Reportes de Empleados</h2>
+              <ReportTable
+                title="Reportes de Empleados"
+                data={empleados}
+                columns={[
+                  { field: 'Id_Empleado_PK', header: 'ID' },
+                  { field: 'Empleado', header: 'Empleado' },
+                  { field: 'DNI', header: 'DNI' },
+                  { field: 'Telefono', header: 'Teléfono' },
+                  { field: 'Cargo', header: 'Cargo' },
+                  { field: 'Estado', header: 'Estado' },
+                  { field: 'Fecha_Contratacion', header: 'Fecha Contratación' },
+                  { field: 'Horario', header: 'Horario' },
+                ]}
+                onView={(row) => abrirDetalle('Empleados', row)}
+              />
             </div>
           )}
         </div>

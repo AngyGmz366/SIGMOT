@@ -174,7 +174,7 @@ export default function BitacoraPage() {
           'Objeto': r.objeto,
           'Descripción': r.descripcion,
         }));
-
+      
         // Crear hoja de trabajo
         const ws = XLSX.utils.json_to_sheet(datosExcel);
         
