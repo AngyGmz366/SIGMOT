@@ -33,6 +33,8 @@ export default function UsuariosPage() {
   const [visibleForm, setVisibleForm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [usuarioEdit, setUsuarioEdit] = useState<Usuario | null>(null);
+  // 🔸 NUEVO: Guardar datos originales
+  const [usuarioOriginal, setUsuarioOriginal] = useState<Usuario | null>(null);
 
   // 🔹 Cargar usuarios y roles
   useEffect(() => {
@@ -68,17 +70,21 @@ export default function UsuariosPage() {
 
       if (data.ok && data.item) {
         const u = data.item;
-        setUsuarioEdit({
+        const usuarioData = {
           id: u.Id_Usuario_PK || u.id || row.id,
           nombres: u.Nombres || u.nombres || '',
           apellidos: u.Apellidos || u.apellidos || '',
-          correo: u.Correo || u.correo || '',
+          correo: u.Correo_Electronico || u.Correo || u.correo || '',
           telefono: u.Telefono || u.telefono || '',
           rolId: u.Id_Rol_FK || u.rolId || 0,
           rol: u.Rol || u.rol || '',
-          estado: u.Estado_Usuario || u.estado || 'INACTIVO',
+          estado: u.Estado_Usuario || u.estado || 'ACTIVO',
           fechaRegistro: u.Fecha_Registro || '',
-        });
+        };
+        
+        // 🔸 NUEVO: Guardar copia original
+        setUsuarioOriginal({ ...usuarioData });
+        setUsuarioEdit(usuarioData);
         setVisibleForm(true);
       } else {
         throw new Error('Usuario no encontrado.');
@@ -95,7 +101,7 @@ export default function UsuariosPage() {
 
   // 🔹 Guardar cambios
   const saveUser = async () => {
-    if (!usuarioEdit) return;
+    if (!usuarioEdit || !usuarioOriginal) return;
     setSubmitted(true);
 
     if (!usuarioEdit.nombres.trim() || !usuarioEdit.apellidos.trim()) {
@@ -113,7 +119,8 @@ export default function UsuariosPage() {
         nombres: usuarioEdit.nombres,
         apellidos: usuarioEdit.apellidos,
         correo: usuarioEdit.correo,
-        telefono: usuarioEdit.telefono,
+        // 🔸 CAMBIO: Mantener teléfono original si no se editó
+        telefono: usuarioEdit.telefono?.trim() || usuarioOriginal.telefono || null,
         idRol: usuarioEdit.rolId,
         idEstado: usuarioEdit.estado === 'ACTIVO' ? 2 : 4,
         idAdmin: 1,
@@ -127,17 +134,23 @@ export default function UsuariosPage() {
 
       const data = await res.json();
       if (data.ok) {
+        // ✅ 1. Mostrar mensaje de éxito
         toast.current?.show({
           severity: 'success',
           summary: 'Éxito',
           detail: data.message || 'Usuario actualizado correctamente',
         });
 
+        // ✅ 2. Recargar la tabla
         const resU = await fetch('/api/usuarios');
         const dataU = await resU.json();
         setUsuarios(dataU.items || []);
+        
+        // ✅ 3. Cerrar modal y limpiar estados
         setVisibleForm(false);
         setUsuarioEdit(null);
+        setUsuarioOriginal(null);
+        setSubmitted(false);
       } else {
         toast.current?.show({
           severity: 'error',
@@ -146,10 +159,11 @@ export default function UsuariosPage() {
         });
       }
     } catch (err: any) {
+      console.error('❌ Error al guardar usuario:', err);
       toast.current?.show({
         severity: 'error',
         summary: 'Error',
-        detail: err.message,
+        detail: err.message || 'No se pudo actualizar el usuario',
       });
     }
   };
@@ -245,7 +259,7 @@ export default function UsuariosPage() {
               <span className="p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText
-                  placeholder="Buscar..."
+                  //placeholder="Buscar..."
                   onChange={(e) => {
                     const q = e.target.value.toLowerCase();
                     setUsuarios((prev) =>
@@ -287,14 +301,22 @@ export default function UsuariosPage() {
             visible={visibleForm}
             style={{ width: '700px', maxWidth: '95vw' }}
             modal
-            onHide={() => setVisibleForm(false)}
+            onHide={() => {
+              setVisibleForm(false);
+              setUsuarioEdit(null);
+              setUsuarioOriginal(null);
+            }}
             footer={
               <div className="flex justify-end gap-2">
                 <Button
                   label="Cancelar"
                   icon="pi pi-times"
                   text
-                  onClick={() => setVisibleForm(false)}
+                  onClick={() => {
+                    setVisibleForm(false);
+                    setUsuarioEdit(null);
+                    setUsuarioOriginal(null);
+                  }}
                 />
                 <Button label="Guardar" icon="pi pi-check" onClick={saveUser} />
               </div>

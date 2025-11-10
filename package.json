@@ -35,7 +35,7 @@
     "jspdf-autotable": "^5.0.2",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.536.0",
-    "mysql2": "^3.15.2",
+    "mysql2": "^3.15.3",
     "mysqldump": "^3.2.0",
     "next": "^13.4.6",
     "nodemailer": "^7.0.7",
@@ -73,8 +73,7 @@
     "sass": "^1.63.4",
     "typescript": "^5.3.3"
   },
-"engines": {
-  "node": ">=16.x"
-}
-
+  "engines": {
+    "node": ">=16.x"
+  }
 }

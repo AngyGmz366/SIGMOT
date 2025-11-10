@@ -94,7 +94,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 // ==============================
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
   const id = Number(params.id);
-  if (!Number.isFinite(id)) {
+  if (!Number.isFinite(id) || id <= 0) {
     return NextResponse.json({ error: 'id inválido' }, { status: 400 });
   }
 
@@ -108,13 +108,9 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   const estado       = upperOrNull(body?.estado); // PENDIENTE/CONFIRMADA/CANCELADA
   const tipo         = upperOrNull(body?.tipo);   // VIAJE/ENCOMIENDA
 
-  console.log("DEBUG tipo:", tipo, "idEncomienda:", idEncomienda);
+  console.log("DEBUG tipo:", tipo, "idEncomienda:", idEncomienda, "idViaje:", idViaje);
 
-
-  if (tipo === 'ENCOMIENDA' && idEncomienda == null) {
-  console.warn(`⚠️ id_encomienda no enviado, el SP la creará automáticamente.`);
-}
-
+  // Validaciones mejoradas
   if (!dni) {
     return NextResponse.json({ error: 'dni es obligatorio' }, { status: 400 });
   }
@@ -122,8 +118,32 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   if (tipo !== 'VIAJE' && tipo !== 'ENCOMIENDA') {
     return NextResponse.json({ error: 'tipo debe ser VIAJE o ENCOMIENDA' }, { status: 400 });
   }
+
+  // Validación específica según el tipo
   if (tipo === 'VIAJE' && idViaje == null) {
-    return NextResponse.json({ error: 'id_viaje es obligatorio cuando tipo=VIAJE' }, { status: 400 });
+    return NextResponse.json({ 
+      error: 'id_viaje es obligatorio cuando tipo=VIAJE' 
+    }, { status: 400 });
+  }
+
+  // Para ENCOMIENDA, permitimos que el SP cree una automáticamente si no se envía
+  if (tipo === 'ENCOMIENDA' && idEncomienda == null && idViaje == null) {
+    console.warn(`⚠️ id_encomienda e id_viaje no enviados, el SP necesitará al menos id_viaje`);
+    return NextResponse.json({ 
+      error: 'Para ENCOMIENDA debe enviar id_viaje o id_encomienda' 
+    }, { status: 400 });
+  }
+
+  // Validación de costo
+  if (costo !== null && (typeof costo !== 'number' || costo < 0)) {
+    return NextResponse.json({ 
+      error: 'costo debe ser un número positivo' 
+    }, { status: 400 });
+  }
+
+  // Validación de asiento según tipo
+  if (tipo === 'ENCOMIENDA' && idAsiento !== null) {
+    console.warn(`⚠️ id_asiento ignorado para tipo ENCOMIENDA`);
   }
 
   const conn = await db.getConnection();
@@ -132,10 +152,19 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       `CALL sp_reserva_actualizar(?,?,?,?,?,?,?,?,?)`,
       [id, dni, idViaje, idEncomienda, idAsiento, costo, fecha, estado, tipo]
     );
-    return NextResponse.json({ ok: true }, { status: 200 });
+    
+    return NextResponse.json({ 
+      ok: true,
+      message: 'Reserva actualizada correctamente' 
+    }, { status: 200 });
+    
   } catch (e: any) {
+    console.error('Error al actualizar reserva:', e);
     return NextResponse.json(
-      { error: e?.sqlMessage || e?.message || 'Error al actualizar reservación' },
+      { 
+        error: e?.sqlMessage || e?.message || 'Error al actualizar reservación',
+        code: e?.code
+      },
       { status: 500 }
     );
   } finally {
@@ -143,23 +172,53 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
+
 // ==============================
 //  DELETE /api/reservas/[id]
 // ==============================
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   const id = Number(params.id);
-  if (!Number.isFinite(id)) {
-    return NextResponse.json({ error: 'id inválido' }, { status: 400 });
+  
+  // Validación mejorada del ID
+  if (!Number.isFinite(id) || id <= 0) {
+    return NextResponse.json({ error: 'ID de reserva inválido' }, { status: 400 });
   }
 
   const conn = await db.getConnection();
   try {
+    // Ejecutar el SP de eliminación
     await conn.query('CALL sp_reserva_eliminar(?)', [id]);
-    return NextResponse.json({ ok: true }, { status: 200 });
+    
+    return NextResponse.json({ 
+      ok: true,
+      message: 'Reserva cancelada correctamente' 
+    }, { status: 200 });
+    
   } catch (e: any) {
+    console.error('Error al eliminar reserva:', e);
+    
+    // Mensajes de error más específicos
+    let errorMessage = 'Error al cancelar reservación';
+    let statusCode = 500;
+    
+    if (e?.sqlMessage) {
+      errorMessage = e.sqlMessage;
+      
+      // Manejar errores específicos de MySQL
+      if (e.sqlMessage.includes('Reserva no encontrada')) {
+        statusCode = 404;
+      } else if (e.sqlMessage.includes('foreign key constraint')) {
+        errorMessage = 'No se puede cancelar la reserva porque tiene datos asociados';
+        statusCode = 409;
+      }
+    }
+    
     return NextResponse.json(
-      { error: e?.sqlMessage || e?.message || 'Error al eliminar reservación' },
-      { status: 500 }
+      { 
+        error: errorMessage,
+        code: e?.code
+      },
+      { status: statusCode }
     );
   } finally {
     conn.release();
