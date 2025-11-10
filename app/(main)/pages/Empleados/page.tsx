@@ -438,9 +438,11 @@ function EmpleadosPage() {
           value={globalFilter}
           onChange={(e) => setGlobalFilter(e.target.value)}
           placeholder="Buscar..."
+          className="w-full md:w-1/3"
         />
       </span>
     </div>
+
   );
 
   const empleadoDialogFooter = (
