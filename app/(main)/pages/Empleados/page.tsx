@@ -397,7 +397,6 @@ function EmpleadosPage() {
     }
   };
 
-
   const onTimeChange = (value: Date | null, name: string) => {
     if (value) {
       const hours = value.getHours().toString().padStart(2, '0');
