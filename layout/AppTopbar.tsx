@@ -156,23 +156,21 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
   const items = [
     {
       template: () => (
-        <div className="p-3 border-bottom-1 surface-border flex align-items-center justify-content-between gap-3 menu-header" onClick={() => router.push('/configuracion/perfil')}>
-          <div className="flex align-items-center gap-3 flex-1">
-            <img
-              src={foto || 'demo/images/default-user.png'}
-              alt="Avatar"
-              className="border-circle"
-              width={48}
-              height={48}
-              style={{ objectFit: 'cover' }}
-              onError={(e) => (e.currentTarget.src = 'demo/images/default-user.png')}
-            />
-            <div className="flex flex-column">
-              <span className="font-bold text-900">{nombreUsuario}</span>
-              <small className="text-600">{rolUsuario}</small>
-            </div>
+        <div className="p-3 border-bottom-1 surface-border flex align-items-center gap-3 menu-header"   onClick={() => router.push('/configuracion/perfil')}
+  >
+          <img
+            src={foto || 'demo/images/default-user.png'}
+            alt="Avatar"
+            className="border-circle"
+            width={48}
+            height={48}
+            style={{ objectFit: 'cover' }}
+            onError={(e) => (e.currentTarget.src = 'demo/images/default-user.png')}
+          />
+          <div className="flex flex-column">
+            <span className="font-bold text-900">{nombreUsuario}</span>
+            <small className="text-600">{rolUsuario}</small>
           </div>
-          <i className="pi pi-cog text-xl cursor-pointer flex-shrink-0"></i>
         </div>
       ),
     },
