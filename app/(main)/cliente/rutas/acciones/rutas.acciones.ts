@@ -1,7 +1,7 @@
 import { RutaPublica, horariosToStr } from "../Types/rutas.types";
 
 /**
- * 🔹 Carga todas las rutas públicas activas desde la API
+ * 🔹 carga todas las rutas públicas activas desde la API
  */
 export async function getRutasPublic(): Promise<RutaPublica[]> {
   const res = await fetch("/api/rutas-publico", { cache: "no-store" });
