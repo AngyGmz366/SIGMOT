@@ -41,6 +41,8 @@ export default function FormReservacion() {
   const [asientoOptions, setAsientoOptions] = useState<Option[]>([]);
   const [isSmallScreen, setIsSmallScreen] = useState(false);
 
+  
+
   // 🔹 Detectar pantallas pequeñas
   useEffect(() => {
     const checkScreenSize = () => {
@@ -68,35 +70,50 @@ export default function FormReservacion() {
     }
   }, []);
 
-  // 🔹 Cargar unidades
-  useEffect(() => {
-    const cargarUnidades = async () => {
-      if (!formData.ruta?.value) return;
-      try {
-        const res = await fetch(`/api/unidades-por-rutas/${formData.ruta.value}`);
-        if (!res.ok) throw new Error('No se pudieron cargar las unidades.');
-        const data = await res.json();
-        const opciones = (data.items || []).map((u: any) => {
-          const idViaje =
-            u.idViaje ?? u.idviaje ?? u.Id_Viaje_PK ?? u.Id_Viaje ?? null;
-          const unidad =
-            u.unidad ??
-            u.Unidad ??
-            `${u.Numero_Placa ?? ''} - ${u.Marca_Unidad ?? ''}`.trim();
-          const horaSalida = u.horaSalida ?? u.Hora_Salida ?? u.hora_salida ?? '—';
-          return {
-            label: `${unidad}${horaSalida ? ` · salida ${horaSalida}` : ''}`,
-            value: idViaje,
-          };
-        });
-        setUnidadOptions(opciones);
-      } catch (error) {
-        console.error('❌ Error cargando unidades:', error);
-        setUnidadOptions([]);
-      }
-    };
-    cargarUnidades();
-  }, [formData.ruta?.value]);
+  // 🔹 Cargar unidades - MODIFICAR ESTE useEffect
+useEffect(() => {
+  const cargarUnidades = async () => {
+    if (!formData.ruta?.value) return;
+    try {
+      const res = await fetch(`/api/unidades-por-rutas/${formData.ruta.value}`);
+      if (!res.ok) throw new Error('No se pudieron cargar las unidades.');
+      const data = await res.json();
+      const opciones = (data.items || []).map((u: any) => {
+        const idViaje =
+          u.idViaje ?? u.idviaje ?? u.Id_Viaje_PK ?? u.Id_Viaje ?? null;
+        const unidad =
+          u.unidad ??
+          u.Unidad ??
+          `${u.Numero_Placa ?? ''} - ${u.Marca_Unidad ?? ''}`.trim();
+        const horaSalida = u.horaSalida ?? u.Hora_Salida ?? u.hora_salida ?? '—';
+        
+        // 🔥 NUEVO: Acortar texto solo para pantallas pequeñas
+        let label;
+        if (isSmallScreen) {
+          // En móviles: solo placa y hora (más corto)
+          const placaCorta = (u.Numero_Placa || unidad.split(' - ')[0] || unidad).substring(0, 15);
+          const horaCorta = horaSalida !== '—' ? ` ${horaSalida}` : '';
+          label = `${placaCorta}${horaCorta}`;
+        } else {
+          // En pantallas grandes: texto completo
+          label = `${unidad}${horaSalida ? ` · salida ${horaSalida}` : ''}`;
+        }
+        
+        return {
+          label: label,
+          value: idViaje,
+          // Guardar el texto completo para tooltips o pantallas grandes
+          title: `${unidad}${horaSalida ? ` · salida ${horaSalida}` : ''}`
+        };
+      });
+      setUnidadOptions(opciones);
+    } catch (error) {
+      console.error('❌ Error cargando unidades:', error);
+      setUnidadOptions([]);
+    }
+  };
+  cargarUnidades();
+}, [formData.ruta?.value, isSmallScreen]); // ← Agregar isSmallScreen como dependencia
 
   // 🔹 Cargar asientos
   useEffect(() => {
@@ -306,23 +323,34 @@ export default function FormReservacion() {
                 />
 
                 {/* Unidad - TERCERA POSICIÓN */}
-                <Dropdown
-                  value={formData.unidad?.value ?? null}
-                  options={unidadOptions}
-                  optionLabel="label"
-                  optionValue="value"
-                  placeholder="Unidad"
-                  className="w-full"
-                  onChange={(e) => {
-                    const selectedOption = unidadOptions.find((opt) => opt.value === e.value);
-                    setFormData({
-                      ...formData,
-                      unidad: selectedOption || null,
-                      asiento: null,
-                    });
-                  }}
-                  disabled={!formData.ruta}
-                />
+<Dropdown
+  value={formData.unidad?.value ?? null}
+  options={unidadOptions}
+  optionLabel="label"
+  optionValue="value"
+  placeholder="Unidad"
+  className="w-full"
+  onChange={(e) => {
+    const selectedOption = unidadOptions.find((opt) => opt.value === e.value);
+    setFormData({
+      ...formData,
+      unidad: selectedOption || null,
+      asiento: null,
+    });
+  }}
+  disabled={!formData.ruta}
+  // 🔥 NUEVO: Tooltip con información completa
+  itemTemplate={(option) => (
+    <div title={option.title || option.label}>{option.label}</div>
+  )}
+  valueTemplate={(option, props) => (
+    option ? (
+      <div title={option.title || option.label}>{option.label}</div>
+    ) : (
+      <span>{props.placeholder}</span>
+    )
+  )}
+/>
 
                 {/* 🧩 Campos según tipo - MANTENEMOS ORDEN */}
                 {formData.tipo === 'viaje' ? (
@@ -381,18 +409,21 @@ export default function FormReservacion() {
                     <label className="text-gray-700 text-sm font-medium block mb-1 mt-3">
                       Peso (kg)
                     </label>
-                    <InputNumber
-                      value={formData.peso ?? 0}
-                      onValueChange={(e) =>
-                        setFormData({ ...formData, peso: e.value })
-                      }
-                      mode="decimal"
-                      min={0}
-                      max={30}
-                      showButtons
-                      buttonLayout="horizontal"
-                      className="w-full"
-                    />
+                    <input
+      type="number"
+      value={formData.peso || ''}
+      onChange={(e) =>
+        setFormData({ 
+          ...formData, 
+          peso: e.target.value ? Number(e.target.value) : null 
+        })
+      }
+      min="0"
+      max="30"
+      step="0.1"
+      placeholder="0"
+      className="peso-input-simple"
+    />
                   </div>
                 )}
               </div>

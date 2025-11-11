@@ -19,6 +19,7 @@ const Perfil = () => {
         departamento: '',
         municipio: '',
         genero: '',
+        dni: '',
         foto: ''
     });
 
@@ -30,7 +31,7 @@ const Perfil = () => {
         { label: 'Otro', value: 'Otro' },
     ];
 
-    // 🔹 1. Cargar datos desde el backend
+    // 🔹 Cargar datos desde el backend
     useEffect(() => {
         const idUsuario = localStorage.getItem('idUsuario');
         if (!idUsuario) {
@@ -42,16 +43,18 @@ const Perfil = () => {
         axios.get(`/api/usuarios/${idUsuario}`)
             .then(res => {
                 if (res.data.ok) {
+                    const d = res.data.data;
                     setPerfil({
-                        nombre: res.data.data.nombre || '',
-                        apellido: res.data.data.apellido || '',
-                        correo: res.data.data.correo || '',
-                        telefono: res.data.data.telefono || '',
-                        direccion: res.data.data.direccion || '',
-                        departamento: res.data.data.departamento || '',
-                        municipio: res.data.data.municipio || '',
-                        genero: res.data.data.genero || '',
-                        foto: res.data.data.fotoPerfil || '/demo/images/avatar/stephenshaw.png'
+                        nombre: d.nombre || '',
+                        apellido: d.apellido || '',
+                        correo: d.correo || '',
+                        telefono: d.telefono || '',
+                        direccion: d.direccion || '',
+                        departamento: d.departamento || '',
+                        municipio: d.municipio || '',
+                        genero: d.genero || '',
+                        dni: d.dni || '',
+                        foto: d.fotoPerfil || '/demo/images/avatar/stephenshaw.png'
                     });
                 } else {
                     toast.current?.show({ severity: 'error', summary: 'No se encontró el perfil', life: 3000 });
@@ -64,7 +67,7 @@ const Perfil = () => {
             .finally(() => setLoading(false));
     }, []);
 
-    // 🔹 2. Cambiar foto localmente
+    // 🔹 Cambiar foto localmente
     const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
@@ -76,18 +79,18 @@ const Perfil = () => {
         }
     };
 
-    // 🔹 3. Actualizar perfil en la base
+    // 🔹 Actualizar perfil
     const actualizarPerfil = async () => {
         try {
             const idUsuario = localStorage.getItem('idUsuario');
             if (!idUsuario) return;
 
-            // ✅ Body ajustado para coincidir con el backend
             const body = {
                 nombre: perfil.nombre,
                 apellido: perfil.apellido,
                 telefono: perfil.telefono,
                 genero: perfil.genero,
+                dni: perfil.dni,
                 foto: perfil.foto,
                 departamento: perfil.departamento,
                 municipio: perfil.municipio
@@ -161,7 +164,13 @@ const Perfil = () => {
                     <InputText id="telefono" value={perfil.telefono} onChange={(e) => setPerfil({ ...perfil, telefono: e.target.value })} />
                 </div>
 
-                {/* 🏠 Campos nuevos para dirección */}
+                {/* 🆔 Nuevo campo DNI */}
+                <div className="field col-12 md:col-6">
+                    <label htmlFor="dni">DNI</label>
+                    <InputText id="dni" value={perfil.dni} onChange={(e) => setPerfil({ ...perfil, dni: e.target.value })} />
+                </div>
+
+                {/* 🏠 Dirección */}
                 <div className="field col-12 md:col-6">
                     <label htmlFor="departamento">Departamento</label>
                     <InputText id="departamento" value={perfil.departamento} onChange={(e) => setPerfil({ ...perfil, departamento: e.target.value })} />
