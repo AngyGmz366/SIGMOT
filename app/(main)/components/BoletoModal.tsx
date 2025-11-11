@@ -9,6 +9,8 @@ import { Boleto } from '@/types/ventas';
 import { apiGet } from '@/lib/http';
 import axios from 'axios';
 import { useCatalogos } from '@/lib/catalogos'; 
+import { getClientes, invalidateClientesCache } from '@/modulos/boletos/servicios/ventas.servicios';
+
 
 type Props = {
   visible: boolean;
@@ -45,6 +47,14 @@ useEffect(() => {
     recargar(); // ✅ Carga clientes nuevos cuando se abre el modal
   }
 }, [visible]);
+
+
+useEffect(() => {
+  const handler = () => recargar();
+  if (typeof window !== 'undefined') window.addEventListener('clientes:updated', handler);
+  return () => { if (typeof window !== 'undefined') window.removeEventListener('clientes:updated', handler); };
+}, [recargar]);
+
 
 
 

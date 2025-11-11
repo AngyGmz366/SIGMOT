@@ -84,15 +84,22 @@ const ImprimirBoleto: React.FC<BoletoPrintProps> = ({ data, factura }) => {
           <span className="font-bold">{data.Codigo_Ticket}</span>
         </div>
 
-           <div className="flex justify-between">
-          <span>UNIDAD:</span>
-          <span className="font-bold">{data.autobus}</span>
-        </div>
-        
-        <div className="flex justify-between">
-          <span>ASIENTO N°:</span>
-          <span className="font-extrabold text-lg">{data.asiento || data.numero_asiento || 'No asignado'}</span>
-        </div>
+      <div className="flex justify-between">
+  <span>UNIDAD:</span>
+  <span className="font-bold">
+    {data.autobus || (data as any).Autobus || (data as any).Numero_Placa || '—'}
+  </span>
+</div>
+
+<div className="flex justify-between">
+  <span>ASIENTO:</span>
+  <span className="font-bold">
+    {data.asiento || (data as any).Numero_Asiento || (data as any).Asiento || 'No asignado'}
+  </span>
+</div>
+
+
+
         <div className="flex justify-between">
           <span>FECHA:</span>
           <span>{data.fecha}</span>

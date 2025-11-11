@@ -55,6 +55,7 @@ async function obtenerHistorialCliente(idCliente: number): Promise<{ pagos: Pago
 function ClientesPage() {
   const toast = useRef<Toast>(null);
   const dt = useRef<DataTable<any>>(null);
+const [globalFilter, setGlobalFilter] = useState('');
 
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [personas, setPersonas] = useState<Persona[]>([]);
@@ -102,6 +103,28 @@ function ClientesPage() {
     }
     fetchData();
   }, []);
+
+
+
+  useEffect(() => {
+  const handler = async () => {
+    try {
+      setClientes(await cargarClientes());
+    } catch (e) {
+      console.error('❌ No se pudo recargar clientes tras evento:', e);
+    }
+  };
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('clientes:updated', handler);
+  }
+  return () => {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('clientes:updated', handler);
+    }
+  };
+}, []);
+
 
   // 🔹 Cargar historial al seleccionar cliente
   useEffect(() => {
@@ -233,11 +256,14 @@ function ClientesPage() {
       <span className="block mt-2 md:mt-0 p-input-icon-left">
         <i className="pi pi-search" />
         <InputText
-          type="search"
-          placeholder="Buscar..."
-          onChange={(e) => dt.current?.filter(e.target.value, 'global', 'contains')}
-          className="w-full"
-        />
+  type="search"
+  placeholder="Buscar..."
+  value={globalFilter}
+  onChange={(e) => setGlobalFilter(e.target.value)}
+  className="w-full"
+/>
+
+
       </span>
     </div>
   );
@@ -279,6 +305,11 @@ function ClientesPage() {
             emptyMessage="No se encontraron clientes."
             header={header}
             responsiveLayout="scroll"
+          globalFilter={globalFilter}
+globalFilterFields={['nombreCompleto', 'estado', 'idPersona', 'id']}
+
+              
+
           >
             <Column selectionMode="multiple" headerStyle={{ width: '3rem' }} style={{ textAlign: 'center' }} />
             <Column header="Nombre" body={personaTemplate} sortable />

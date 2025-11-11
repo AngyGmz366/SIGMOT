@@ -13,6 +13,10 @@ import { Tag } from 'primereact/tag';
 import { Persona } from '@/types/persona';
 import { cargarPersonas, guardarPersona, eliminarPersona } from '@/modulos/personas/controlador/personas.controlador';
 
+
+import { guardarCliente } from '@/modulos/clientes/controlador/clientes.controlador';
+import { invalidateClientesCache } from '@/modulos/boletos/servicios/ventas.servicios';
+
 export default function PersonasPage() {
   const toast = useRef<Toast>(null);
   const [personas, setPersonas] = useState<Persona[]>([]);
@@ -67,44 +71,60 @@ export default function PersonasPage() {
   /* ============================
      🔹 Guardar / Actualizar
   ============================ */
-  const savePersona = async () => {
-    setSubmitted(true);
 
-    if (!persona.Nombres?.trim() || !persona.Apellidos?.trim()) {
-      toast.current?.show({
-        severity: 'warn',
-        summary: 'Campos requeridos',
-        detail: 'Nombre y apellido son obligatorios.',
-        life: 3000,
-      });
-      return;
+
+const savePersona = async () => {
+  setSubmitted(true);
+
+  if (!persona.Nombres?.trim() || !persona.Apellidos?.trim()) {
+    toast.current?.show({ severity: 'warn', summary: 'Campos requeridos', detail: 'Nombre y apellido son obligatorios.', life: 3000 });
+    return;
+  }
+
+  try {
+    // 1) Guardar/actualizar persona
+    await guardarPersona(persona);
+
+    // 2) Recargar lista para conocer el Id_Persona
+    const lista = await cargarPersonas(1);
+    const pGuardada =
+      lista.find(p => p.DNI && persona.DNI && p.DNI === persona.DNI) ||
+      lista.find(p => p.Nombres === persona.Nombres && p.Apellidos === persona.Apellidos);
+
+    const idPersonaCreada = pGuardada?.Id_Persona;
+
+    // 3) Si es de tipo Cliente (1), asegúrate que exista en TBL_CLIENTES
+    if (Number(persona.TipoPersona) === 1 && idPersonaCreada) {
+      try {
+        // Crea/activa el cliente (tu controlador ya sabe crear/actualizar)
+        await guardarCliente({ id: 0, idPersona: idPersonaCreada, idEstadoCliente: 1, estado: 'ACTIVO' });
+      } catch (e) {
+        // Si ya existe, lo ignora (opcional: puedes mostrar un info)
+        console.warn('Cliente ya existía o no fue necesario crearlo:', e);
+      }
+
+      // 4) Invalida cache y notifica a otros módulos (Boletos, etc.)
+      if (typeof window !== 'undefined') {
+        invalidateClientesCache();
+        window.dispatchEvent(new Event('clientes:updated'));
+      }
     }
 
-    try {
-      console.log('Persona a guardar:', persona);
-      await guardarPersona(persona); // Verifica si aquí estás enviando `EstadoPersona`
+    toast.current?.show({
+      severity: 'success',
+      summary: persona.Id_Persona ? 'Actualizada' : 'Creada',
+      detail: persona.Id_Persona ? 'Persona actualizada' : 'Persona creada',
+      life: 3000,
+    });
 
-      toast.current?.show({
-        severity: 'success',
-        summary: persona.Id_Persona ? 'Actualizada' : 'Creada',
-        detail: persona.Id_Persona
-          ? 'Persona actualizada correctamente'
-          : 'Persona registrada correctamente',
-        life: 3000,
-      });
+    setPersonaDialogVisible(false);
+    await cargarLista(); // refresca la tabla de personas
+  } catch (e: any) {
+    console.error('❌ Error guardando persona:', e);
+    toast.current?.show({ severity: 'error', summary: 'Error', detail: e?.message || 'No se pudo guardar la persona', life: 4000 });
+  }
+};
 
-      setPersonaDialogVisible(false);
-      cargarLista();
-    } catch (e: any) {
-      console.error('❌ Error guardando persona:', e);
-      toast.current?.show({
-        severity: 'error',
-        summary: 'Error',
-        detail: e?.message || 'No se pudo guardar la persona',
-        life: 4000,
-      });
-    }
-  };
 
   /* ============================
      🔹 Eliminar seleccionadas

@@ -50,6 +50,7 @@ function calcularTotal(precio?: number, descuento?: number) {
 }
 
 /* ===================== Mapeo API → UI ===================== */
+// servicios/ventas.servicios.ts
 export function mapTicketToBoleto(r: TicketRow): Boleto {
   return {
     id: r.Id_Ticket_PK,
@@ -59,16 +60,18 @@ export function mapTicketToBoleto(r: TicketRow): Boleto {
     fecha: (r.Fecha_Hora_Compra ?? '').slice(0, 10),
     precio: toNumber(r.Precio_Total, 0),
     tipoVenta: 'boleto',
-    asiento: r.Asiento ?? '',
-    autobus: r.Autobus ?? '',
-    horaSalida: r.Hora_Salida ?? '',
-    horaLlegada: r.Hora_Llegada ?? '',
-    telefono: r.Telefono ?? '',
-    cedula: r.DNI ?? '',
 
-    // 🔹 Corrige nombres según los que devuelve tu SP (Estado_Ticket, Metodo_Pago)
+    // 👇 fallback extra
+    asiento: (r as any).Asiento ?? (r as any).Numero_Asiento ?? (r as any).numero_asiento ?? '',
+    autobus: (r as any).Autobus ?? (r as any).Placa ?? (r as any).Unidad ?? '',
+
+    horaSalida: (r as any).Hora_Salida ?? '',
+    horaLlegada: (r as any).Hora_Llegada ?? '',
+    telefono: (r as any).Telefono ?? '',
+    cedula: (r as any).DNI ?? '',
+
     estado: (r as any).Estado_Ticket ?? r.Estado ?? 'pendiente',
-    metodoPago: (r as any).Metodo_Pago ?? r.Metodo ?? 'efectivo',
+    metodoPago: (r as any).Metodo_Pago ?? (r as any).Metodo ?? 'efectivo',
 
     descuento: 0,
     total: toNumber(r.Precio_Total, 0),
@@ -85,6 +88,12 @@ export function mapTicketToBoleto(r: TicketRow): Boleto {
 /* ===================== Catálogos ===================== */
 // Cache para clientes activos
 let clientesCache: Opcion[] | null = null;
+
+// 👇 Exporta un invalidador simple
+export function invalidateClientesCache() {
+  clientesCache = null;
+}
+
 
 export async function getClientes(): Promise<Opcion[]> {
   // 🔹 Si ya está cacheado, devolvemos lo mismo
@@ -226,8 +235,13 @@ export async function crearBoleto(b: Partial<Boleto>) {
     Id_Asiento_FK: b.Id_Asiento_FK,
   };
 
-  const { data } = await http.post('/api/boletos', payload);
-  return { id: data?.id, message: data?.message };
+   const { data } = await http.post('/api/boletos', payload);
+  const newId  = data?.result?.Id_Ticket_PK ?? data?.Id_Ticket_PK ?? data?.insertId ?? null;
+  const codigo = data?.result?.Codigo_Ticket ?? data?.Codigo_Ticket ?? '';
+
+  if (!newId) throw new Error('No se pudo obtener el ID del ticket');
+
+  return { Id_Ticket_PK: Number(newId), Codigo_Ticket: String(codigo || '') };
 }
 
 export async function actualizarBoleto(id: number, b: Partial<Boleto>) {

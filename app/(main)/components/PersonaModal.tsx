@@ -16,6 +16,95 @@ interface Props {
   setPersona: React.Dispatch<React.SetStateAction<Persona>>;
   submitted: boolean;
 }
+// 🔹 Departamentos y Municipios de Honduras
+const departamentosHonduras = [
+  {
+    label: 'Atlántida', value: 'Atlántida', municipios: [
+      'La Ceiba', 'El Porvenir', 'Esparta', 'Jutiapa', 'La Masica', 'San Francisco', 'Tela'
+    ]
+  },
+  {
+    label: 'Choluteca', value: 'Choluteca', municipios: [
+      'Choluteca', 'Apacilagua', 'Concepción de María', 'Duyure', 'El Corpus', 'El Triunfo', 'Marcovia', 'Morolica', 'Namasigüe', 'Orocuina', 'Pespire', 'San Antonio de Flores', 'San Isidro', 'San José', 'San Marcos de Colón', 'Santa Ana de Yusguare'
+    ]
+  },
+  {
+    label: 'Colón', value: 'Colón', municipios: [
+      'Trujillo', 'Balfate', 'Iriona', 'Limón', 'Sabá', 'Santa Fe', 'Santa Rosa de Aguán', 'Sonaguera', 'Tocoa'
+    ]
+  },
+  {
+    label: 'Comayagua', value: 'Comayagua', municipios: [
+      'Comayagua', 'Ajuterique', 'El Rosario', 'Esquías', 'Humuya', 'La Libertad', 'Lamaní', 'La Trinidad', 'Lejamaní', 'Meámbar', 'Minas de Oro', 'Ojos de Agua', 'San Jerónimo', 'San José de Comayagua', 'San José del Potrero', 'San Luis', 'San Sebastián', 'Siguatepeque', 'Taulabé', 'Villa de San Antonio'
+    ]
+  },
+  {
+    label: 'Copán', value: 'Copán', municipios: [
+      'Santa Rosa de Copán', 'Cabañas', 'Concepción', 'Corquín', 'Cucuyagua', 'Dolores', 'Dulce Nombre', 'El Paraíso', 'Florida', 'La Jigua', 'La Unión', 'Nueva Arcadia', 'San Agustín', 'San Antonio', 'San Jerónimo', 'San José', 'San Juan de Opoa', 'San Nicolás', 'San Pedro', 'Santa Rita', 'Trinidad', 'Veracruz'
+    ]
+  },
+  {
+    label: 'Cortés', value: 'Cortés', municipios: [
+      'San Pedro Sula', 'Choloma', 'La Lima', 'Omoa', 'Pimienta', 'Potrerillos', 'Puerto Cortés', 'San Antonio de Cortés', 'San Francisco de Yojoa', 'San Manuel', 'Santa Cruz de Yojoa', 'Villanueva'
+    ]
+  },
+  {
+    label: 'El Paraíso', value: 'El Paraíso', municipios: [
+      'Yuscarán', 'Alauca', 'Danlí', 'El Paraíso', 'Güinope', 'Jacaleapa', 'Liure', 'Morocelí', 'Oropolí', 'San Antonio de Flores', 'San Lucas', 'San Matías', 'Soledad', 'Teupasenti', 'Texiguat', 'Vado Ancho', 'Yauyupe', 'Trojes'
+    ]
+  },
+  {
+    label: 'Francisco Morazán', value: 'Francisco Morazán', municipios: [
+      'Tegucigalpa', 'Alubarén', 'Cedros', 'Curarén', 'El Porvenir', 'Guaimaca', 'La Libertad', 'La Venta', 'Lepaterique', 'Maraita', 'Marale', 'Nueva Armenia', 'Ojojona', 'Orica', 'Reitoca', 'Sabanagrande', 'San Antonio de Oriente', 'San Buenaventura', 'San Ignacio', 'San Juan de Flores', 'San Miguelito', 'Santa Ana', 'Santa Lucía', 'Talanga', 'Tatumbla', 'Valle de Ángeles', 'Villa de San Francisco', 'Vallecillo'
+    ]
+  },
+  {
+    label: 'Gracias a Dios', value: 'Gracias a Dios', municipios: [
+      'Puerto Lempira', 'Brus Laguna', 'Ahuas', 'Juan Francisco Bulnes', 'Ramón Villeda Morales', 'Wampusirpi'
+    ]
+  },
+  {
+    label: 'Intibucá', value: 'Intibucá', municipios: [
+      'La Esperanza', 'Camasca', 'Colomoncagua', 'Concepción', 'Dolores', 'Intibucá', 'Jesús de Otoro', 'Magdalena', 'Masaguara', 'San Antonio', 'San Isidro', 'San Juan', 'San Marcos de la Sierra', 'San Miguelito', 'Santa Lucía', 'Yamaranguila'
+    ]
+  },
+  {
+    label: 'Islas de la Bahía', value: 'Islas de la Bahía', municipios: [
+      'Roatán', 'Guanaja', 'José Santos Guardiola', 'Utila'
+    ]
+  },
+  {
+    label: 'La Paz', value: 'La Paz', municipios: ['La Paz', 'Aguanqueterique', 'Cabañas', 'Cane', 'Chinacla', 'Guajiquiro', 'Lauterique', 'Marcala', 'Mercedes de Oriente', 'Opatoro', 'San Antonio del Norte', 'San José', 'San Juan', 'San Pedro de Tutule', 'Santa Ana', 'Santa Elena', 'Santa María', 'Santiago de Puringla', 'Yarula']
+  },
+  {
+    label: 'Lempira', value: 'Lempira', municipios: ['Gracias', 'Belén', 'Candelaria', 'Cololaca', 'Erandique', 'Gualcince', 'Guarita', 'La Campa', 'La Iguala', 'Las Flores', 'La Unión', 'Lepaera', 'Mapulaca', 'San Andrés', 'San Francisco', 'San Juan Guarita', 'San Manuel Colohete', 'San Rafael', 'San Sebastián', 'Santa Cruz', 'Talgua', 'Tambla', 'Tomalá', 'Valladolid', 'Virginia']
+  },
+  {
+    label: 'Ocotepeque', value: 'Ocotepeque', municipios: [
+      'Nueva Ocotepeque', 'Belén Gualcho', 'Concepción', 'Dolores Merendón', 'Fraternidad', 'La Encarnación', 'La Labor', 'Lucerna', 'Mercedes', 'San Fernando', 'San Francisco del Valle', 'San Jorge', 'San Marcos', 'Santa Fe', 'Sensenti', 'Sinuapa'
+    ]
+  },
+  {
+    label: 'Olancho', value: 'Olancho', municipios: [
+      'Juticalpa', 'Campamento', 'Catacamas', 'Concordia', 'El Rosario', 'Esquipulas del Norte', 'Gualaco', 'Guarizama', 'Guata', 'Guayape', 'Jano', 'La Unión', 'Mangulile', 'Manto', 'Salamá', 'San Esteban', 'San Francisco de Becerra', 'San Francisco de la Paz', 'Santa María del Real', 'Silca', 'Yocón'
+    ]
+  },
+  {
+    label: 'Santa Bárbara', value: 'Santa Bárbara', municipios: [
+      'Santa Bárbara', 'Arada', 'Atima', 'Azacualpa', 'Ceguaca', 'Concepción del Sur', 'Gualala', 'Ilama', 'Las Vegas', 'Macuelizo', 'Naranjito', 'Nuevo Celilac', 'Petoa', 'Protección', 'Quimistán', 'San Francisco de Ojuera', 'San José de Colinas', 'San Luis', 'San Marcos', 'San Nicolás', 'San Pedro Zacapa', 'San Vicente Centenario', 'Santa Rita', 'Trinidad'
+    ]
+  },
+  {
+    label: 'Valle', value: 'Valle', municipios: [
+      'Nacaome', 'Alianza', 'Amapala', 'Aramecina', 'Caridad', 'Goascorán', 'Langue', 'San Francisco de Coray', 'San Lorenzo'
+    ]
+  },
+  {
+    label: 'Yoro', value: 'Yoro', municipios: [
+      'Yoro', 'Arenal', 'El Negrito', 'El Progreso', 'Jocón', 'Morazán', 'Olanchito', 'Santa Rita', 'Sulaco', 'Victoria', 'Yorito'
+    ]
+  }
+];
 
 export default function PersonaModal({
   visible,
@@ -39,6 +128,10 @@ export default function PersonaModal({
     { label: 'Cliente', value: 1 },
     { label: 'Empleado', value: 2 },
   ];
+
+  const municipiosPorDepto =
+  departamentosHonduras.find((d) => d.value === persona.Departamento)?.municipios || [];
+
 
   /* 🔹 Validadores Honduras */
   const validarDNI = (dni: string) => /^\d{13}$/.test(dni);
@@ -250,48 +343,45 @@ export default function PersonaModal({
             )}
         </div>
 
-        {/* Departamento */}
-        <div className="field col-12 md:col-6">
-          <label htmlFor="departamento">Departamento</label>
-          <InputText
-            id="departamento"
-            value={persona.Departamento}
-            onChange={(e) =>
-              setPersona({ ...persona, Departamento: e.target.value })
-            }
-            className={
-              persona.Departamento &&
-              !validarTexto(persona.Departamento)
-                ? 'p-invalid'
-                : ''
-            }
-          />
-          {persona.Departamento &&
-            !validarTexto(persona.Departamento) && (
-              <small className="p-error">Solo letras y espacios</small>
-            )}
-        </div>
+{/* Departamento */}
+<div className="field col-12 md:col-6">
+  <label htmlFor="departamento">Departamento</label>
+  <Dropdown
+    id="departamento"
+    value={persona.Departamento}
+    options={departamentosHonduras}
+    optionLabel="label"
+    optionValue="value"
+    placeholder="Seleccione un departamento"
+    onChange={(e) =>
+      setPersona({ ...persona, Departamento: e.value, Municipio: '' })
+    }
+    className={submitted && !persona.Departamento ? 'p-invalid' : ''}
+  />
+  {submitted && !persona.Departamento && (
+    <small className="p-error">Campo obligatorio</small>
+  )}
+</div>
 
-        {/* Municipio */}
-        <div className="field col-12 md:col-6">
-          <label htmlFor="municipio">Municipio</label>
-          <InputText
-            id="municipio"
-            value={persona.Municipio}
-            onChange={(e) =>
-              setPersona({ ...persona, Municipio: e.target.value })
-            }
-            className={
-              persona.Municipio && !validarTexto(persona.Municipio)
-                ? 'p-invalid'
-                : ''
-            }
-          />
-          {persona.Municipio &&
-            !validarTexto(persona.Municipio) && (
-              <small className="p-error">Solo letras y espacios</small>
-            )}
-        </div>
+{/* Municipio */}
+<div className="field col-12 md:col-6">
+  <label htmlFor="municipio">Municipio</label>
+  <Dropdown
+    id="municipio"
+    value={persona.Municipio}
+    options={municipiosPorDepto.map((m) => ({ label: m, value: m }))}
+    placeholder="Seleccione un municipio"
+    onChange={(e) =>
+      setPersona({ ...persona, Municipio: e.value })
+    }
+    disabled={!persona.Departamento}
+    className={submitted && !persona.Municipio ? 'p-invalid' : ''}
+  />
+  {submitted && !persona.Municipio && (
+    <small className="p-error">Campo obligatorio</small>
+  )}
+</div>
+
       </div>
     </Dialog>
   );

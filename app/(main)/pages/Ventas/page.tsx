@@ -22,9 +22,11 @@
 
 
 
+
+
   import axios from "axios"; 
 
-  import { VentaItem, Boleto, Encomienda } from '@/types/ventas';
+  import { VentaItem, Boleto, Encomienda,FacturaForm } from '@/types/ventas';
   import { jsPDF } from 'jspdf';
 
   import {
@@ -56,7 +58,6 @@
     const [boletoDialogVisible, setBoletoDialogVisible] = useState(false);
     const [encomiendaDialogVisible, setEncomiendaDialogVisible] = useState(false);
 
-    const [itemParaImprimir, setItemParaImprimir] = useState<VentaItem | null>(null);
     const [printing, setPrinting] = useState(false);
     const [printingMode, setPrintingMode] = useState<'boleto' | 'encomienda'>('boleto');
 
@@ -200,6 +201,65 @@
   };
    
 
+
+
+  // En VentasPage
+
+
+const [itemParaImprimir, setItemParaImprimir] = useState<VentaItem | null>(null);
+const [facturaParaImprimir, setFacturaParaImprimir] = useState<FacturaForm | undefined>(undefined);
+
+const imprimirItem = async (row: VentaItem) => {
+  if (row.tipoVenta !== 'boleto' || !row.id) return;
+
+  try {
+    const { data } = await axios.get(`/api/boletos/${row.id}`); // usa sp_ticket_obtener
+    const f = data?.item;
+
+    const boletoFull = {
+      id: f.Id_Ticket_PK,
+      tipoVenta: 'boleto',
+      Codigo_Ticket: f.Codigo_Ticket || '',
+      cliente: f.Cliente || '',
+      cedula: f.Cedula || '',
+      telefono: f.Telefono || '',
+      origen: f.Origen || '',
+      destino: f.Destino || '',
+      fecha: (f.Fecha_Hora_Compra || '').slice(0, 10),
+      horaSalida: (f.Hora_Salida || '').slice(0, 5),
+      horaLlegada: (f.Hora_Estimada_Llegada || '').slice(0, 5),
+      precio: Number(f.Precio_Total ?? 0),
+      descuento: Number(f.DescuentoAplicado ?? 0),
+      total: Number(f.Total ?? f.Precio_Total ?? 0),
+      estado: f.Estado || 'pendiente',
+      metodoPago: f.MetodoPago || 'efectivo',
+
+      // 🔑 claves para el voucher
+      autobus: f.Autobus || f.Numero_Placa || '',
+      asiento: f.Numero_Asiento ? String(f.Numero_Asiento) : '',
+
+      // FKs (por si los necesitas)
+      Id_Cliente_FK: f.Id_Cliente_FK ?? null,
+      Id_Viaje_FK: f.Id_Viaje_FK ?? null,
+      Id_Unidad_FK: f.Id_Unidad_FK ?? null,
+      Id_Asiento_FK: f.Id_Asiento_FK ?? null,
+      Id_PuntoVenta_FK: f.Id_PuntoVenta_FK ?? 1,
+      Id_MetodoPago_FK: f.Id_MetodoPago_FK ?? null,
+      Id_EstadoTicket_FK: f.Id_EstadoTicket_FK ?? null,
+    } as Boleto;
+
+    setItemParaImprimir(boletoFull);
+    setPrintingMode('boleto');
+    setPrinting(true);
+  } catch (e) {
+    toast.current?.show({
+      severity: 'error',
+      summary: 'Error',
+      detail: 'No se pudo cargar el boleto para imprimir',
+      life: 3000,
+    });
+  }
+};
 
     
 
@@ -411,15 +471,7 @@
       setSubmitted(false);
     };
 
-const imprimirItem = (item: VentaItem) => {
-  if (item.tipoVenta !== 'boleto' && item.tipoVenta !== 'encomienda') return;
-  
-  console.log('Boleto para imprimir:', item); // Verifica los datos que recibes
-  
-  setItemParaImprimir(item);  // Asegúrate de que los datos se actualizan aquí
-  setPrintingMode(item.tipoVenta);
-  setPrinting(true);  // Muestra el modal de impresión
-};
+
 
 
     const cambiarModo = (nuevoModo: 'boleto' | 'encomienda') => {
@@ -920,11 +972,13 @@ const imprimirItem = (item: VentaItem) => {
   {itemParaImprimir && (
     <div ref={refImpresion}>
       {printingMode === 'boleto' ? (
-        <ImprimirBoleto
-          data={itemParaImprimir as Boleto}
-          visible={printing}
-          onHide={() => setPrinting(false)}
-        />
+     <ImprimirBoleto
+  data={itemParaImprimir as Boleto}
+  factura={facturaParaImprimir}
+  visible={printing}
+  onHide={() => setPrinting(false)}
+/>
+
       ) : (
         <ImprimirEncomienda
           item={itemParaImprimir as Encomienda}
