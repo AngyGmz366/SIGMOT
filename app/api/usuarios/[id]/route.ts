@@ -75,7 +75,7 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
          ),
          u.Foto_Perfil = ?
        WHERE u.Id_Usuario_PK = ?;`,
-      [body.nombre, body.apellido, body.telefono, body.dni, body.genero, body.foto, idUsuario]
+      [body.nombre, body.apellido, body.telefono, body.dni?.trim() === '' ? null : body.dni, body.genero, body.foto, idUsuario]
     );
 
     // 3️⃣ Si existe dirección, actualizarla
