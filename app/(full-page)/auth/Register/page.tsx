@@ -19,7 +19,7 @@ type FormState = {
   fechaNacimiento: Date | null;
   contrasena: string;
   repetirContrasena: string;
-  codigoVerificacion: string; // 👈 nuevo campo
+  codigoVerificacion: string;
 };
 
 type ErrorState = Partial<Record<keyof FormState, string>> & { general?: string };
@@ -48,13 +48,13 @@ const RegistroUsuario: React.FC = () => {
 
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
-  const [sendingCode, setSendingCode] = useState(false); // para el botón de código
+  const [sendingCode, setSendingCode] = useState(false);
   const [errors, setErrors] = useState<ErrorState>({});
 
   const setField = (k: keyof FormState, v: any) => setForm((p) => ({ ...p, [k]: v }));
   const phoneSanitized = useMemo(() => form.telefono.replace(/[^\d]/g, ''), [form.telefono]);
 
-  // 🔍 Validaciones
+  //  Validaciones
   const validateLocal = (): ErrorState => {
     const err: ErrorState = {};
 
@@ -83,7 +83,7 @@ const RegistroUsuario: React.FC = () => {
     return err;
   };
 
-  // ✉️ Enviar código de verificación
+  //  Enviar código de verificación
   const handleSendCode = async () => {
     if (!form.correo.trim()) {
       return Swal.fire('Error', 'Ingresa primero un correo válido.', 'error');
@@ -109,6 +109,20 @@ const RegistroUsuario: React.FC = () => {
       Swal.fire('Error', e?.message || 'No se pudo enviar el código.', 'error');
     } finally {
       setSendingCode(false);
+    }
+  };
+
+  //  Enviar correo de bienvenida
+  const sendWelcomeEmail = async (email: string, nombres: string) => {
+    try {
+      await fetch('/api/auth/send-welcome', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, nombres }),
+      });
+      // No mostramos error si falla el correo de bienvenida, ya es opcional
+    } catch (error) {
+      console.error('Error enviando correo de bienvenida:', error);
     }
   };
 
@@ -138,17 +152,21 @@ const RegistroUsuario: React.FC = () => {
           rolDefecto: 1,
           tipoPersona: 1,
           estadoUsuario: 1,
-          codigoVerificacion: form.codigoVerificacion.trim(), // 👈 agregado
+          codigoVerificacion: form.codigoVerificacion.trim(),
         }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data?.detail || data?.error || 'Error registrando');
 
+      // 🎉 Enviar correo de bienvenida después del registro exitoso
+      await sendWelcomeEmail(form.correo.trim(), form.nombres.trim());
+
       await Swal.fire({
         icon: 'success',
-        title: 'Cuenta creada',
-        text: 'Correo verificado y cuenta registrada correctamente.',
+        title: '¡Cuenta creada!',
+        text: 'Correo verificado y cuenta registrada correctamente. Te hemos enviado un correo de bienvenida.',
+        confirmButtonColor: '#6366f1',
       });
       router.push('/auth/login');
     } catch (e: any) {
@@ -186,12 +204,22 @@ const RegistroUsuario: React.FC = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.detail || data?.error || 'Error registrando con Google');
 
-      await Swal.fire({ icon: 'success', title: '¡Bienvenido!', text: 'Registro completado con Google.' });
+      // 🎉 Enviar correo de bienvenida después del registro con Google
+      const userName = form.nombres?.trim() || result.user.displayName || '';
+      const userEmail = result.user.email || '';
+      if (userEmail) {
+        await sendWelcomeEmail(userEmail, userName);
+      }
+
+      await Swal.fire({ 
+        icon: 'success', 
+        title: '¡Bienvenido!', 
+        text: 'Registro completado con Google. Te hemos enviado un correo de bienvenida.',
+        confirmButtonColor: '#6366f1',
+      });
       router.push('/dashboard');
     } catch (e: any) {
-      // Verificar el error de cierre de popup
-      if (e?.code === 'auth/popup-closed-by-user') return; // No hacer nada si el usuario cierra el popup
-
+      if (e?.code === 'auth/popup-closed-by-user') return;
       Swal.fire('Error', e?.message || 'No se pudo registrar con Google.', 'error');
     } finally {
       setLoading(false);
