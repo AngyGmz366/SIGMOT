@@ -8,7 +8,7 @@ export const db = mysql.createPool({
   password: process.env.DB_PASS,
   database: process.env.DB_NAME, // mydb
   waitForConnections: true,      // Espera si hay conexiones disponibles
-  connectionLimit: 10,           // Límite de conexiones concurrentes
+  connectionLimit: 5,           // Límite de conexiones concurrentes
   queueLimit: 0,                 // Sin límite de conexiones en espera
   dateStrings: true,
   timezone: "Z",
