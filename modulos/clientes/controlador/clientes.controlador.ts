@@ -1,4 +1,5 @@
 import type { Cliente } from '@/types/persona';
+import type { Pago, Viaje } from '@/types/ventas';
 import * as servicios from '@/modulos/clientes/servicios/clientes.servicios';
 
 /* =========================
@@ -52,5 +53,19 @@ export async function borrarCliente(id: number): Promise<void> {
   } catch (err: any) {
     console.error('❌ Error en borrarCliente:', err);
     throw new Error(err?.message || 'Error al desactivar cliente');
+  }
+}
+
+
+/* =========================
+   🔹 Controlador para cargar historial completo
+========================= */
+export async function cargarHistorialCliente(idCliente: number) {
+  try {
+    const historial = await servicios.obtenerHistorialCliente(idCliente);
+    return historial; // { pagos, viajes }
+  } catch (err: any) {
+    console.error('❌ Error en cargarHistorialCliente:', err);
+    throw new Error(err?.message || 'No se pudo cargar el historial del cliente');
   }
 }

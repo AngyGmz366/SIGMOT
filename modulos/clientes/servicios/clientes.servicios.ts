@@ -1,5 +1,6 @@
 import { http } from '@/lib/http';
 import type { Cliente } from '@/types/persona';
+import type { Pago, Viaje } from '@/types/ventas';
 
 /* =========================
    🔹 LISTAR CLIENTES
@@ -77,5 +78,24 @@ export async function borrarCliente(id: number): Promise<void> {
   } catch (err: any) {
     console.error('❌ Error en borrarCliente:', err);
     throw new Error(err.message || 'Error al desactivar cliente');
+  }
+}
+
+
+
+/* =========================
+   🔹 Cargar historial completo de un cliente
+========================= */
+export async function obtenerHistorialCliente(idCliente: number) {
+  try {
+    const { data } = await http.get(`/api/clientes/${idCliente}/historial`);
+
+    return {
+      pagos: data.tickets ?? [],   // tickets → pagos
+      viajes: data.viajes ?? [],   // viajes
+    };
+  } catch (err: any) {
+    console.error('❌ Error al cargar historial del cliente:', err);
+    throw new Error(err?.message || 'Error al obtener historial del cliente');
   }
 }

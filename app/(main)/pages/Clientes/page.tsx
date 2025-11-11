@@ -19,12 +19,43 @@ import {
   guardarCliente,
   borrarCliente,
 } from '@/modulos/clientes/controlador/clientes.controlador';
+import { http } from '@/lib/http';
+
+type Pago = {
+  ticketId: number;
+  Codigo_Ticket: string;
+  Fecha_Hora_Compra: string;
+  Precio_Total: number;
+  Metodo_Pago: string;
+};
+
+type Viaje = {
+  viajeId: number;
+  Fecha: string;
+  Hora_Salida: string;
+  Hora_Estimada_Llegada: string;
+  Origen: string;
+  Destino: string;
+  Precio: number;
+  fechaCompra: string;
+};
+
+// Servicio para obtener historial
+async function obtenerHistorialCliente(idCliente: number): Promise<{ pagos: Pago[]; viajes: Viaje[] }> {
+  try {
+    // ⚡ Ruta dinámica correcta
+    const { data } = await http.get(`/api/clientes/${idCliente}/historial`);
+    return { pagos: data.tickets ?? [], viajes: data.viajes ?? [] };
+  } catch (err: any) {
+    console.error('❌ Error al cargar historial del cliente:', err);
+    throw new Error(err?.message || 'Error al obtener historial del cliente');
+  }
+}
 
 function ClientesPage() {
   const toast = useRef<Toast>(null);
   const dt = useRef<DataTable<any>>(null);
 
-  // Estados principales
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [clienteDialog, setClienteDialog] = useState(false);
@@ -39,21 +70,23 @@ function ClientesPage() {
   const [deleteClienteDialog, setDeleteClienteDialog] = useState(false);
   const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
 
-  // Catálogo de estados
+  // Historial
+  const [historialPagos, setHistorialPagos] = useState<Pago[]>([]);
+  const [historialViajes, setHistorialViajes] = useState<Viaje[]>([]);
+  const [loadingHistorial, setLoadingHistorial] = useState(false);
+
   const estadosCliente = [
     { label: 'ACTIVO', value: 1 },
     { label: 'INACTIVO', value: 2 },
   ];
 
-  /* ===============================
-     🔹 CARGAR CLIENTES Y PERSONAS
-  =============================== */
+  // 🔹 Cargar clientes y personas
   useEffect(() => {
     async function fetchData() {
       try {
         const [clientesData, personasData] = await Promise.all([
           cargarClientes(),
-          cargarPersonas(1), // 1 = Tipo Persona Cliente
+          cargarPersonas(1),
         ]);
         setClientes(clientesData);
         setPersonas(personasData);
@@ -70,28 +103,49 @@ function ClientesPage() {
     fetchData();
   }, []);
 
-  /* ===============================
-     🔹 CRUD CLIENTE
-  =============================== */
+  // 🔹 Cargar historial al seleccionar cliente
+  useEffect(() => {
+    if (!clienteSeleccionado?.id) return;
+
+    const idCliente = clienteSeleccionado.id;
+
+    async function fetchHistorial() {
+      setLoadingHistorial(true);
+      try {
+        const { pagos: tickets, viajes } = await obtenerHistorialCliente(idCliente);
+        setHistorialPagos(tickets);
+        setHistorialViajes(viajes);
+      } catch (err: any) {
+        console.error('❌ Error cargando historial:', err);
+        toast.current?.show({
+          severity: 'error',
+          summary: 'Error',
+          detail: err.message || 'No se pudo cargar el historial',
+          life: 4000,
+        });
+      } finally {
+        setLoadingHistorial(false);
+      }
+    }
+
+    fetchHistorial();
+  }, [clienteSeleccionado]);
+
+  // 🔹 CRUD Cliente
   const openNew = () => {
     setCliente({ id: 0, idPersona: 0, idEstadoCliente: 1, estado: 'ACTIVO' });
     setSubmitted(false);
     setClienteDialog(true);
   };
 
-  const hideDialog = () => {
-    setClienteDialog(false);
-    setSubmitted(false);
-  };
+  const hideDialog = () => setClienteDialog(false);
 
   const saveCliente = async () => {
     setSubmitted(true);
-
     if (!cliente.idPersona || !cliente.idEstadoCliente) return;
 
     try {
       await guardarCliente(cliente);
-
       toast.current?.show({
         severity: 'success',
         summary: cliente.id ? 'Actualizado' : 'Creado',
@@ -100,10 +154,7 @@ function ClientesPage() {
           : 'Cliente creado correctamente',
         life: 3000,
       });
-
-      const nuevos = await cargarClientes();
-      setClientes(nuevos);
-
+      setClientes(await cargarClientes());
       setClienteDialog(false);
       setCliente({ id: 0, idPersona: 0, idEstadoCliente: 1, estado: 'ACTIVO' });
       setSubmitted(false);
@@ -112,10 +163,7 @@ function ClientesPage() {
       toast.current?.show({
         severity: 'error',
         summary: 'Error',
-        detail:
-          err.response?.data?.error ||
-          err.message ||
-          'No se pudo guardar el cliente',
+        detail: err.message || 'No se pudo guardar el cliente',
         life: 4000,
       });
     }
@@ -133,32 +181,19 @@ function ClientesPage() {
   };
 
   const deleteCliente = async () => {
-    if (!cliente.id || cliente.id <= 0) {
-      toast.current?.show({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'ID de cliente inválido',
-        life: 4000,
-      });
-      return;
-    }
+    if (!cliente.id || cliente.id <= 0) return;
 
     try {
       await borrarCliente(cliente.id);
-
       toast.current?.show({
         severity: 'success',
         summary: 'Desactivado',
         detail: 'Cliente desactivado correctamente',
         life: 3000,
       });
-
-      const nuevos = await cargarClientes();
-      setClientes(nuevos);
-
+      setClientes(await cargarClientes());
       setDeleteClienteDialog(false);
       setCliente({ id: 0, idPersona: 0, idEstadoCliente: 1, estado: 'ACTIVO' });
-      setSubmitted(false);
     } catch (err: any) {
       console.error('❌ Error desactivando cliente:', err);
       toast.current?.show({
@@ -170,9 +205,7 @@ function ClientesPage() {
     }
   };
 
-  /* ===============================
-     🔹 Templates de la tabla
-  =============================== */
+  // 🔹 Templates tabla
   const personaTemplate = (rowData: Cliente) => {
     const p = personas.find((x) => x.Id_Persona === rowData.idPersona);
     return p ? `${p.Nombres} ${p.Apellidos}` : '—';
@@ -181,47 +214,19 @@ function ClientesPage() {
   const estadoTemplate = (rowData: Cliente) => (
     <Tag
       value={rowData.estado}
-      severity={
-        rowData.estado?.toUpperCase() === 'ACTIVO' ? 'success' : 'danger'
-      }
-      icon={
-        rowData.estado?.toUpperCase() === 'ACTIVO'
-          ? 'pi pi-check-circle'
-          : 'pi pi-times-circle'
-      }
+      severity={rowData.estado?.toUpperCase() === 'ACTIVO' ? 'success' : 'danger'}
+      icon={rowData.estado?.toUpperCase() === 'ACTIVO' ? 'pi pi-check-circle' : 'pi pi-times-circle'}
     />
   );
 
   const actionTemplate = (rowData: Cliente) => (
     <div className="flex gap-2">
-      <Button
-        icon="pi pi-pencil"
-        rounded
-        text
-        severity="warning"
-        onClick={() => editCliente(rowData)}
-      />
-      <Button
-        icon="pi pi-trash"
-        rounded
-        text
-        severity="danger"
-        onClick={() => confirmDeleteCliente(rowData)}
-      />
-      <Button
-        icon="pi pi-eye"
-        rounded
-        text
-        severity="info"
-        title="Ver historial"
-        onClick={() => setClienteSeleccionado(rowData)}
-      />
+      <Button icon="pi pi-pencil" rounded text severity="warning" onClick={() => editCliente(rowData)} />
+      <Button icon="pi pi-trash" rounded text severity="danger" onClick={() => confirmDeleteCliente(rowData)} />
+      <Button icon="pi pi-eye" rounded text severity="info" title="Ver historial" onClick={() => setClienteSeleccionado(rowData)} />
     </div>
   );
 
-  /* ===============================
-     🔹 Header y Diálogos
-  =============================== */
   const header = (
     <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
       <h5 className="m-0">Gestión de Clientes</h5>
@@ -230,9 +235,7 @@ function ClientesPage() {
         <InputText
           type="search"
           placeholder="Buscar..."
-          onChange={(e) =>
-            dt.current?.filter(e.target.value, 'global', 'contains')
-          }
+          onChange={(e) => dt.current?.filter(e.target.value, 'global', 'contains')}
           className="w-full"
         />
       </span>
@@ -241,28 +244,14 @@ function ClientesPage() {
 
   const deleteClienteDialogFooter = (
     <>
-      <Button
-        label="No"
-        icon="pi pi-times"
-        text
-        onClick={() => setDeleteClienteDialog(false)}
-      />
+      <Button label="No" icon="pi pi-times" text onClick={() => setDeleteClienteDialog(false)} />
       <Button label="Sí" icon="pi pi-check" text onClick={deleteCliente} />
     </>
   );
 
-  /* ===============================
-     🔹 Render principal
-  =============================== */
   const clientesConNombre = clientes.map((cliente, index) => {
     const persona = personas.find((p) => p.Id_Persona === cliente.idPersona);
-    return {
-      ...cliente,
-      id: cliente.id || cliente.idPersona || index + 1,
-      nombreCompleto: persona
-        ? `${persona.Nombres} ${persona.Apellidos}`
-        : '—',
-    };
+    return { ...cliente, id: cliente.id || cliente.idPersona || index + 1, nombreCompleto: persona ? `${persona.Nombres} ${persona.Apellidos}` : '—' };
   });
 
   return (
@@ -272,14 +261,7 @@ function ClientesPage() {
           <Toast ref={toast} />
           <Toolbar
             className="mb-4"
-            left={() => (
-                <Button
-                label="Nuevo Cliente"
-                icon="pi pi-plus"
-                severity="success"
-                onClick={openNew}
-              />
-            )}
+            left={() => <Button label="Nuevo Cliente" icon="pi pi-plus" severity="success" onClick={openNew} />}
           />
 
           <DataTable
@@ -298,25 +280,12 @@ function ClientesPage() {
             header={header}
             responsiveLayout="scroll"
           >
-      <Column
-          selectionMode="multiple"
-          headerStyle={{ width: '3rem' }}
-          style={{ textAlign: 'center' }}
-        /> 
+            <Column selectionMode="multiple" headerStyle={{ width: '3rem' }} style={{ textAlign: 'center' }} />
             <Column header="Nombre" body={personaTemplate} sortable />
-            <Column
-              field="estado"
-              header="Estado"
-              body={estadoTemplate}
-              sortable
-            />
-            <Column
-              body={actionTemplate}
-              headerStyle={{ minWidth: '10rem' }}
-            />
+            <Column field="estado" header="Estado" body={estadoTemplate} sortable />
+            <Column body={actionTemplate} headerStyle={{ minWidth: '10rem' }} />
           </DataTable>
 
-          {/* Modal Crear/Editar */}
           <ClienteModal
             visible={clienteDialog}
             onHide={hideDialog}
@@ -328,7 +297,6 @@ function ClientesPage() {
             submitted={submitted}
           />
 
-          {/* Confirmar eliminación */}
           <Dialog
             visible={deleteClienteDialog}
             style={{ width: '450px' }}
@@ -339,28 +307,41 @@ function ClientesPage() {
           >
             <div className="flex align-items-center justify-content-center">
               <i className="pi pi-exclamation-triangle icon-warning" />
-              {cliente && (
-                <span>
-                  ¿Está seguro de eliminar al cliente{' '}
-                  <b>{personaTemplate(cliente)}</b>?
-                </span>
-              )}
+              {cliente && <span>¿Está seguro de eliminar al cliente <b>{personaTemplate(cliente)}</b>?</span>}
             </div>
           </Dialog>
 
-          {/* Historial (placeholder futuro) */}
+          {/* Historial */}
           {clienteSeleccionado && (
             <div className="mt-5">
               <div className="flex justify-content-between align-items-center mb-4">
                 <h3>Historial de {personaTemplate(clienteSeleccionado)}</h3>
-                <Button
-                  label="Cerrar Historial"
-                  icon="pi pi-times"
-                  className="btn-cancelar"
-                  onClick={() => setClienteSeleccionado(null)}
-                />
+                <Button label="Cerrar Historial" icon="pi pi-times" className="btn-cancelar" onClick={() => setClienteSeleccionado(null)} />
               </div>
-              <p>Aquí se mostrará el historial de viajes y pagos del cliente seleccionado.</p>
+
+              {loadingHistorial ? (
+                <p>Cargando historial...</p>
+              ) : (
+                <>
+                  <h5>Pagos</h5>
+                  <DataTable value={historialPagos} emptyMessage="No hay pagos">
+                    <Column field="Codigo_Ticket" header="Ticket" />
+                    <Column field="Fecha_Hora_Compra" header="Fecha" />
+                    <Column field="Precio_Total" header="Monto" />
+                    <Column field="Metodo_Pago" header="Método" />
+                  </DataTable>
+
+                  <h5 className="mt-4">Viajes</h5>
+                  <DataTable value={historialViajes} emptyMessage="No hay viajes">
+                    <Column field="Fecha" header="Fecha" />
+                    <Column field="Hora_Salida" header="Salida" />
+                    <Column field="Hora_Estimada_Llegada" header="Llegada" />
+                    <Column field="Origen" header="Origen" />
+                    <Column field="Destino" header="Destino" />
+                    <Column field="Precio" header="Precio" />
+                  </DataTable>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -368,4 +349,5 @@ function ClientesPage() {
     </div>
   );
 }
+
 export default ClientesPage;

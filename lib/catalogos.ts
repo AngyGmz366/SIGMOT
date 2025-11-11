@@ -1,4 +1,3 @@
-'use client';
 import { useEffect, useState } from 'react';
 import { getClientes, getMetodosPago, getEstadosTicket } from '@/modulos/boletos/servicios/ventas.servicios';
 import { apiGet } from '@/lib/http';

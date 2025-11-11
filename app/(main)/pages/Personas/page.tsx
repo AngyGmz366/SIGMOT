@@ -281,6 +281,20 @@ const estadoPersonaTemplate = (rowData: Persona) => {
             <Column field="Apellidos" header="Apellidos" sortable />
             <Column field="DNI" header="DNI" sortable />
             <Column field="Telefono" header="Teléfono" sortable />
+            <Column
+  field="TipoPersona"
+  header="Tipo de Persona"
+  sortable
+  body={(rowData) => (
+    <span>
+      {rowData.TipoPersona === 1
+        ? 'Cliente'
+        : rowData.TipoPersona === 2
+        ? 'Empleado'
+        : rowData.TipoPersona || '—'}
+    </span>
+  )}
+/>
             <Column field="Correo" header="Correo Electrónico" body={correoBodyTemplate} sortable />
             <Column body={estadoPersonaTemplate} header="Estado" />
             <Column body={actionBodyTemplate} header="Acciones" exportable={false} style={{ minWidth: '8rem' }} />

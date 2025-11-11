@@ -196,6 +196,10 @@ export async function listarBoletos(): Promise<Boleto[]> {
 }
 
 
+
+
+
+
 export type CrearBoletoResponse = {
   Id_Ticket_PK: number;
   Codigo_Ticket: string;
@@ -271,5 +275,24 @@ export const obtenerDetallesFactura = async (idFactura: number) => {
   } catch (error) {
     console.error("Error al obtener detalles de factura:", error);
     return [];
+  }
+};
+
+
+// servicios/facturas.ts
+
+export const obtenerTiposDescuento = async (): Promise<Opcion[]> => {
+  try {
+    const { data } = await axios.get('/api/catalogos?tipo=tipo_descuento');
+    const items = data?.items ?? [];
+
+    // Mapeamos los datos a un formato adecuado para el Dropdown
+    return items.map((item: any) => ({
+      value: item.value,
+      label: `${item.label} (${item.value}%)`, // Se incluye el porcentaje en el label
+    }));
+  } catch (error) {
+    console.error("Error al obtener tipos de descuento:", error);
+    return []; // En caso de error, retornamos un array vacío
   }
 };

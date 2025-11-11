@@ -19,6 +19,8 @@ type Props = {
   submitted?: boolean;
 };
 
+
+
 const BoletoDialog: React.FC<Props> = ({
   visible,
   onHide,
@@ -28,13 +30,23 @@ const BoletoDialog: React.FC<Props> = ({
   submitted = false,
 }) => {
   // ✅ Cargar catálogos base desde el hook global
-  const {
-    clientes: optClientes,
-    metodosPago: optMetodosPago,
-    estados: optEstados,
-    rutas: optRutas,
-    cargando,
-  } = useCatalogos();
+const {
+  clientes,
+  metodosPago,
+  estados,
+  rutas,
+  cargando,
+  recargar, // ✅ Agregar
+} = useCatalogos();
+
+
+useEffect(() => {
+  if (visible) {
+    recargar(); // ✅ Carga clientes nuevos cuando se abre el modal
+  }
+}, [visible]);
+
+
 
   // Catálogos dependientes
   const [optViajes, setOptViajes] = useState<{ label: string; value: number }[]>([]);
@@ -93,6 +105,41 @@ const BoletoDialog: React.FC<Props> = ({
       }
     })();
   }, [viajeSeleccionadoId]);
+
+
+
+  useEffect(() => {
+  if (!visible || !boleto?.id || cargando) return;
+
+  const syncData = async () => {
+    try {
+      if (boleto.Id_Viaje_FK) {
+        const { data } = await axios.get(`/api/rutas_viaje/${boleto.Id_Viaje_FK}`);
+        const rutaId = data?.Id_Ruta_FK ?? null;
+
+        if (rutaId) {
+          setRutaSeleccionadaId(rutaId);
+          setViajeSeleccionadoId(Number(boleto.Id_Viaje_FK));
+        }
+
+        // Asignar correctamente el número de asiento
+        setBoleto((prev) => ({
+          ...prev,
+          autobus: data?.autobus || '',
+          asiento: data?.asiento || 'No asignado',  // Asigna el número de asiento aquí
+        }));
+
+        // Verifica el valor del asiento
+        console.log('Asiento seleccionado:', data?.asiento); // Asegúrate de que esto esté recibiendo el número de asiento correctamente
+      }
+    } catch (err) {
+      console.error("❌ Error sincronizando datos del boleto:", err);
+    }
+  };
+
+  syncData();
+}, [visible, cargando, boleto]);  // Se asegura de que se ejecute correctamente cuando se actualice el boleto
+
 
 
 useEffect(() => {
@@ -162,7 +209,7 @@ useEffect(() => {
           <label className="font-bold">Cliente *</label>
           <Dropdown
             value={boleto.Id_Cliente_FK ?? null}
-            options={optClientes}
+            options={clientes}
             optionLabel="label"
             optionValue="value"
             onChange={(e) => setBoleto({ ...boleto, Id_Cliente_FK: e.value ?? null })}
@@ -178,7 +225,7 @@ useEffect(() => {
           <label className="font-bold">Ruta *</label>
           <Dropdown
             value={rutaSeleccionadaId ?? null}
-            options={optRutas}
+            options={rutas}
             optionLabel="label"
             optionValue="value"
             onChange={async (e) => {
@@ -265,7 +312,7 @@ useEffect(() => {
           <label className="font-bold">Método de Pago *</label>
           <Dropdown
             value={boleto.Id_MetodoPago_FK ?? null}
-            options={optMetodosPago}
+            options={metodosPago}
             optionLabel="label"
             optionValue="value"
             onChange={(e) => setBoleto({ ...boleto, Id_MetodoPago_FK: e.value ?? null })}
@@ -277,25 +324,24 @@ useEffect(() => {
         </div>
 
         {/* Estado */}
-        <div className="col-12 md:col-6">
-          <label className="font-bold">Estado *</label>
-          <Dropdown
-            value={boleto.Id_EstadoTicket_FK ?? 1}
-            options={optEstados.filter(
-              (e) =>
-                !['cancelado', 'reembolsado', 'usado'].includes(
-                  (e.label || '').toLowerCase().trim()
-                )
-            )}
-            optionLabel="label"
-            optionValue="value"
-            onChange={(e) => setBoleto({ ...boleto, Id_EstadoTicket_FK: e.value ?? null })}
-            placeholder="Seleccione estado"
-            filter
-            showClear={false}
-            disabled={cargando}
-          />
-        </div>
+       {/* Estado */}
+<div className="col-12 md:col-6">
+  <label className="font-bold">Estado *</label>
+  <Dropdown
+    value={boleto.Id_EstadoTicket_FK ?? 1}  // Ensure 1 is the ID for "Pendiente"
+    options={estados.filter(
+      (e) => e.label.toLowerCase().trim() === 'pendiente'  // Only show "Pendiente"
+    )}
+    optionLabel="label"
+    optionValue="value"
+    onChange={(e) => setBoleto({ ...boleto, Id_EstadoTicket_FK: e.value ?? null })}
+    placeholder="Seleccione estado"
+    filter
+    showClear={false}
+    disabled={cargando}
+  />
+</div>
+
       </div>
     </Dialog>
   );

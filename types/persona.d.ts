@@ -48,25 +48,3 @@ export interface Cliente {
 
 
 
-// =======================================================
-// 🔹 VIAJE (placeholder para historial futuro)
-// =======================================================
-export interface Viaje {
-  id: number;
-  idCliente: number;
-  fecha: string;
-  origen: string;
-  destino: string;
-  costo: number;
-}
-
-// =======================================================
-// 🔹 PAGO (placeholder para historial futuro)
-// =======================================================
-export interface Pago {
-  id: number;
-  idCliente: number;
-  fechaPago: string; // ISO string
-  monto: number;
-  metodoPago: 'efectivo' | 'tarjeta' | 'transferencia' | '';
-}

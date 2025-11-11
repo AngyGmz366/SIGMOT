@@ -5,10 +5,11 @@ import React from 'react';
 import { Encomienda } from '@/types/ventas';
 import { QRCodeSVG } from 'qrcode.react';
 
-interface ImprimirEncomiendaProps {
+type ImprimirEncomiendaProps = {
   item: Encomienda;
-}
-
+  visible: boolean;       
+  onHide: () => void;     
+};
 const ImprimirEncomienda: React.FC<ImprimirEncomiendaProps> = ({ item }) => {
   const qrData = `EncomiendaID:${item.id}|Remitente:${item.remitente}|Destinatario:${item.destinatario}|Origen:${item.origen}|Destino:${item.destino}|Fecha:${item.fecha}|Estado:${item.estado}`;
 

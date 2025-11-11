@@ -1,268 +1,271 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Dialog } from 'primereact/dialog';
 import { Button } from 'primereact/button';
-import { InputNumber } from 'primereact/inputnumber';
-import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
+import { InputNumber } from 'primereact/inputnumber';
 import { Toast } from 'primereact/toast';
 import axios from 'axios';
-import type { Boleto, Encomienda, FacturaForm } from '@/types/ventas';
-import type { Persona, Cliente, Empleado } from '@/types/persona';
+import { Boleto, TipoDescuento } from '@/types/ventas';
+import { apiGet } from '@/lib/http';
 
-function isBoleto(item: Boleto | Encomienda | null | undefined): item is Boleto {
-  return !!item && item.tipoVenta === 'boleto';
-}
 
-type TipoDescuento = {
-  id_Tipo_Descuento: number;
-  Nombre_Descuento: string;
-  Descripcion: string;
-  Porcentaje_Descuento: number;
-  Condicion_Aplica: string;
+
+
+// Tipo para las opciones del Dropdown
+type DropdownOption = {
+  label: string;  // El nombre del descuento y su porcentaje
+  value: number;  // El ID del descuento
 };
+
 
 type Props = {
   visible: boolean;
   onHide: () => void;
-  boleto?: Boleto | Encomienda | null;
-  onSave?: (factura: any) => void;
+  boleto: Boleto | null;
+  onSave: (factura: any) => void | Promise<void>;
 };
 
-export default function FacturacionModal({ visible, onHide, boleto, onSave }: Props) {
+const FacturacionModal: React.FC<Props> = ({ visible, onHide, boleto, onSave }) => {
+  const [descuentoSeleccionado, setDescuentoSeleccionado] = useState<TipoDescuento | null>(null);
+  const [subtotal, setSubtotal] = useState(0);
+  const [descuentoMonto, setDescuentoMonto] = useState(0);
+  const [totalConDescuento, setTotalConDescuento] = useState(0);
+  const [isv, setIsv] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [optDescuentos, setOptDescuentos] = useState<TipoDescuento[]>([]); // Estado para descuentos completos
+  const [dropdownOptions, setDropdownOptions] = useState<DropdownOption[]>([]); // Estado para opciones del Dropdown
+  const [saving, setSaving] = useState(false);
+  const [cargando, setCargando] = useState(false);
+
   const toast = useRef<Toast>(null);
-  const [loading, setLoading] = useState(false);
-  const [tiposDescuento, setTiposDescuento] = useState<TipoDescuento[]>([]);
-  const [condicionDescuento, setCondicionDescuento] = useState<string>(''); // 👈 NUEVO estado
 
-  const [form, setForm] = useState<FacturaForm>({
-    descuentoBase: 0,
-    descuentoEdad: 0,
-    descuentoTotal: 0,
-    isv: 0,
-    total: 0,
-    empleado: 1,
-    metodoPago: 0,
-    edadCliente: 0,
-    tipoDescuento: null,
-  });
-
-  /* ==========================================================
-     🔹 Cargar catálogo de tipos de descuento
-     ========================================================== */
+  // Resetear todo al abrir modal
   useEffect(() => {
-    const cargarTipos = async () => {
-      try {
-        const res = await axios.get('/api/catalogos/tipo_descuento');
-        setTiposDescuento(res.data || []);
-      } catch (err) {
-        console.error('Error cargando tipos de descuento:', err);
-        toast.current?.show({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'No se pudieron cargar los descuentos.',
-          life: 3000,
-        });
-      }
-    };
-    cargarTipos();
+    if (visible) {
+      setDescuentoSeleccionado(null);
+      setDescuentoMonto(0);
+      setTotalConDescuento(0);
+      setIsv(0);
+      setTotal(0);
+      setSubtotal(boleto?.precio || 0);
+    }
+  }, [visible, boleto]);
+
+  // Cargar tipos de descuento
+const loadDescuentos = async () => {
+  try {
+    setCargando(true);
+    // Obtener los datos de descuentos
+    const data: TipoDescuento[] = await apiGet('/api/catalogos/tipo_descuento');
+    
+    // Guardar los descuentos completos en el estado
+    setOptDescuentos(data);
+
+    // Crear un arreglo de opciones para el Dropdown
+    const options: DropdownOption[] = data.map((descuento) => ({
+      label: `${descuento.Nombre_Descuento} - ${descuento.Porcentaje_Descuento}%`,  // Usamos el nombre y el porcentaje
+      value: descuento.id_Tipo_Descuento,  // Usamos 'id_Tipo_Descuento' como value
+    }));
+
+    // Guardar las opciones para el Dropdown
+    setDropdownOptions(options);
+    setCargando(false);
+  } catch (err) {
+    console.error('❌ Error cargando descuentos:', err);
+    setCargando(false);
+  }
+};
+
+
+  useEffect(() => {
+    loadDescuentos();
   }, []);
 
-  /* ==========================================================
-     🧮 Calcular edad exacta
-     ========================================================== */
-  const calcularEdad = (fechaNacimiento?: string | null): number => {
-    if (!fechaNacimiento) return 0;
-    const nacimiento = new Date(fechaNacimiento);
-    if (isNaN(nacimiento.getTime())) return 0;
-    const hoy = new Date();
-    let edad = hoy.getFullYear() - nacimiento.getFullYear();
-    const m = hoy.getMonth() - nacimiento.getMonth();
-    if (m < 0 || (m === 0 && hoy.getDate() < nacimiento.getDate())) edad--;
-    return edad;
-  };
+  // Recalcular totales
+useEffect(() => {
+  const sub = subtotal || 0;
+  if (descuentoSeleccionado) {
+    const porcentaje = descuentoSeleccionado.Porcentaje_Descuento ?? descuentoSeleccionado.monto ?? 0;
+    const descuento = (sub * porcentaje) / 100;
+    setDescuentoMonto(descuento);
+    const subConDesc = sub - descuento;
+    setTotalConDescuento(subConDesc);
+    const isvCalc = subConDesc * 0.15; // ISV calculado sobre el subtotal con descuento
+    setIsv(isvCalc);
+    setTotal(subConDesc + isvCalc);
+  } else {
+    setDescuentoMonto(0);
+    setTotalConDescuento(sub);
+    const isvCalc = sub * 0.15; // ISV calculado sobre el subtotal sin descuento
+    setIsv(isvCalc);
+    setTotal(sub + isvCalc);
+  }
+}, [subtotal, descuentoSeleccionado]);
 
-  /* ==========================================================
-     ⚡ Cargar datos iniciales del boleto/encomienda
-     ========================================================== */
-  useEffect(() => {
-    if (!boleto) return;
 
-    const precio = Number(boleto.precio) || Number((boleto as any).Precio_Total) || 0;
-    const fechaNacimiento =
-      (boleto as any).fechaNacimiento ||
-      (boleto as any).FechaNacimiento ||
-      null;
-    const edad = calcularEdad(fechaNacimiento);
+  // Guardar factura
+// En el componente que maneja el modal
+// Guardar factura
+const saveFactura = async () => {
+  if (!boleto) {
+    toast.current?.show({
+      severity: 'warn',
+      summary: 'Atención',
+      detail: 'No hay boleto seleccionado',
+      life: 3000,
+    });
+    return;
+  }
 
-    const isv = +(precio * 0.15).toFixed(2);
-    const total = +(precio + isv).toFixed(2);
+  setSaving(true);
 
-    setForm((prev) => ({
-      ...prev,
-      edadCliente: edad,
-      descuentoBase: 0,
-      descuentoEdad: 0,
-      descuentoTotal: 0,
-      isv,
-      total,
-    }));
-  }, [boleto]);
+  try {
+    const payload = {
+      Id_Producto_FK: Number(boleto.id || boleto.Id_Ticket_PK),
+      Id_TipoProducto_FK: 1, // tipo boleto
+      Subtotal: Number(subtotal || 0),
+      Descuento: Number(descuentoMonto || 0),
+      ISV: Number(isv || 0),
+      Total: Number(total || 0),
+      Id_Tipo_Descuento_FK: descuentoSeleccionado ? descuentoSeleccionado.id_Tipo_Descuento : null,
+      Id_MetodoPago_FK: Number(boleto.Id_MetodoPago_FK || 1),
+      Id_Empleado_FK: 1,
+      Id_Cliente_FK: boleto.Id_Cliente_FK ? Number(boleto.Id_Cliente_FK) : null,
+    };
 
-  /* ==========================================================
-     🔄 Recalcular al cambiar tipo de descuento
-     ========================================================== */
-  const aplicarDescuento = (idTipo: number) => {
-    const tipo = tiposDescuento.find((t) => t.id_Tipo_Descuento === idTipo);
-    if (!tipo || !boleto) return;
+    // Enviar la petición para crear la factura
+    const { data } = await axios.post('/api/facturas', payload);
 
-    // 👇 Guardamos la condición del descuento (p. ej. “No aplica si...”)
-    setCondicionDescuento(tipo.Condicion_Aplica || 'No aplica');
+    // Actualizar el estado de "Pagado" inmediatamente en la UI local
+    const updatedBoleto = { ...boleto, estado: 'Pagado' };
 
-    const precio = Number(boleto.precio) || 0;
-    const descuento = +(precio * (Number(tipo.Porcentaje_Descuento) / 100)).toFixed(2);
-    const subtotal = precio - descuento;
-    const isv = +(subtotal * 0.15).toFixed(2);
-    const total = +(subtotal + isv).toFixed(2);
+    // ✅ Enviar también la información de la factura al imprimir
+onSave({
+  ...updatedBoleto,
+  factura: {
+    subtotal,
+    descuentoTotal: descuentoMonto,
+    isv: Number(isv),
+    total: Number(total),
+tipoDescuento: descuentoSeleccionado?.Nombre_Descuento ?? 'Sin descuento',
+  },
+});
 
-    setForm((prev) => ({
-      ...prev,
-      tipoDescuento: tipo.Nombre_Descuento as any,
-      descuentoEdad: descuento,
-      descuentoTotal: descuento,
-      isv,
-      total,
-    }));
-  };
 
-  /* ==========================================================
-     💾 Crear factura
-     ========================================================== */
-  const crearFactura = async () => {
-    if (!boleto) return;
-    setLoading(true);
-    try {
-      const Id_Producto_FK = boleto.id;
-      const Id_Cliente_FK = boleto.Id_Cliente_FK ?? boleto.Id_ClienteGeneral_FK ?? null;
+    toast.current?.show({
+      severity: 'success',
+      summary: 'Éxito',
+      detail: `Factura creada exitosamente para el Boleto ${boleto.Codigo_Ticket || boleto.id}`,
+      life: 3000,
+    });
 
-      const payload = {
-        Id_Producto_FK,
-        Id_TipoProducto_FK: boleto.tipoVenta === 'boleto' ? 1 : 2,
-        Subtotal: boleto.precio,
-        Descuento: form.descuentoTotal,
-        ISV: form.isv,
-        Total: form.total,
-        Id_MetodoPago_FK: boleto.Id_MetodoPago_FK || 1,
-        Id_Empleado_FK: form.empleado || 1,
-        Id_Cliente_FK,
-        Id_Tipo_Descuento_FK:
-          tiposDescuento.find((t) => t.Nombre_Descuento === form.tipoDescuento)
-            ?.id_Tipo_Descuento || null,
-      };
+    // Cerrar el modal después de guardar la factura
+    onHide();
 
-      console.log('🧾 Payload enviado a /api/facturas:', payload);
-      const res = await axios.post('/api/facturas', payload);
+  } catch (err: any) {
+    const mensajeSP = err?.response?.data?.error || err?.message || 'Ocurrió un error al crear la factura';
+    toast.current?.show({
+      severity: 'warn',
+      summary: 'Atención',
+      detail: mensajeSP,
+      life: 4000,
+    });
+  } finally {
+    setSaving(false);
+  }
+};
 
-      toast.current?.show({
-        severity: 'success',
-        summary: 'Factura creada',
-        detail: `Factura ${res.data.factura?.Codigo_Factura || ''} generada correctamente.`,
-        life: 3000,
-      });
-
-      setTimeout(() => {
-        onSave?.(res.data.factura);
-        onHide();
-      }, 1000);
-    } catch (err: any) {
-      console.error('Error al crear factura:', err);
-      toast.current?.show({
-        severity: 'error',
-        summary: 'Error',
-        detail: err?.response?.data?.error || 'No se pudo crear la factura.',
-        life: 3000,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const footer = (
     <div className="flex justify-content-end gap-2">
-      <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={onHide} disabled={loading} />
-      <Button label="Crear Factura" icon="pi pi-check" loading={loading} onClick={crearFactura} />
+      <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={onHide} />
+      <Button
+        label={saving ? 'Guardando...' : 'Guardar Factura'}
+        icon={saving ? 'pi pi-spin pi-spinner' : 'pi pi-check'}
+        onClick={saveFactura}
+        disabled={saving || cargando}
+      />
     </div>
   );
 
   return (
-    <Dialog visible={visible} header="🧾 Crear Factura" style={{ width: '35rem' }} modal footer={footer} onHide={onHide}>
-      <Toast ref={toast} />
-
-      {!boleto ? (
-        <p className="text-center text-gray-500 my-4">No se seleccionó ningún boleto o encomienda.</p>
-      ) : (
-        <div className="p-fluid formgrid grid">
-          {/* Cliente + tipo descuento */}
-          <div className="field col-6">
-            <label>Cliente</label>
-            <InputText value={isBoleto(boleto) ? boleto.cliente : boleto.remitente} disabled />
-          </div>
-
-          <div className="field col-6">
-            <label>Tipo de descuento</label>
-            <Dropdown
-              value={tiposDescuento.find((t) => t.Nombre_Descuento === form.tipoDescuento)?.id_Tipo_Descuento || null}
-              options={tiposDescuento.map((t) => ({
-                label: `${t.Nombre_Descuento} (${t.Porcentaje_Descuento}%)`,
-                value: t.id_Tipo_Descuento,
-              }))}
-              onChange={(e) => aplicarDescuento(e.value)}
-              placeholder="Seleccione tipo"
-            />
-          </div>
-
-          {/* 👇 Mostrar condición del descuento */}
-          {condicionDescuento && (
-            <div className="field col-12">
-              <small className="text-gray-600 italic">
-                Condición: {condicionDescuento}
-              </small>
-            </div>
-          )}
-
-          {/* Subtotal / Descuento */}
-          <div className="field col-6">
-            <label>Subtotal</label>
-            <InputNumber value={boleto.precio} mode="currency" currency="HNL" locale="es-HN" disabled />
-          </div>
-
-          <div className="field col-6">
-            <label>Descuento aplicado</label>
-            <InputNumber value={form.descuentoEdad} mode="currency" currency="HNL" locale="es-HN" disabled />
-          </div>
-
-          {/* ISV / Total */}
-          <div className="field col-6">
-            <label>ISV (15%)</label>
-            <InputNumber value={form.isv} mode="currency" currency="HNL" locale="es-HN" disabled />
-          </div>
-
-          <div className="field col-6">
-            <label>Total</label>
-            <InputNumber value={form.total} mode="currency" currency="HNL" locale="es-HN" disabled />
-          </div>
-
-          {/* Info general */}
-          <div className="field col-12 text-sm text-gray-600 mt-2">
-            <small>
-              Tipo de venta: {boleto.tipoVenta === 'boleto' ? 'Boleto' : 'Encomienda'} | Edad del cliente:{' '}
-              {form.edadCliente > 0 ? `${form.edadCliente} años` : 'N/D'}
-            </small>
+    <Dialog
+      visible={visible}
+      style={{ width: '70rem' }}
+      header={`Crear Factura - Boleto #${boleto?.Codigo_Ticket || boleto?.id || ''}`}
+      modal
+      className="p-fluid"
+      footer={footer}
+      onHide={onHide}
+    >
+      <div className="grid formgrid">
+        {/* Cliente */}
+        <div className="col-12 md:col-6">
+          <label className="font-bold">Cliente *</label>
+          <div className="p-inputtext p-component p-disabled" style={{ padding: '0.75rem' }}>
+            {boleto?.cliente || 'Cliente no especificado'}
           </div>
         </div>
-      )}
+
+        {/* Descuento */}
+        <div className="col-12 md:col-6">
+          <label className="font-bold">Descuento</label>
+        <Dropdown
+  value={descuentoSeleccionado?.id_Tipo_Descuento}  // Usamos 'id_Tipo_Descuento' como valor seleccionado
+  options={dropdownOptions}  // Usamos las opciones procesadas
+  optionLabel="label"   // 'label' será el texto a mostrar en el Dropdown
+  optionValue="value"   // 'value' es el ID del descuento
+  onChange={(e) => {
+    // Buscamos el descuento completo por ID
+    const descuento = optDescuentos.find(d => d.id_Tipo_Descuento === e.value);
+    setDescuentoSeleccionado(descuento || null);  // Establecemos el descuento completo
+  }}
+  placeholder={cargando ? 'Cargando...' : 'Seleccionar descuento'}
+  showClear
+  disabled={cargando || dropdownOptions.length === 0}  // Deshabilitar si no hay opciones
+/>
+
+
+        </div>
+
+        {/* Subtotal */}
+        <div className="col-12 md:col-6">
+          <label className="font-bold">Subtotal</label>
+          <InputNumber value={subtotal} mode="currency" currency="HNL" locale="es-HN" disabled />
+        </div>
+
+        {/* Descuento Aplicado */}
+        {descuentoMonto > 0 && (
+          <div className="col-12 md:col-6">
+            <label className="font-bold">Descuento Aplicado</label>
+            <InputNumber value={descuentoMonto} mode="currency" currency="HNL" locale="es-HN" disabled />
+          </div>
+        )}
+
+        {/* Total con Descuento */}
+        <div className="col-12 md:col-6">
+          <label className="font-bold">Subtotal con Descuento</label>
+          <InputNumber value={totalConDescuento} mode="currency" currency="HNL" locale="es-HN" disabled />
+        </div>
+
+        {/* ISV */}
+        <div className="col-12 md:col-6">
+          <label className="font-bold">ISV (15%)</label>
+          <InputNumber value={isv} mode="currency" currency="HNL" locale="es-HN" disabled />
+        </div>
+
+        {/* Total */}
+        <div className="col-12 md:col-6">
+          <label className="font-bold">Total Final</label>
+          <InputNumber value={total} mode="currency" currency="HNL" locale="es-HN" disabled className="font-bold" style={{ fontSize: '1.2rem' }} />
+        </div>
+      </div>
+
+      <Toast ref={toast} />
     </Dialog>
   );
-}
+};
 
+export default FacturacionModal;
