@@ -79,7 +79,6 @@ export async function POST(req: NextRequest) {
                 </h3>
                 <ul style="color: #666666; line-height: 1.8; margin: 0; padding-left: 20px;">
                   <li>Realizar reservas de transporte</li>
-                  <li>Rastrear tus envíos en tiempo real</li>
                   <li>Gestionar tus documentos y facturas</li>
                   <li>Acceder a tu historial de servicios</li>
                 </ul>
