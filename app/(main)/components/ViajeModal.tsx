@@ -7,7 +7,8 @@ import { Calendar } from 'primereact/calendar';
 import { InputNumber } from 'primereact/inputnumber';
 import { Button } from 'primereact/button';
 
-import { Viaje, Cliente } from '@/types/persona';
+import {  Cliente } from '@/types/persona';
+import { Viaje } from '@/types/ventas';
 
 interface Props {
   visible: boolean;

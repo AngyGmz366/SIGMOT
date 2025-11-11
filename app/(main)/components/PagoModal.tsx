@@ -7,7 +7,8 @@ import { InputNumber } from 'primereact/inputnumber';
 import { Calendar } from 'primereact/calendar';
 import { Button } from 'primereact/button';
 
-import { Pago, Cliente } from '@/types/persona'; // Ajusta la ruta según tu estructura
+import {  Cliente } from '@/types/persona';
+import { Pago } from '@/types/ventas'; // Ajusta la ruta según tu estructura
 
 interface Props {
   visible: boolean;
