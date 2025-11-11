@@ -14,10 +14,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Configurar transportador de nodemailer
+    const smtpPort = Number(process.env.SMTP_PORT) || 587;
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT),
-      secure: process.env.SMTP_SECURE === 'true',
+      port: smtpPort,
+      secure: smtpPort === 465, // true para 465, false para otros puertos
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
