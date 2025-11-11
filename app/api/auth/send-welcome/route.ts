@@ -64,14 +64,6 @@ export async function POST(req: NextRequest) {
                 Estamos aquí para brindarte la mejor experiencia en transporte y logística. Si tienes alguna pregunta o necesitas ayuda, no dudes en contactarnos.
               </p>
 
-              <!-- Botón CTA -->
-              <div style="text-align: center; margin: 30px 0;">
-                <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://tuapp.com'}/auth/login" 
-                   style="background-color: #6366f1; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 16px;">
-                  Iniciar Sesión
-                </a>
-              </div>
-
               <!-- Características/Beneficios -->
               <div style="background-color: #f8f9fa; border-radius: 6px; padding: 20px; margin: 25px 0;">
                 <h3 style="color: #333333; margin: 0 0 15px 0; font-size: 18px;">
