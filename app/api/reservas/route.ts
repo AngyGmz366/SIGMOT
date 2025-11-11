@@ -90,12 +90,16 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'id_asiento es obligatorio y numérico' }, { status: 400 });
       }
 
-      await conn.query('CALL sp_reserva_crear_viaje_por_correo(?,?,?,?,@out)', [
-        dni,
-        idViaje,
-        idAsiento,
-        fecha,
-      ]);
+      await conn.query(
+        'CALL mydb.sp_reserva_viaje_crear_con_boleto(?,?,?,?,@id_reserva,@id_ticket)',
+        [dni, idViaje, idAsiento, fecha]
+        );
+
+         // 🔹 Solo devolver el id_reserva al front (igual que con encomiendas)
+        const [[vars]]: any = await conn.query('SELECT @id_reserva AS id_reserva;');
+        const idReserva = vars?.id_reserva ?? null;
+
+     return NextResponse.json({ id: idReserva }, { status: 201 });
     }
 
     // =====================
@@ -109,13 +113,15 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'id_viaje es obligatorio y numérico' }, { status: 400 });
       }
 
-      await conn.query('CALL sp_reserva_crear_encomienda_por_correo(?,?,?,?,?,@out)', [
-        dni,
-        idViaje,
-        costo,
-        body?.descripcion || null,
-        fecha,
-      ]);
+      await conn.query(
+      'CALL mydb.sp_reserva_encomienda_crear_con_boleto(?,?,?,?,?,@id_reserva,@id_ticket)',
+      [dni, idViaje, costo, body?.descripcion || null, fecha]
+    );
+
+    const [[vars]]: any = await conn.query('SELECT @id_reserva AS id_reserva;');
+    const idReserva = vars?.id_reserva ?? null;
+
+    return NextResponse.json({ id: idReserva }, { status: 201 });
     }
 
     else {

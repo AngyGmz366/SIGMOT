@@ -81,11 +81,7 @@ export async function POST(req: Request) {
         <div style="max-width: 550px; margin: auto; background: white; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); overflow: hidden;">
           
           <div style="background-color: #004aad; padding: 20px; text-align: center;">
-            ${
-              logoBase64
-                ? `<img src="${logoBase64}" alt="SAENZ Logo" width="50" style="margin-bottom: 2px;" />`
-                : `<h2 style="color:white;margin:0;">SAENZ</h2>`
-            }
+            
             <h1 style="color: white; margin: 0;">TRANSPORTES SAENZ</h1>
           </div>
 

@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
+import { InputTextarea } from 'primereact/inputtextarea';
+import { InputNumber } from 'primereact/inputnumber';
 import AsientosBus from './AsientoSelector';
 import Swal from 'sweetalert2';
 import './FormReservacion.css';
@@ -17,6 +19,8 @@ interface FormData {
   asiento: Option | null;
   peso?: number | null;
   precio?: number | null;
+  costoEncomienda?: number | null;
+  descripcion?: string;
 }
 
 export default function FormReservacion() {
@@ -28,11 +32,28 @@ export default function FormReservacion() {
     asiento: null,
     peso: null,
     precio: null,
+    costoEncomienda: null,
+    descripcion: '',
   });
 
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [unidadOptions, setUnidadOptions] = useState<Option[]>([]);
   const [asientoOptions, setAsientoOptions] = useState<Option[]>([]);
+  const [isSmallScreen, setIsSmallScreen] = useState(false);
+
+  // 🔹 Detectar pantallas pequeñas
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsSmallScreen(window.innerWidth < 400);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    
+    return () => {
+      window.removeEventListener('resize', checkScreenSize);
+    };
+  }, []);
 
   // 🔹 Mantener ruta seleccionada
   useEffect(() => {
@@ -109,23 +130,47 @@ export default function FormReservacion() {
 
   const handleCancelar = () => setShowConfirmDialog(false);
 
-  // 🚌 Ejemplo de asientos
-  const asientosDemo = Array.from({ length: 20 }, (_, i) => ({
-    numero: i + 1,
-    ocupado: i % 4 === 0,
-  }));
+  // 🧩 Cálculo del costo en función del peso (para encomienda)
+  const calcularCostoEncomienda = (peso: number | null): number => {
+    if (peso && formData.ruta) {
+      const precioPorKg = 257.70;
+      return peso * precioPorKg;
+    }
+    return 0;
+  };
 
-  // 🔹 Reservar viaje
+  // Cuando el peso cambie, actualizamos el costo de la encomienda
+  useEffect(() => {
+    const pesoValido = formData.peso ?? 0;
+    setFormData((prev) => ({
+      ...prev,
+      costoEncomienda: calcularCostoEncomienda(pesoValido),
+    }));
+  }, [formData.peso]);
+
+  // 🔹 Reservar viaje o encomienda
   const handleReservar = async () => {
     try {
-      if (!formData.unidad?.value || !formData.asiento?.value) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Faltan datos',
-          text: 'Debes seleccionar una unidad y un asiento antes de continuar.',
-          confirmButtonColor: '#6366F1',
-        });
-        return;
+      if (formData.tipo === 'viaje') {
+        if (!formData.unidad || !formData.unidad.value || !formData.asiento?.value) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Faltan datos',
+            text: 'Debes seleccionar una unidad y un asiento antes de continuar.',
+            confirmButtonColor: '#6366F1',
+          });
+          return;
+        }
+      } else if (formData.tipo === 'encomienda') {
+        if (!formData.unidad || !formData.unidad.value || !formData.descripcion?.trim()) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Faltan datos',
+            text: 'Debes seleccionar una unidad y agregar una descripción.',
+            confirmButtonColor: '#6366F1',
+          });
+          return;
+        }
       }
 
       const fechaSQL = new Date(formData.fecha)
@@ -133,13 +178,22 @@ export default function FormReservacion() {
         .slice(0, 19)
         .replace('T', ' ');
 
-      const payload = {
-        idViaje: formData.unidad.value,
-        idAsiento: formData.asiento.value,
-        fecha: fechaSQL,
-      };
+      const payload =
+        formData.tipo === 'viaje'
+          ? {
+              idViaje: formData.unidad!.value,
+              idAsiento: formData.asiento?.value,
+              fecha: fechaSQL,
+            }
+          : {
+              idViaje: formData.unidad!.value,
+              descripcion: formData.descripcion?.trim().slice(0, 50),
+              fecha: fechaSQL,
+              costo: formData.costoEncomienda,
+            };
 
       let headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      
       try {
         const { getAuth } = await import('firebase/auth');
         const firebaseAuth = getAuth();
@@ -152,7 +206,12 @@ export default function FormReservacion() {
         console.warn('⚠️ No se pudo obtener token Firebase', e);
       }
 
-      const res = await fetch('/api/clientes/reservas/viaje', {
+      const endpoint =
+        formData.tipo === 'viaje'
+          ? '/api/clientes/reservas/viaje'
+          : '/api/clientes/reservas/encomienda';
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers,
         body: JSON.stringify(payload),
@@ -163,7 +222,10 @@ export default function FormReservacion() {
       Swal.fire({
         icon: 'success',
         title: '¡Reservación confirmada!',
-        text: 'Tu reservación ha sido creada con éxito. Puedes consultarla en "Mis reservaciones".',
+        text:
+          formData.tipo === 'viaje'
+            ? 'Tu reservación de viaje ha sido creada con éxito.'
+            : 'Tu reservación de encomienda ha sido registrada correctamente.',
         confirmButtonText: 'Entendido',
         confirmButtonColor: '#6366F1',
       });
@@ -178,6 +240,8 @@ export default function FormReservacion() {
         asiento: null,
         peso: null,
         precio: null,
+        costoEncomienda: null,
+        descripcion: '',
       });
     } catch (err: any) {
       console.error('❌ Error en la reservación:', err);
@@ -192,7 +256,7 @@ export default function FormReservacion() {
 
   return (
     <div className="form-wrapper">
-      {/* 🟣 Encabezado */}
+      {/* 🟣 Encabezado - Mantenemos el diseño original */}
       <div className="header-reservacion flex flex-column sm:flex-row align-items-center gap-3 mb-5">
         <i className="pi pi-calendar-plus text-indigo-500 text-3xl" />
         <div>
@@ -205,19 +269,19 @@ export default function FormReservacion() {
         </div>
       </div>
 
-      {/* 🧩 Contenido dividido en columnas (ajustable) */}
+      {/* 🧩 Formulario - Mantenemos el orden original */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* 🟢 Columna izquierda (formulario) */}
+        {/* 🟢 Columna izquierda */}
         <div className="md:col-span-2">
           <div className="card-form p-3 md:p-5 border-round-xl shadow-2 bg-white">
             <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                {/* Tipo */}
+                {/* Tipo - PRIMERA POSICIÓN */}
                 <Dropdown
                   value={formData.tipo}
                   options={[
-                    { label: 'Viaje', value: 'viaje' },
-                    { label: 'Encomienda', value: 'encomienda' },
+                    { label: 'Viaje', value: 'viaje' }, 
+                    { label: 'Encomienda', value: 'encomienda' }
                   ]}
                   onChange={(e) =>
                     setFormData({
@@ -230,14 +294,10 @@ export default function FormReservacion() {
                   className="w-full"
                 />
 
-                {/* Ruta (bloqueada) */}
+                {/* Ruta - SEGUNDA POSICIÓN */}
                 <Dropdown
                   value={formData.ruta?.value ?? null}
-                  options={
-                    formData.ruta
-                      ? [{ label: formData.ruta.label, value: formData.ruta.value }]
-                      : []
-                  }
+                  options={formData.ruta ? [{ label: formData.ruta.label, value: formData.ruta.value }] : []}
                   optionLabel="label"
                   optionValue="value"
                   placeholder="Ruta"
@@ -245,22 +305,7 @@ export default function FormReservacion() {
                   disabled={!formData.ruta}
                 />
 
-                {/* Precio */}
-                <div>
-                  <label className="text-gray-700 text-sm font-medium block mb-1">
-                    Precio del boleto
-                  </label>
-                  <input
-                    type="text"
-                    value={
-                      formData.precio ? `L. ${formData.precio.toFixed(2)}` : 'No disponible'
-                    }
-                    readOnly
-                    className="input-precio w-full"
-                  />
-                </div>
-
-                {/* Unidad */}
+                {/* Unidad - TERCERA POSICIÓN */}
                 <Dropdown
                   value={formData.unidad?.value ?? null}
                   options={unidadOptions}
@@ -279,28 +324,95 @@ export default function FormReservacion() {
                   disabled={!formData.ruta}
                 />
 
-                {/* Asiento */}
-                {formData.tipo === 'viaje' && (
-                  <Dropdown
-                    value={formData.asiento?.value ?? null}
-                    options={asientoOptions}
-                    optionLabel="label"
-                    optionValue="value"
-                    placeholder="Asiento disponible"
-                    className="w-full"
-                    onChange={(e) => {
-                      const selectedOption = asientoOptions.find((opt) => opt.value === e.value);
-                      setFormData({
-                        ...formData,
-                        asiento: selectedOption || null,
-                      });
-                    }}
-                    disabled={!formData.unidad}
-                  />
+                {/* 🧩 Campos según tipo - MANTENEMOS ORDEN */}
+                {formData.tipo === 'viaje' ? (
+                  <>
+                    {/* Precio - CUARTA POSICIÓN */}
+                    <div>
+                      <label className="text-gray-700 text-sm font-medium block mb-1">
+                        Precio del boleto
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.precio ? `L. ${formData.precio.toFixed(2)}` : 'No disponible'}
+                        readOnly
+                        className="input-precio w-full"
+                      />
+                    </div>
+
+                    {/* Asiento - QUINTA POSICIÓN */}
+                    <Dropdown
+                      value={formData.asiento?.value ?? null}
+                      options={asientoOptions}
+                      optionLabel="label"
+                      optionValue="value"
+                      placeholder="Asiento disponible"
+                      className="w-full"
+                      onChange={(e) => {
+                        const selectedOption = asientoOptions.find(
+                          (opt) => opt.value === e.value
+                        );
+                        setFormData({
+                          ...formData,
+                          asiento: selectedOption || null,
+                        });
+                      }}
+                      disabled={!formData.unidad}
+                    />
+                  </>
+                ) : (
+                  // Encomienda - OCUPA POSICIONES 4 Y 5
+                  <div className="md:col-span-2">
+                    <label className="text-gray-700 text-sm font-medium block mb-1">
+                      Descripción de la encomienda (máx. 50 caracteres)
+                    </label>
+                    <InputTextarea
+                      autoResize
+                      rows={3}
+                      maxLength={50}
+                      value={formData.descripcion}
+                      onChange={(e) =>
+                        setFormData({ ...formData, descripcion: e.target.value })
+                      }
+                      placeholder="Ej: Caja con documentos, 3 kg"
+                      className="w-full"
+                    />
+
+                    <label className="text-gray-700 text-sm font-medium block mb-1 mt-3">
+                      Peso (kg)
+                    </label>
+                    <InputNumber
+                      value={formData.peso ?? 0}
+                      onValueChange={(e) =>
+                        setFormData({ ...formData, peso: e.value })
+                      }
+                      mode="decimal"
+                      min={0}
+                      max={30}
+                      showButtons
+                      buttonLayout="horizontal"
+                      className="w-full"
+                    />
+                  </div>
                 )}
               </div>
 
-              {/* Botón */}
+              {/* 🧩 Cálculo del Costo - POSICIÓN FIJA */}
+              {formData.tipo === 'encomienda' && (
+                <div>
+                  <label className="text-gray-700 text-sm font-medium block mb-1">
+                    Costo Estimado (L. {formData.costoEncomienda ? formData.costoEncomienda.toFixed(2) : '0.00'})
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.costoEncomienda ? `L. ${formData.costoEncomienda.toFixed(2)}` : 'No disponible'}
+                    readOnly
+                    className="input-precio w-full"
+                  />
+                </div>
+              )}
+
+              {/* Botón - POSICIÓN FIJA */}
               <div className="flex flex-column sm:flex-row justify-end gap-3 mt-4">
                 <Button
                   label="Continuar"
@@ -312,24 +424,22 @@ export default function FormReservacion() {
             </form>
           </div>
 
-          {/* Políticas */}
+          {/* Políticas - POSICIÓN FIJA */}
           <div className="politicas mt-6 bg-gray-50 p-4 border-round-xl">
-            <h3 className="text-gray-700 font-semibold text-sm mb-2">
-              Políticas y recordatorios
-            </h3>
+            <h3 className="text-gray-700 font-semibold text-sm mb-2">Políticas y recordatorios</h3>
             <ul className="text-sm text-gray-600 list-disc pl-5 space-y-1">
               <li>Confirmar reservación al menos 24 h antes del viaje.</li>
               <li>Presentarse 30 min antes de la salida.</li>
-              <li>Encomiendas ≤ 30 kg, bien embaladas.</li>
+              <li>Encomiendas menores o iguales a 30 kg, bien embaladas.</li>
               <li>La empresa no se responsabiliza por artículos frágiles.</li>
             </ul>
           </div>
         </div>
 
-        {/* 🔵 Columna derecha (mapa o ilustración) */}
+        {/* 🔵 Columna derecha - POSICIÓN FIJA */}
         <div className="panel-lateral p-3 md:p-0">
           {formData.tipo === 'viaje' ? (
-            <AsientosBus asientos={asientosDemo} />
+            <AsientosBus asientos={[]} /> 
           ) : (
             <div className="h-full flex flex-col justify-center items-center text-gray-500">
               <i className="pi pi-box text-5xl mb-3 text-indigo-400"></i>
@@ -341,23 +451,48 @@ export default function FormReservacion() {
         </div>
       </div>
 
-      {/* 💬 Diálogo de confirmación */}
+      {/* 💬 Diálogo - CON AJUSTE PARA PANTALLAS PEQUEÑAS */}
       <Dialog
         header="Confirmar reservación"
         visible={showConfirmDialog}
-        style={{ width: '90%', maxWidth: '500px' }}
+        style={{ width: isSmallScreen ? '95%' : '90%', maxWidth: '500px' }}
         modal
         onHide={() => setShowConfirmDialog(false)}
       >
         <div className="p-3 space-y-2 text-sm">
-          <p><b>Tipo:</b> {formData.tipo === 'viaje' ? 'Viaje' : 'Encomienda'}</p>
-          <p><b>Ruta:</b> {formData.ruta?.label ?? 'No seleccionada'}</p>
-          <p><b>Unidad:</b> {formData.unidad?.label ?? 'No seleccionada'}</p>
+          <p>
+            <b>Tipo:</b> {formData.tipo === 'viaje' ? 'Viaje' : 'Encomienda'}
+          </p>
+          <p>
+            <b>Ruta:</b> {formData.ruta?.label ?? 'No seleccionada'}
+          </p>
+          <p>
+            <b>Unidad:</b> {formData.unidad?.label ?? 'No seleccionada'}
+          </p>
           {formData.tipo === 'viaje' && (
-            <p><b>Asiento:</b> {formData.asiento?.label ?? 'No seleccionado'}</p>
+            <>
+              <p>
+                <b>Asiento:</b> {formData.asiento?.label ?? 'No seleccionado'}
+              </p>
+              <p>
+                <b>Precio:</b> {formData.precio ? `L. ${formData.precio.toFixed(2)}` : 'No disponible'}
+              </p>
+            </>
           )}
-          <p><b>Precio:</b> {formData.precio ? `L. ${formData.precio.toFixed(2)}` : 'No disponible'}</p>
-          <p><b>Fecha:</b> {new Date(formData.fecha).toLocaleDateString()}</p>
+          {formData.tipo === 'encomienda' && (
+            <>
+              <p>
+                <b>Descripción:</b>{' '}
+                {formData.descripcion ? formData.descripcion : 'No especificada'}
+              </p>
+              <p>
+                <b>Costo estimado:</b> {formData.costoEncomienda ? `L. ${formData.costoEncomienda.toFixed(2)}` : 'No disponible'}
+              </p>
+            </>
+          )}
+          <p>
+            <b>Fecha:</b> {new Date(formData.fecha).toLocaleDateString()}
+          </p>
         </div>
 
         <div className="flex flex-column sm:flex-row justify-end gap-3 mt-4">

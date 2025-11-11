@@ -178,7 +178,7 @@ const RegistroUsuario: React.FC = () => {
           telefono: phoneSanitized || null,
           genero_id: form.genero ?? DEFAULT_GENERO_ID,
           fecha_nacimiento: form.fechaNacimiento?.toISOString().slice(0, 10),
-          rolDefecto: 1,
+          rolDefecto: 3,
           tipoPersona: 1,
         }),
       });

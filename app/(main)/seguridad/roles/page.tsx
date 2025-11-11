@@ -233,7 +233,7 @@ export default function RolesPage() {
         <InputText
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar..."
+          //placeholder="Buscar..."
         />
       </span>
     </div>

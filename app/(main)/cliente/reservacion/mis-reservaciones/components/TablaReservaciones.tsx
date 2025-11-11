@@ -10,6 +10,9 @@ import { useState, useRef } from 'react';
 import { Toast } from 'primereact/toast';
 import { Eye, CreditCard } from 'lucide-react';
 import './TablaReservaciones.css';
+import VoucherReserva from '../../components/VoucherReserva';
+import { buildVoucherData } from '@/lib/voucher';
+
 
 type TipoReservacion = 'viaje' | 'encomienda';
 type EstadoReservacion = 'confirmada' | 'pendiente' | 'cancelada';
@@ -24,6 +27,8 @@ interface Reservacion {
   estado: EstadoReservacion;
   hora?: string;
   peso?: number;
+  precio?: number | string;           // para viaje
+  costoEncomienda?: number | string;  // para encomienda
 }
 
 interface TablaReservacionesProps {
@@ -38,6 +43,34 @@ export default function TablaReservaciones({ reservaciones }: TablaReservaciones
   const [comentario, setComentario] = useState('');
   const [metodoPago, setMetodoPago] = useState<number | null>(null);
   const toast = useRef<Toast>(null);
+  const [showVoucher, setShowVoucher] = useState(false);
+  const [voucherData, setVoucherData] = useState<any>(null);
+  const [voucherMetodoPagoLabel, setVoucherMetodoPagoLabel] = useState<string | null>(null);
+
+
+  function mapRowToVoucher(row: any) {
+  const reservacion = {
+    id: row.Id_Reserva_PK ?? row.id,
+    tipo: row.Tipo ?? row.tipo, // 'VIAJE' | 'ENCOMIENDA'
+    ruta: row.Ruta ?? (row.Origen && row.Destino ? `${row.Origen} → ${row.Destino}` : undefined),
+    unidad: row.Unidad ?? (row.Placa ? `Placa ${row.Placa}${row.Marca ? ' / ' + row.Marca : ''}` : undefined),
+    asiento: row.Numero_Asiento ?? row.asiento ?? null,
+    fecha: row.Fecha_Reserva ?? row.fecha,
+    estado: row.Estado ?? row.estado,
+    precio: row.Precio ?? row.precio ?? null,
+    costoEncomienda: row.Costo ?? row.costoEncomienda ?? null,
+    origen: row.Origen, destino: row.Destino
+  };
+  const cliente = { nombreCompleto: row.Cliente ?? 'Cliente' };
+  return buildVoucherData(reservacion as any, cliente);
+}
+
+const confirmarDesdeFila = (row: any) => {
+  const data = mapRowToVoucher(row);
+  setVoucherData(data);
+  setShowVoucher(true);
+};
+
 
   const metodosPago = [
     { label: 'Efectivo', value: 1 },
@@ -93,6 +126,14 @@ export default function TablaReservaciones({ reservaciones }: TablaReservaciones
       month: '2-digit',
       year: 'numeric',
     });
+
+  // 🧮 Formateador de dinero (100% libre de errores TS)
+const formatMoney = (v: number | string | undefined | null): string => {
+  const n = Number(v);
+  if (isNaN(n)) return 'No disponible';
+  return `L. ${(n as number).toFixed(2)}`; // 👈 se fuerza el tipo aquí
+};
+
 
   return (
     <>
@@ -189,6 +230,23 @@ export default function TablaReservaciones({ reservaciones }: TablaReservaciones
               ¿Qué desea hacer con la reservación{' '}
               <b>{selectedReservation?.id}</b>?
             </p>
+
+            {/* 🟣 NUEVO: Mostrar costo o precio según el tipo */}
+    {/* 🟣 NUEVO: Mostrar costo o precio según el tipo */}
+{selectedReservation?.tipo === 'viaje' && (
+  <p className="text-gray-800 text-sm">
+    <b>Precio:</b>{' '}
+    {formatMoney(selectedReservation?.precio)}   {/* ✅ usa el helper */}
+  </p>
+)}
+
+{selectedReservation?.tipo === 'encomienda' && (
+  <p className="text-gray-800 text-sm">
+    <b>Costo:</b>{' '}
+    {formatMoney(selectedReservation?.costoEncomienda)}   {/* ✅ usa el helper */}
+  </p>
+)}
+
             <div className="flex justify-end gap-2">
               <Button
                 label="Atrás"
@@ -206,11 +264,28 @@ export default function TablaReservaciones({ reservaciones }: TablaReservaciones
               />
 
               <Button
-                label="Confirmar / Pagar"
-                icon="pi pi-credit-card"
-                className="p-button-success p-button-sm font-medium"
-                onClick={() => setModoPago('confirmar')}
-              />
+  label="Confirmar / Pagar"
+  icon="pi pi-credit-card"
+  className="p-button-success p-button-sm font-medium"
+  onClick={() => {
+    if (selectedReservation) {
+      // 🔹 Refrescamos selectedReservation con valores seguros
+      setSelectedReservation({
+        ...selectedReservation,
+        precio:
+          selectedReservation.precio ??
+          (selectedReservation.tipo === 'viaje' ? 250 : undefined), // valor simulado
+        costoEncomienda:
+          selectedReservation.costoEncomienda ??
+          (selectedReservation.tipo === 'encomienda' ? 515.4 : undefined), // valor simulado
+      });
+    }
+
+    // 🔹 Luego cambiamos el modo
+    setModoPago('confirmar');
+  }}
+/>
+
             </div>
           </div>
         )}
@@ -324,6 +399,19 @@ export default function TablaReservaciones({ reservaciones }: TablaReservaciones
             <p className="text-gray-700 text-sm mb-2">
               Seleccione el método de pago para confirmar su reservación:
             </p>
+
+            {/* 💰 Mostrar precio o costo según el tipo */}
+    {selectedReservation?.tipo === 'viaje' && (
+      <p className="text-gray-800 text-sm">
+        <b>Precio del viaje:</b> {formatMoney(selectedReservation?.precio)}
+      </p>
+    )}
+    {selectedReservation?.tipo === 'encomienda' && (
+      <p className="text-gray-800 text-sm">
+        <b>Costo de la encomienda:</b> {formatMoney(selectedReservation?.costoEncomienda)}
+      </p>
+    )}
+
             <Dropdown
               value={metodoPago}
               options={metodosPago}
@@ -345,14 +433,59 @@ export default function TablaReservaciones({ reservaciones }: TablaReservaciones
                 className="p-button-success p-button-sm font-medium"
                 disabled={!metodoPago}
                 onClick={() => {
-                  alert(`Reservación confirmada con método #${metodoPago}`);
-                  setVisiblePago(false);
-                }}
+  if (!selectedReservation) return;
+
+  // 1) Obtener el label del método de pago seleccionado
+  const metodoPagoLabel =
+    metodosPago.find((o) => o.value === metodoPago)?.label ?? 'Seleccionará en terminal';
+  setVoucherMetodoPagoLabel(metodoPagoLabel);
+
+  // 2) Construir el voucher desde la reservación seleccionada (front-only)
+  const data = buildVoucherData(
+    {
+      id: selectedReservation.id,
+      // tu tipo es 'viaje' | 'encomienda' -> convertir a mayúsculas
+      tipo: (selectedReservation.tipo === 'encomienda' ? 'ENCOMIENDA' : 'VIAJE') as any,
+      ruta: selectedReservation.ruta,
+      unidad: selectedReservation.unidad,
+      asiento: selectedReservation.asiento ?? null,
+      fecha: selectedReservation.fecha,
+      estado: selectedReservation.estado,
+      precio: selectedReservation.precio ?? null,
+      costoEncomienda: selectedReservation.costoEncomienda ?? null,
+      // si manejas origen/destino por separado, pásalos aquí; si no, déjalos así
+      origen: undefined,
+      destino: undefined,
+    } as any,
+    { nombreCompleto: 'Cliente' } // si tienes el nombre real en esta vista, sustitúyelo aquí
+  );
+
+  setVoucherData(data);
+  setVisiblePago(false);  // cerrar modal
+  setShowVoucher(true);   // abrir voucher
+}}
+
               />
             </div>
           </div>
         )}
       </Dialog>
+      <Dialog
+  header="Voucher de reservación"
+  visible={showVoucher}
+  style={{ width: '740px' }}
+  onHide={() => setShowVoucher(false)}
+>
+  {voucherData && (
+    <VoucherReserva
+      data={voucherData}
+      metodoPagoLabel={voucherMetodoPagoLabel}
+      onClose={() => setShowVoucher(false)}
+    />
+  )}
+</Dialog>
+
     </>
+    
   );
 }

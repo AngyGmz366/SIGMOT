@@ -149,7 +149,7 @@ export default function PermisosPorRolPage() {
                 <InputText
                   value={filtro}
                   onChange={(e) => setFiltro(e.target.value)}
-                  placeholder="Filtrar por nombre de objeto..."
+                  //placeholder="Filtrar por nombre de objeto..."
                   className="w-full"
                 />
               </span>

@@ -90,15 +90,11 @@ const fetchEstados = async (): Promise<EstadoEmpleado[]> => {
 // función para obtener personas con TipoPersona = 2 (Empleado)
 const fetchPersonasEmpleados = async (): Promise<Persona[]> => {
   try {
-    const response = await fetch('/api/Personas');
-    if (!response.ok) throw new Error('Error al obtener personas');
+    const response = await fetch('/api/personas/empleados-disponibles');
+    if (!response.ok) throw new Error('Error al obtener personas disponibles');
     const data = await response.json();
-    const personas = Array.isArray(data[0]) ? data[0] : data;
-
-    // Filtrar solo personas con TipoPersona = "Empleado" o 2
-    return personas.filter((p: any) =>
-      p.TipoPersona === 'Empleado' || p.TipoPersona === 2 || p.TipoPersona === '2'
-    );
+    console.log('✅ Personas empleados disponibles:', data);
+    return Array.isArray(data) ? data : [];
   } catch (error) {
     console.error('❌ Error en fetchPersonasEmpleados:', error);
     return [];
@@ -358,13 +354,25 @@ function EmpleadosPage() {
 
   const deleteEmpleadoHandler = async () => {
     try {
-      await deleteEmpleado(empleado.Id_Empleado_PK);
-      toast.current?.show({
-        severity: 'success',
-        summary: 'Éxito',
-        detail: 'Empleado eliminado correctamente',
-        life: 3000,
-      });
+      const response = await deleteEmpleado(empleado.Id_Empleado_PK);
+
+      // Verificar si fue despedido o eliminado
+      if (response.accion === 'DESPEDIDO') {
+        toast.current?.show({
+          severity: 'info',
+          summary: 'Empleado Despedido',
+          detail: 'El empleado tiene relaciones con otras tablas. Se ha marcado como DESPEDIDO.',
+          life: 5000,
+        });
+      } else {
+        toast.current?.show({
+          severity: 'success',
+          summary: 'Éxito',
+          detail: 'Empleado eliminado correctamente',
+          life: 3000,
+        });
+      }
+
       await loadEmpleados();
       setDeleteEmpleadoDialog(false);
     } catch (err) {
@@ -388,7 +396,6 @@ function EmpleadosPage() {
       setEmpleado(prev => ({ ...prev, [name]: formattedDate }));
     }
   };
-
 
   const onTimeChange = (value: Date | null, name: string) => {
     if (value) {
@@ -433,15 +440,16 @@ function EmpleadosPage() {
   );
 
   const header = (
-    <div className="flex flex-wrap gap-2 align-items-center justify-content-between">
+    <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
       <h4 className="m-0">Gestión de Empleados</h4>
-      <span className="p-input-icon-left">
+      <span className="block mt-2 md:mt-0 p-input-icon-left">
         <i className="pi pi-search" />
         <InputText
           type="search"
           value={globalFilter}
           onChange={(e) => setGlobalFilter(e.target.value)}
           placeholder="Buscar..."
+          className="w-full"
         />
       </span>
     </div>
@@ -496,7 +504,8 @@ function EmpleadosPage() {
             onSelectionChange={(e) => setSelectedEmpleados(e.value)}
             dataKey="Id_Empleado_PK"
             paginator
-            rows={10}
+            rows={10} className="datatable-responsive"
+            tableStyle={{ minWidth: '50rem' }}
             rowsPerPageOptions={[5, 10, 25, 50]}
             loading={loading}
             paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
@@ -541,15 +550,15 @@ function EmpleadosPage() {
                     id="Id_Persona_FK"
                     value={empleado.Id_Persona_FK}
                     onChange={(e) => onDropdownChange(e.value, 'Id_Persona_FK')}
-                    options={personas} // Personas filtradas
-                    optionLabel="Nombre_Persona" // Campo que se muestra (puedes cambiarlo según tu estructura de datos)
-                    optionValue="Id_Persona" // Valor que se guarda (ID de la persona)
+                    options={personas}
+                    optionLabel="Nombre_Persona"
+                    optionValue="Id_Persona"
                     placeholder="Selecciona una persona"
-                    filter // Activa la búsqueda
-                    filterBy="Nombre_Persona" // Filtra por nombre (cambia según lo que desees buscar)
+                    filter
+                    showClear
                     className={submitted && !empleado.Id_Persona_FK ? 'p-invalid' : ''}
-                    showClear // Botón para borrar la selección
                   />
+
                 ) : (
                   // Si se está editando, solo muestra el nombre completo
                   <InputText
@@ -666,7 +675,7 @@ function EmpleadosPage() {
             visible={detalleEmpleadoDialog}
             style={{ width: '40rem', borderRadius: '1rem' }}
             breakpoints={{ '960px': '75vw', '641px': '90vw' }}
-            header={ 
+            header={
               <div className="flex flex-column">
                 <h3 className="text-xl font-semibold text-gray-800">
                   Detalles del Empleado: {detalleEmpleado?.Nombre_Persona} {detalleEmpleado?.Apellido_Persona}
@@ -744,7 +753,6 @@ function EmpleadosPage() {
               </div>
             )}
           </Dialog>
-
         </div>
       </div>
     </div>

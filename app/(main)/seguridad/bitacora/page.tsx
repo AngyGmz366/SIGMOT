@@ -6,6 +6,7 @@ import { Calendar } from 'primereact/calendar';
 import { Dropdown } from 'primereact/dropdown';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
+import * as XLSX from 'xlsx';
 
 type Registro = {
   id: number;
@@ -163,6 +164,32 @@ export default function BitacoraPage() {
     }
   };
 
+            //Exportar a Excel
+      const exportarExcel = () => {
+        // Preparar datos para Excel
+        const datosExcel = bitacora.map((r) => ({
+          'Fecha': formatearFecha(r.fecha),
+          'Usuario': r.usuario,
+          'Acción': r.accion,
+          'Objeto': r.objeto,
+          'Descripción': r.descripcion,
+        }));
+      
+        // Crear hoja de trabajo
+        const ws = XLSX.utils.json_to_sheet(datosExcel);
+        
+        // Crear libro de trabajo
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Bitácora');
+
+        // Generar nombre del archivo con fecha actual
+        const fecha = new Date().toISOString().slice(0, 10);
+        const nombreArchivo = `Bitacora_${fecha}.xlsx`;
+
+        // Descargar archivo
+        XLSX.writeFile(wb, nombreArchivo);
+      };
+
   // 🔹 Render principal
   return (
     <div className="p-4">
@@ -207,6 +234,13 @@ export default function BitacoraPage() {
           className="p-button-danger"
           onClick={exportarPDF}
         />
+         {/* ✅ NUEVO BOTÓN: Exportar Excel */}
+         <Button
+          label="Exportar Excel"
+          icon="pi pi-file-excel"
+          className="p-button-success"
+          onClick={exportarExcel}
+          />
       </div>
 
       {/* Tabla principal */}

@@ -7,11 +7,11 @@ export const db = mysql.createPool({
   user: process.env.DB_USER,
   password: process.env.DB_PASS,
   database: process.env.DB_NAME, // mydb
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
+  waitForConnections: true,      // Espera si hay conexiones disponibles
+  connectionLimit: 5,           // Límite de conexiones concurrentes
+  queueLimit: 0,                 // Sin límite de conexiones en espera
   dateStrings: true,
-  timezone: "Z", // usa UTC interno, luego forzamos manualmente
+  timezone: "Z",
 });
 
 
