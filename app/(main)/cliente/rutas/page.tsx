@@ -17,11 +17,13 @@ import { getRutasPublic } from "./acciones/rutas.acciones";
 // 🎨 Estilos específicos de la página
 import "./page.css";
 
-// ✅ Carga dinámica del mapa (sin SSR)
+// ✅ Carga dinámica del mapa (sin SSR) con mejoras para móvil
 const MapaInteractivo = dynamic(() => import("./components/MapaInteractivo"), {
   ssr: false,
   loading: () => (
-    <p className="text-center text-gray-500">Cargando mapa...</p>
+    <div className="map-container" style={{ height: '250px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <p className="text-center text-gray-500">Cargando mapa...</p>
+    </div>
   ),
 });
 
@@ -34,12 +36,19 @@ export default function PageRutas() {
   const [loading, setLoading] = useState(true);
   const [vistaMovil, setVistaMovil] = useState<VistaMovil>('rutas');
   const [isMobile, setIsMobile] = useState(false);
+  const [mapaExpandido, setMapaExpandido] = useState(false);
   const router = useRouter();
 
   // 🔹 Detectar si estamos en móvil
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      // Si cambia a desktop, resetear vista móvil
+      if (!mobile) {
+        setVistaMovil('rutas');
+        setMapaExpandido(false);
+      }
     };
 
     checkMobile();
@@ -89,6 +98,13 @@ export default function PageRutas() {
     setRutaSeleccionada(r);
   };
 
+  // 🔹 Expandir/contraer mapa en móvil
+  const toggleMapaExpandido = () => {
+    if (isMobile) {
+      setMapaExpandido(!mapaExpandido);
+    }
+  };
+
   // 🔹 Estados de carga
   if (loading)
     return (
@@ -107,7 +123,10 @@ export default function PageRutas() {
         {isMobile && (
           <div className="flex justify-center mb-4">
             <button
-              onClick={() => setVistaMovil(vistaMovil === 'rutas' ? 'mapa' : 'rutas')}
+              onClick={() => {
+                setVistaMovil(vistaMovil === 'rutas' ? 'mapa' : 'rutas');
+                setMapaExpandido(false);
+              }}
               className="boton-navegacion-movil"
             >
               {vistaMovil === 'rutas' ? 'Ver Mapa' : 'Ver Rutas'}
@@ -116,10 +135,10 @@ export default function PageRutas() {
         )}
 
         {/* === Header informativo === */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Rutas</h1>
-          <p className="text-gray-600">
-            
+        <div className="mb-4 md:mb-6">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-800 text-center md:text-left">Rutas Disponibles</h1>
+          <p className="text-gray-600 text-center md:text-left text-sm md:text-base">
+            Selecciona tu ruta y horario preferido
           </p>
         </div>
 
@@ -127,7 +146,7 @@ export default function PageRutas() {
         {isMobile ? (
           vistaMovil === 'rutas' ? (
             /* === Vista de Rutas en Móvil === */
-            <div className="space-y-6">
+            <div className="space-y-4">
               <PanelLateral
                 rutas={rutas}
                 onSeleccionarRuta={onSeleccionarRuta}
@@ -136,28 +155,54 @@ export default function PageRutas() {
             </div>
           ) : (
             /* === Vista de Mapa en Móvil === */
-            <div className="space-y-6">
-              <div className="mb-6">
-                <MapaInteractivo rutas={rutas} />
+            <div className="space-y-4">
+              <div className={`mb-4 ${mapaExpandido ? 'fixed inset-0 z-50 bg-white' : ''}`}>
+                <div 
+                  className={`map-container ${mapaExpandido ? 'expanded' : ''}`}
+                  onClick={toggleMapaExpandido}
+                >
+                  <MapaInteractivo 
+                    rutas={rutas} 
+                    height={mapaExpandido ? "100vh" : "250px"}
+                  />
+                  {mapaExpandido && (
+                    <button 
+                      className="map-overlay"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMapaExpandido(false);
+                      }}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+                {!mapaExpandido && (
+                  <p className="text-center text-gray-500 text-sm mt-2">
+                    Toca el mapa para expandir
+                  </p>
+                )}
               </div>
               
-              <div className="grid grid-cols-1 gap-6">
-                <div>
-                  <HorariosTabla
-                    rutas={rutas
-                      .filter((r) => r.horarios && r.horarios.length > 0)
-                      .map((r) => ({
-                        origen: r.origen,
-                        destino: r.destino,
-                        horarios: r.horarios ?? [],
-                      }))}
-                  />
-                </div>
+              {!mapaExpandido && (
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="horarios-tabla">
+                    <HorariosTabla
+                      rutas={rutas
+                        .filter((r) => r.horarios && r.horarios.length > 0)
+                        .map((r) => ({
+                          origen: r.origen,
+                          destino: r.destino,
+                          horarios: r.horarios ?? [],
+                        }))}
+                    />
+                  </div>
 
-                <div>
-                  <InfoRutaSeleccionada rutaSeleccionada={rutaSeleccionada} />
+                  <div className="info-ruta">
+                    <InfoRutaSeleccionada rutaSeleccionada={rutaSeleccionada} />
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )
         ) : (

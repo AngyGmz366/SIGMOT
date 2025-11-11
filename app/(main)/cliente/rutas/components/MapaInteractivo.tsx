@@ -14,9 +14,10 @@ L.Icon.Default.mergeOptions({
 
 interface Props {
   rutas: RutaPublica[];
+  height?: string;
 }
 
-const MapaInteractivo: React.FC<Props> = ({ rutas }) => {
+const MapaInteractivo: React.FC<Props> = ({ rutas, height = "50vh" }) => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const layersRef = useRef<any[]>([]);
@@ -181,8 +182,8 @@ const MapaInteractivo: React.FC<Props> = ({ rutas }) => {
       <div
         ref={mapContainerRef}
         style={{
-          height: "50vh",
-          minHeight: "300px",
+          height: height,
+          minHeight: "250px",
           width: "100%",
           borderRadius: "12px",
           border: "1px solid #e2e8f0",

@@ -78,87 +78,75 @@ const PanelLateral: React.FC<PanelLateralProps> = ({
           </div>
         </div>
 
-        {/* 🧭 Lista de rutas con desplazamiento */}
+        {/*  Lista de rutas con desplazamiento */}
         <div className="bg-gray-50 px-4 py-4 sm:px-6 max-h-[500px] overflow-y-auto">
           {filtradas.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filtradas.map((ruta) => {
                 const sel = seleccion === ruta.id;
                 return (
                   <div
                     key={ruta.id}
-                    className={`card-ruta p-6 cursor-pointer transition-all duration-300 ease-in-out flex flex-col gap-4 ${
-                      sel
-                        ? "selected"
-                        : "border-gray-200 hover:border-blue-500 hover:bg-blue-100 hover:shadow-lg"
-                    }`}
+                    className={`card-ruta ${sel ? "selected" : ""}`}
                     onClick={() => handleSeleccion(ruta.id)}
                     style={{ cursor: "pointer" }}
                   >
-                    <div className="flex justify-between items-start">
-                      <div
-                        className={`font-bold text-lg leading-tight ${sel ? "text-white" : "text-blue-600"}`}
-                      >
-                        {ruta.origen} → {ruta.destino}
+                    <div className="card-ruta-content">
+                      {/* Encabezado de la ruta */}
+                      <div className="ruta-header">
+                        <h3 className="ruta-title">
+                          {ruta.origen} → {ruta.destino}
+                        </h3>
+                        <span className="ruta-badge">Disponible</span>
                       </div>
-                    </div>
-
-                    <div className="flex flex-col gap-3">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-1">
-                          <i className="pi pi-clock text-sm"></i>
-                          <span className="text-sm">{ruta.tiempoEstimado || "N/A"}</span>
+                      
+                      {/* Información de la ruta */}
+                      <div className="ruta-info">
+                        <div className="ruta-detail">
+                          <i className="icon-time"></i>
+                          <span>{ruta.tiempoEstimado || "N/A"}</span>
                         </div>
+                        
                         {ruta.distancia && (
-                          <div className="flex items-center gap-1">
-                            <i className="pi pi-map-marker text-sm"></i>
-                            <span className="text-sm">{ruta.distancia} km</span>
+                          <div className="ruta-detail">
+                            <i className="icon-distance"></i>
+                            <span>{ruta.distancia} km</span>
+                          </div>
+                        )}
+                        
+                        {/* Horarios */}
+                        {ruta.horarios && ruta.horarios.length > 0 && (
+                          <div className="ruta-horarios">
+                            <div className="horarios-title">Horarios:</div>
+                            <div className="horarios-list">
+                              {ruta.horarios.slice(0, 3).map((horario, idx) => (
+                                <span key={idx} className="horario-item">
+                                  {horario}
+                                </span>
+                              ))}
+                              {ruta.horarios.length > 3 && (
+                                <span className="horario-item">
+                                  +{ruta.horarios.length - 3}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
-                      <div className="flex items-center gap-1">
-                        <i className="pi pi-tag text-sm"></i>
-                        <span
-                          className={`font-bold text-lg ${sel ? "text-white" : "text-gray-900"}`}
+                      
+                      {/* Precio y botón */}
+                      <div className="ruta-footer">
+                        <div className="ruta-precio">
+                          L. {ruta.precio?.toFixed(2) || "0.00"}
+                        </div>
+                        <button 
+                          className="p-button"
+                          onClick={(e) => handleReservar(ruta, e)}
                         >
-                          Lps. {ruta.precio?.toFixed(2) || "0.00"}
-                        </span>
+                          Reservar
+                        </button>
                       </div>
                     </div>
-
-                    {ruta.horarios && ruta.horarios.length > 0 && (
-                      <div className="flex flex-col gap-1">
-                        <div className={`text-sm font-semibold ${sel ? "text-blue-100" : "text-gray-500"}`}>
-                          Horarios:
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {ruta.horarios.slice(0, 2).map((horario, idx) => (
-                            <span
-                              key={idx}
-                              className={`text-sm px-4 py-2 rounded ${sel ? "bg-white text-blue-600" : "bg-gray-100 text-gray-700"}`}
-                            >
-                              {horario}
-                            </span>
-                          ))}
-                          {ruta.horarios.length > 2 && (
-                            <span
-                              className={`text-sm px-4 py-2 rounded ${sel ? "bg-white text-blue-600" : "bg-gray-100 text-gray-700"}`}
-                            >
-                              +{ruta.horarios.length - 2}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 🎟️ Botón para reservar */}
-                    <Button
-                      label="Reservar"
-                      icon="pi pi-ticket"
-                      className={`w-full text-sm py-2 ${sel ? "bg-white text-blue-300 border-white hover:bg-gray-100 hover:text-blue-400" : "p-button-primary"}`}
-                      size="small"
-                      onClick={(e) => handleReservar(ruta, e)}
-                    />
                   </div>
                 );
               })}
