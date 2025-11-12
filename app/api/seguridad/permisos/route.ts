@@ -6,10 +6,33 @@ import { db } from '@/lib/db';
 =============================== */
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const rol = searchParams.get('rol');
+  const rolParam = searchParams.get('rol');
 
   try {
-    const [rows]: any = await db.query('CALL sp_permisos_por_rol_listar(?);', [rol]);
+    let idRol: number;
+
+    // Si es un número, es el ID directamente
+    if (!isNaN(Number(rolParam))) {
+      idRol = Number(rolParam);
+    } else {
+      // Si es texto, buscar el ID del rol
+      const [rolRows]: any = await db.query(
+        'SELECT Id_Rol_PK FROM mydb.TBL_MS_ROLES WHERE Rol = ? LIMIT 1;',
+        [rolParam]
+      );
+
+      if (!rolRows || rolRows.length === 0) {
+        return NextResponse.json({ 
+          ok: false, 
+          message: 'Rol no encontrado' 
+        }, { status: 404 });
+      }
+
+      idRol = rolRows[0].Id_Rol_PK;
+    }
+
+    // Consultar permisos con el ID del rol
+    const [rows]: any = await db.query('CALL sp_permisos_por_rol_listar(?);', [idRol]);
 
     const data = rows[0].map((r: any) => ({
       Id_Objeto: r.Id_Objeto,
@@ -24,7 +47,10 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: true, data });
   } catch (error) {
     console.error('❌ Error al obtener permisos:', error);
-    return NextResponse.json({ ok: false, message: 'Error al obtener permisos' }, { status: 500 });
+    return NextResponse.json({ 
+      ok: false, 
+      message: 'Error al obtener permisos' 
+    }, { status: 500 });
   }
 }
 
