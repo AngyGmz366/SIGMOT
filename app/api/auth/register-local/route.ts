@@ -37,7 +37,7 @@ export async function POST(req: Request) {
       fecha_nacimiento = null, // 'YYYY-MM-DD'
       email,
       password,
-      rolDefecto = 1,
+      rolDefecto = 3,
       tipoPersona = 1,
       estadoUsuario = 1
     } = body;
