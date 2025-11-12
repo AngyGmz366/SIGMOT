@@ -65,6 +65,15 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ ok: true, message: 'Rol eliminado correctamente' });
   } catch (error: any) {
     console.error('❌ Error en DELETE /api/seguridad/roles:', error);
+    
+    // Mensaje personalizado si hay error de foreign key
+    if (error.code === 'ER_ROW_IS_REFERENCED_2' || error.errno === 1451) {
+      return NextResponse.json({ 
+        ok: false, 
+        error: 'No se puede eliminar el rol porque tiene permisos o usuarios asignados' 
+      }, { status: 409 });
+    }
+    
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
 }
