@@ -5,9 +5,12 @@ import { Column } from 'primereact/column';
 import { Button } from 'primereact/button';
 import { ConfirmDialog } from 'primereact/confirmdialog';
 import { InputText } from 'primereact/inputtext';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { ReservacionBase } from './types';
 import ActionsColumn from './ActionsColumn';
+import { Toast } from 'primereact/toast';
+import axios from 'axios';
+import FormEstadoEncomienda from './FormEstadoEncomienda';
 
 export default function TablaReservaciones({
   reservaciones,
@@ -20,11 +23,51 @@ export default function TablaReservaciones({
 }) {
   const [selectedReservation, setSelectedReservation] = useState<ReservacionBase | null>(null);
   const [globalFilter, setGlobalFilter] = useState<string>('');
+  const [mostrarFormEstado, setMostrarFormEstado] = useState(false);
+  const [encomiendaSeleccionada, setEncomiendaSeleccionada] = useState<ReservacionBase | null>(null);
+  const toast = useRef<Toast>(null);
 
   const isRowSelected = !!selectedReservation;
 
+  const abrirFormEstado = (reserva: ReservacionBase) => {
+  setEncomiendaSeleccionada(reserva);
+  setMostrarFormEstado(true);
+};
+
+  const manejarGuardarEstado = async (idReserva: string, nuevoEstado: number) => {
+    try {
+      const res = await axios.put(`/api/reservas/${idReserva}/estado`, {
+        estado_id: nuevoEstado,
+      });
+
+      if (res.data.ok) {
+        toast.current?.show({
+          severity: 'success',
+          summary: 'Estado actualizado',
+          detail: 'La encomienda fue actualizada correctamente.',
+          life: 3000,
+        });
+        setMostrarFormEstado(false);
+        setEncomiendaSeleccionada(null);
+        // 🔁 refrescar la lista
+        window.location.reload(); // o llama aquí tu función cargarReservas()
+      } else {
+        throw new Error(res.data.error || 'No se pudo actualizar.');
+      }
+    } catch (error: any) {
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail:
+          error.response?.data?.error || 'No se pudo cambiar el estado.',
+        life: 4000,
+      });
+    }
+  };
+
   return (
     <div className="card">
+      <Toast ref={toast} />
       <ConfirmDialog />
 
       {/* 🔹 Encabezado adaptativo */}
@@ -140,15 +183,25 @@ export default function TablaReservaciones({
           header="Acciones"
           body={(row) => (
             <ActionsColumn
-              row={row}
+              row={{
+                ...row,
+                tipo: row.tipo?.toLowerCase(), // 👈 normaliza VIAJE / ENCOMIENDA
+              }}
               onEdit={(reserva) => onAdd(reserva)}
               onDelete={(id) => onDelete(id)}
-            />
-          )}
+              onStatusChange={abrirFormEstado}
+              />
+            )}
           exportable={false}
           style={{ width: '8rem', textAlign: 'center' }}
         ></Column>
       </DataTable>
+      <FormEstadoEncomienda
+        visible={mostrarFormEstado}
+        encomienda={encomiendaSeleccionada as any}
+        onSave={manejarGuardarEstado}
+        onCancel={() => setMostrarFormEstado(false)}
+      />
     </div>
   );
 }

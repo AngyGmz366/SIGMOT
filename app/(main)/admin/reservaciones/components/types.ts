@@ -32,6 +32,8 @@ export interface ReservacionEncomienda extends ReservacionBase {
   tipo: 'encomienda';
   id_encomienda?: number; // Referencia a la encomienda
   costo?: number;         // Costo monetario
+  estadoEncomienda?: string;      // Estado actual de la encomienda ('EN CAMINO', 'ENTREGADA', 'CANCELADA')
+  idEstadoEncomienda?: 1 | 3 | 4;  // ID del estado de la encomienda (1,3,4)
 }
 
 // 🔹 Tipo flexible para formularios
