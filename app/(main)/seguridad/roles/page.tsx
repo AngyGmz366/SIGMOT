@@ -227,12 +227,13 @@ export default function RolesPage() {
   );
 
     const rightToolbar = (
-    <div className="flex items-center gap-2">
-      <span className="p-input-icon-left">
+    <div className="flex items-center gap-2 w-full">
+      <span className="p-input-icon-left w-full max-w-xs sm:max-w-sm md:max-w-md">
         <i className="pi pi-search" />
         <InputText
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          className="w-full"
           //placeholder="Buscar..."
         />
       </span>

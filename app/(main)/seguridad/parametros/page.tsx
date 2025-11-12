@@ -143,13 +143,16 @@ export default function ParametrosPage() {
           <Toolbar
             className="mb-4 surface-100 border-round shadow-1"
             right={
-              <span className="p-input-icon-left">
-                <i className="pi pi-search" />
-                <InputText
-                  //placeholder="Buscar parámetro..."
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </span>
+              <div className="flex items-center gap-2 w-full">
+                <span className="p-input-icon-left w-full max-w-xs sm:max-w-sm md:max-w-md">
+                  <i className="pi pi-search" />
+                  <InputText
+                    className="w-full"
+                    //placeholder="Buscar parámetro..."
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </span>
+              </div>
             }
           />
 
