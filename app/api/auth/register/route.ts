@@ -62,7 +62,7 @@ export async function POST(req: Request) {
     const fecha_nacimiento = body?.fecha_nacimiento
       ? String(body.fecha_nacimiento).slice(0, 10)
       : null;
-    const rolDefecto = Number(body?.rolDefecto ?? 1);
+    const rolDefecto = Number(body?.rolDefecto ?? 3);
     const tipoPersona = Number(body?.tipoPersona ?? 1);
 
     // ───────────────────────────────────────────────

@@ -149,7 +149,7 @@ const RegistroUsuario: React.FC = () => {
           fecha_nacimiento: form.fechaNacimiento?.toISOString().slice(0, 10),
           email: form.correo.trim(),
           password: form.contrasena,
-          rolDefecto: 1,
+          rolDefecto: 3,
           tipoPersona: 1,
           estadoUsuario: 1,
           codigoVerificacion: form.codigoVerificacion.trim(),
