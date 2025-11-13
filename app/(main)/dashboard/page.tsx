@@ -1,6 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
-
 import { Button } from 'primereact/button';
 import { Chart } from 'primereact/chart';
 import React, { useContext, useEffect, useState } from 'react';
@@ -44,6 +43,8 @@ const Dashboard = () => {
   const [clientesActivos, setClientesActivos] = useState({ total: 0, porcentaje: 0 });
   const [encomiendas, setEncomiendas] = useState({ total: 0, porcentaje: 0 });
   const [saludo, setSaludo] = useState<string>('');
+  const [chartData, setChartData] = useState<ChartData>({ labels: [], datasets: [] });
+
 
   // 🔹 Cargar datos del usuario desde la API
   useEffect(() => {
@@ -188,8 +189,64 @@ const Dashboard = () => {
       } catch {}
     };
 
+    const procesarDatos = async () => {
+      // 🔹 Obtener encomiendas reales
+      const resEncom = await fetch('/api/reservas?tipo=ENCOMIENDA&limit=2000');
+      const dataEncom = await resEncom.json();
+      const encom = Array.isArray(dataEncom.items) ? dataEncom.items : [];
+  
+      // 🔹 Obtener clientes reales
+      const resClientes = await fetch('/api/clientes?estado=1');
+      const dataCli = await resClientes.json();
+      const cli = Array.isArray(dataCli.items) ? dataCli.items : [];
+  
+      // 🔹 Definir meses (enero a diciembre)
+      const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul'];
+  
+      // 🔹 Convertir a series mensuales (7 meses últimos)
+      const datosClientes = meses.map((_, i) =>
+        cli.filter((c: any) => {
+          const fecha = new Date(c.fecha_creacion || c.Fecha_Registro || c.Fecha || '');
+          return fecha.getMonth() === i;
+        }).length
+      );
+  
+      const datosEncomiendas = meses.map((_, i) =>
+        encom.filter((e: any) => {
+          const fecha = new Date(e.fecha || e.Fecha || '');
+          return fecha.getMonth() === i;
+        }).length
+      );
+  
+      // 🔹 Actualizar gráfica real
+      setChartData({
+        labels: meses,
+        datasets: [
+          {
+            label: 'Clientes Activos',
+            data: datosClientes,
+            fill: false,
+            backgroundColor: '#2f4860',
+            borderColor: '#2f4860',
+            tension: 0.4
+          },
+          {
+            label: 'Encomiendas Entregadas',
+            data: datosEncomiendas,
+            fill: false,
+            backgroundColor: '#00bb7e',
+            borderColor: '#00bb7e',
+            tension: 0.4
+          }
+        ]
+      });
+    };
+  
+    procesarDatos();
     cargarEncomiendas();
     cargarClientes();
+
+
   }, []);
 
   // 🚌 Pantalla de carga con animación de buses
@@ -511,7 +568,7 @@ const Dashboard = () => {
               <i className="pi pi-chart-line text-blue-600"></i>
               Resumen de Actividad
             </h5>
-            <Chart type="line" data={lineData} options={lineOptions} />
+            <Chart type="line" data={chartData} options={lineOptions} />
           </div>
         </div>
 
