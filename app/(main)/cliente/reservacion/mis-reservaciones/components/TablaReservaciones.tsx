@@ -12,6 +12,8 @@ import { Eye, CreditCard } from 'lucide-react';
 import './TablaReservaciones.css';
 import VoucherReserva from '../../components/VoucherReserva';
 import { buildVoucherData } from '@/lib/voucher';
+import { useRouter } from 'next/navigation';
+
 
 
 type TipoReservacion = 'viaje' | 'encomienda';
@@ -46,6 +48,7 @@ export default function TablaReservaciones({ reservaciones }: TablaReservaciones
   const [showVoucher, setShowVoucher] = useState(false);
   const [voucherData, setVoucherData] = useState<any>(null);
   const [voucherMetodoPagoLabel, setVoucherMetodoPagoLabel] = useState<string | null>(null);
+  const router = useRouter();
 
 
   function mapRowToVoucher(row: any) {
@@ -127,11 +130,11 @@ const confirmarDesdeFila = (row: any) => {
       year: 'numeric',
     });
 
-  // 🧮 Formateador de dinero (100% libre de errores TS)
+  // Formateador de dinero
 const formatMoney = (v: number | string | undefined | null): string => {
   const n = Number(v);
   if (isNaN(n)) return 'No disponible';
-  return `L. ${(n as number).toFixed(2)}`; // 👈 se fuerza el tipo aquí
+  return `L. ${(n as number).toFixed(2)}`;
 };
 
 
@@ -376,7 +379,7 @@ const formatMoney = (v: number | string | undefined | null): string => {
 
       // Si usás Next.js App Router:
       if (typeof window !== 'undefined') {
-        setTimeout(() => window.location.reload(), 1200);
+        setTimeout(() => router.refresh(), 500);
       }
     } catch (error: any) {
       toast.current?.show({

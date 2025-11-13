@@ -42,6 +42,8 @@ export default function MisReservacionesPage() {
   const [reservaciones, setReservaciones] = useState<Reservacion[]>([]);
   const [loading, setLoading] = useState(true);
   const toast = useRef<Toast>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
 
   useEffect(() => {
   const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -63,19 +65,11 @@ export default function MisReservacionesPage() {
         setLoading(false);
       }
     } else {
-      // 🔹 Esperar un poco antes de mostrar el mensaje (por si Firebase tarda en cargar)
-      setTimeout(() => {
-        if (!auth.currentUser) {
-          console.warn('⚠️ No hay usuario autenticado en Firebase.');
-          toast.current?.show({
-            severity: 'warn',
-            summary: 'Sesión expirada',
-            detail: 'Por favor inicia sesión para ver tus reservaciones.',
-            life: 4000,
-          });
-          setLoading(false);
-        }
-      }, 1200); // espera 1.2 segundos
+      console.warn('⚠️ No hay usuario autenticado en Firebase.');
+        // 🔹 Marcamos explícitamente que no hay sesión, pero SIN mostrar toast de “sesión expirada”
+        setIsAuthenticated(false);
+        setReservaciones([]); // por claridad
+        setLoading(false);
     }
   });
 

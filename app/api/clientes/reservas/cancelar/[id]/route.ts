@@ -1,18 +1,14 @@
 export const runtime = 'nodejs';
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { getAuth } from 'firebase-admin/auth';
-import { cookies } from 'next/headers';
+import { adminAuth } from '@/lib/firebaseAdmin';
 
 /**
- * ❌ PUT /api/clientes/reservas/cancelar/:id
+ * PUT /api/clientes/reservas/cancelar/:id
  * Cancela una reservación del cliente autenticado.
- * Soporta autenticación por:
- *  1️⃣ Token Bearer (Firebase JS SDK)
- *  2️⃣ Cookie de sesión (Firebase Admin)
- *  3️⃣ DNI directo (modo DEV temporal)
+ * ✔ Autenticación SOLO por Bearer (Firebase JS SDK)
+ * ✔ Mantiene modo DEV (dniManual)
  */
-
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
   const conn = await db.getConnection();
 
@@ -30,34 +26,20 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     let firebaseUID: string | null = null;
 
     // ----------------------------
-    // Intentar obtener token de Authorization (Bearer)
+    // Intentar obtener token Bearer
     // ----------------------------
     const authHeader =
       req.headers.get('authorization') || req.headers.get('Authorization');
 
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1];
+
       try {
-        const decoded = await getAuth().verifyIdToken(token);
+        // 🔥 Verificación correcta (sin getAuth() directo)
+        const decoded = await adminAuth.verifyIdToken(token);
         firebaseUID = decoded.uid;
       } catch (err) {
         console.warn('⚠️ Token Bearer inválido o expirado');
-      }
-    }
-
-    // ----------------------------
-    // Intentar cookie de sesión (Firebase Admin)
-    // ----------------------------
-    if (!firebaseUID) {
-      const cookieStore = await cookies();
-      const sessionCookie = cookieStore.get('session')?.value;
-      if (sessionCookie) {
-        try {
-          const decoded = await getAuth().verifySessionCookie(sessionCookie, true);
-          firebaseUID = decoded.uid;
-        } catch (err) {
-          console.warn('⚠️ Cookie de sesión inválida o expirada');
-        }
       }
     }
 
@@ -75,11 +57,12 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         `,
         [firebaseUID]
       );
+
       dni = rows?.[0]?.DNI ?? null;
     }
 
     // ----------------------------
-    // Fallback: modo DEV (usa dni directo)
+    // Fallback modo DEV
     // ----------------------------
     if (!dni && dniManual) {
       dni = dniManual;
@@ -97,7 +80,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     }
 
     // ----------------------------
-    // Verificar que la reserva pertenece al cliente
+    // Verificar que la reservación pertenece al cliente
     // ----------------------------
     const [rows]: any = await conn.query(
       `
@@ -118,7 +101,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     }
 
     // ----------------------------
-    // Llamar al procedimiento almacenado
+    // Llamar al SP
     // ----------------------------
     await conn.query('CALL mydb.sp_reservacion_cancelar(?, ?)', [params.id, motivo]);
 
@@ -127,6 +110,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       message: 'Reservación cancelada correctamente.',
       idReserva: params.id,
     });
+
   } catch (err: any) {
     console.error('❌ Error en PUT /api/clientes/reservas/cancelar/:id:', err);
     return NextResponse.json(
@@ -137,6 +121,10 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       { status: 500 }
     );
   } finally {
-    conn.release();
+    try {
+      conn.release();
+    } catch (releaseErr) {
+      console.error('❌ Error al liberar conexión en finally:', releaseErr);
+    }
   }
 }
