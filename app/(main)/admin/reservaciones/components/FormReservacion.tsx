@@ -17,8 +17,8 @@ type FormProps = {
 export default function FormReservacion({ initialData, onSave, onCancel }: FormProps) {
   const [formData, setFormData] = useState<Partial<ReservacionBase>>(
     initialData && Object.keys(initialData).length > 0
-      ? { ...initialData, fecha: initialData.fecha ? new Date(initialData.fecha) : new Date() }
-      : { tipo: 'viaje', estado: 'pendiente', fecha: new Date(), dni: '' }
+      ? { ...initialData , fecha: initialData.fecha ? new Date(initialData.fecha) : new Date(),  }
+      : { tipo: 'viaje', estado: 'pendiente', fecha: new Date(), dni: '', correo: ''  }
   );
 
   const [rutasOptions, setRutasOptions] = useState<{ label: string; value: number }[]>([]);
@@ -105,7 +105,8 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.dni) return alert('Debe ingresar el DNI de la persona.');
+    if (!formData.dni && !formData.correo) return alert('Debe ingresar el DNI o correo de la persona.');
+
     if (!formData.tipo) return alert('Debe seleccionar el tipo de reservación.');
 
     if (formData.tipo === 'viaje' && !asientoSeleccionadoId)
@@ -116,6 +117,7 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
 
     const payload: ReservacionBase = {
       dni: formData.dni,
+      correo: formData.correo || null,
       tipo: formData.tipo,
       id_viaje: viajeSeleccionadoId ?? null,
       id_asiento: asientoSeleccionadoId ?? null,
@@ -159,8 +161,17 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
           value={formData.dni || ''}
           onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
           placeholder="DNI de la persona"
-          required
           className="w-full"
+        />
+      </div>
+
+      {/* Correo */}
+      <div className="col-12 md:col-6">
+        <InputText
+        value={formData.correo || ''}
+        onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
+        placeholder="Correo de la persona"
+        className="w-full"
         />
       </div>
 

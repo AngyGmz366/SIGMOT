@@ -3,12 +3,6 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { adminAuth } from '@/lib/firebaseAdmin';
 
-/**
- * PUT /api/clientes/reservas/cancelar/:id
- * Cancela una reservación del cliente autenticado.
- * ✔ Autenticación SOLO por Bearer (Firebase JS SDK)
- * ✔ Mantiene modo DEV (dniManual)
- */
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
   const conn = await db.getConnection();
 
@@ -23,10 +17,11 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     }
 
     let dni: string | null = null;
+    let correo: string | null = null;
     let firebaseUID: string | null = null;
 
     // ----------------------------
-    // Intentar obtener token Bearer
+    // 1. Obtener token Bearer
     // ----------------------------
     const authHeader =
       req.headers.get('authorization') || req.headers.get('Authorization');
@@ -35,34 +30,44 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       const token = authHeader.split(' ')[1];
 
       try {
-        // 🔥 Verificación correcta (sin getAuth() directo)
         const decoded = await adminAuth.verifyIdToken(token);
         firebaseUID = decoded.uid;
+        correo = decoded.email ?? null;
+
+        // identidades (Google)
+        if (!correo && decoded.firebase?.identities?.['google.com']) {
+          correo = decoded.firebase.identities['google.com'][0] ?? null;
+        }
+
       } catch (err) {
         console.warn('⚠️ Token Bearer inválido o expirado');
       }
     }
 
     // ----------------------------
-    // Buscar DNI según UID
+    // 2. Buscar DNI y correo en BD por UID
     // ----------------------------
     if (firebaseUID) {
-      const [rows]: any = await conn.query(
+      const [rowsUser]: any = await conn.query(
         `
-        SELECT p.DNI
+        SELECT p.DNI, cr.Correo
         FROM mydb.TBL_MS_USUARIO u
         INNER JOIN mydb.TBL_PERSONAS p ON p.Id_Persona_PK = u.Id_Persona_FK
+        LEFT JOIN mydb.TBL_CORREOS cr ON cr.Id_Correo_PK = p.Id_Correo_FK
         WHERE u.Firebase_UID = ?
         LIMIT 1;
         `,
         [firebaseUID]
       );
 
-      dni = rows?.[0]?.DNI ?? null;
+      if (rowsUser?.length) {
+        dni = dni ?? rowsUser[0].DNI ?? null;
+        correo = correo ?? rowsUser[0].Correo ?? null;
+      }
     }
 
     // ----------------------------
-    // Fallback modo DEV
+    // 3. Fallback modo DEV
     // ----------------------------
     if (!dni && dniManual) {
       dni = dniManual;
@@ -70,30 +75,30 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     }
 
     // ----------------------------
-    // Validar sesión
+    // 4. Debe existir DNI o correo
     // ----------------------------
-    if (!dni) {
+    if (!dni && !correo) {
       return NextResponse.json(
-        { ok: false, error: 'No hay sesión activa o DNI no encontrado.' },
+        { ok: false, error: 'No se encontró DNI ni correo del usuario.' },
         { status: 401 }
       );
     }
 
     // ----------------------------
-    // Verificar que la reservación pertenece al cliente
+    // 5. Validar propiedad de reservación (DNI O CORREO)
     // ----------------------------
-    const [rows]: any = await conn.query(
+    const [rowsCheck]: any = await conn.query(
       `
       SELECT r.Id_Reserva_PK
-      FROM mydb.TBL_RESERVACIONES r
-      INNER JOIN mydb.TBL_CLIENTES c ON r.Id_Cliente_FK = c.Id_Cliente_PK
-      INNER JOIN mydb.TBL_PERSONAS p ON c.Id_Persona_FK = p.Id_Persona_PK
-      WHERE p.DNI = ? AND r.Id_Reserva_PK = ?;
+      FROM mydb.VW_ADMIN_RESERVAS r
+      WHERE r.Id_Reserva_PK = ?
+        AND (r.DNI = ? OR r.Correo = ?)
+      LIMIT 1;
       `,
-      [dni, params.id]
+      [params.id, dni, correo]
     );
 
-    if (rows.length === 0) {
+    if (rowsCheck.length === 0) {
       return NextResponse.json(
         { ok: false, error: 'No tiene permisos para cancelar esta reservación.' },
         { status: 403 }
@@ -101,9 +106,12 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     }
 
     // ----------------------------
-    // Llamar al SP
+    // 6. Llamar SP
     // ----------------------------
-    await conn.query('CALL mydb.sp_reservacion_cancelar(?, ?)', [params.id, motivo]);
+    await conn.query(
+      'CALL mydb.sp_reservacion_cancelar(?, ?)',
+      [params.id, motivo]
+    );
 
     return NextResponse.json({
       ok: true,
@@ -112,19 +120,15 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     });
 
   } catch (err: any) {
-    console.error('❌ Error en PUT /api/clientes/reservas/cancelar/:id:', err);
+    console.error('❌ Error en cancelar reservación:', err);
     return NextResponse.json(
       {
         ok: false,
-        error: err?.sqlMessage || err?.message || 'Error al cancelar la reservación.',
+        error: err?.sqlMessage || err?.message || 'Error al cancelar reservación.',
       },
       { status: 500 }
     );
   } finally {
-    try {
-      conn.release();
-    } catch (releaseErr) {
-      console.error('❌ Error al liberar conexión en finally:', releaseErr);
-    }
+    try { conn.release(); } catch {}
   }
 }

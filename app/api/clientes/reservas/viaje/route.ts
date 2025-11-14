@@ -1,105 +1,132 @@
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 import { adminAuth } from '@/lib/firebaseAdmin';
+import { db } from '@/lib/db';
 
-/**
- * POST /api/clientes/reservas/viaje
- * Crea una reservación de tipo VIAJE
- * Token Bearer (Firebase Cliente)
- * Fallback DNI dev
- */
 export async function POST(req: Request) {
   const conn = await db.getConnection();
 
+
   try {
     const body = await req.json();
-    const { idViaje, idAsiento, fecha, dni: dniManual } = body;
+    const { idViaje, idAsiento, fecha, dni: dniManual, correo: correoManual } = body;
 
     let dni: string | null = null;
+    let correo: string | null = null;
     let firebaseUID: string | null = null;
 
     // ----------------------------
-    // Validar sesión desde Authorization: Bearer <idToken>
+    // 1. Bearer Token
     // ----------------------------
-    const authHeader =
+    const header =
       req.headers.get('authorization') || req.headers.get('Authorization');
 
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
+    let decoded: any = null;
 
+    if (header?.startsWith("Bearer ")) {
+      const token = header.split(" ")[1];
       try {
-        const decoded = await adminAuth.verifyIdToken(token);
-        firebaseUID = decoded.uid;
+        decoded = await adminAuth.verifyIdToken(token);
+        
+        firebaseUID = decoded.uid ?? null;
+
+        // ⚡ PRIORIDAD 1: email directo en el token
+        correo = decoded.email ?? null;
+
+        // ⚡ PRIORIDAD 2: Google login → identity claims de firebase
+        if (!correo && decoded.firebase?.identities?.['google.com']) {
+          correo = decoded.firebase.identities['google.com'][0] ?? null;
+        }
+
+        // ⚡ PRIORIDAD 3: algún proveedor adicional
+        if (!correo && decoded.firebase?.identities) {
+          const identities = decoded.firebase.identities;
+          const keys = Object.keys(identities);
+          for (const key of keys) {
+            if (identities[key]?.length > 0) {
+              correo = identities[key][0];
+              break;
+            }
+          }
+        }
+
       } catch (err) {
-        console.warn('⚠️ Token Bearer inválido o expirado');
+        console.warn("⚠ Token inválido:", err);
       }
     }
 
     // ----------------------------
-    // Buscar DNI según UID
+    // 2. Buscar en BD por UID
     // ----------------------------
     if (firebaseUID) {
       const [rows]: any = await conn.query(
         `
-        SELECT p.DNI
+        SELECT p.DNI, c.Correo
         FROM mydb.TBL_MS_USUARIO u
-        INNER JOIN mydb.TBL_PERSONAS p ON p.Id_Persona_PK = u.Id_Persona_FK
+        JOIN mydb.TBL_PERSONAS p ON p.Id_Persona_PK = u.Id_Persona_FK
+        LEFT JOIN mydb.TBL_CORREOS c ON c.Id_Correo_PK = p.Id_Correo_FK
         WHERE u.Firebase_UID = ?
         LIMIT 1;
         `,
         [firebaseUID]
       );
 
-      dni = rows?.[0]?.DNI ?? null;
+      if (rows?.length) {
+        dni = dni ?? rows[0].DNI ?? null;
+        correo = correo ?? rows[0].Correo ?? null;
+      }
     }
 
     // ----------------------------
-    // Modo DEV (no tocado)
+    // 3. Fallback manual
     // ----------------------------
-    if (!dni && dniManual) {
-      dni = dniManual;
-      console.warn('⚠️ Modo DEV: usando DNI recibido en body');
-    }
+    if (!dni && dniManual) dni = dniManual;
+    if (!correo && correoManual) correo = correoManual;
 
     // ----------------------------
-    // Validación final
+    // 4. Validación final
     // ----------------------------
-    if (!dni) {
+    if (!dni && !correo) {
       return NextResponse.json(
-        { ok: false, error: 'No hay sesión activa o DNI no encontrado.' },
-        { status: 401 }
+        { ok: false, error: "Debe proporcionar DNI o correo electrónico." },
+        { status: 400 }
       );
     }
 
-    // Ejecutar SP
-    await conn.query('SET @out_id_reserva = NULL;');
-    await conn.query('CALL sp_cliente_reservacion_crear_viaje(?,?,?,?,@out_id_reserva);', [
-      dni,
-      idViaje,
-      idAsiento,
-      fecha || new Date(),
-    ]);
+    // ----------------------------
+    // 5. Ejecutar SP
+    // ----------------------------
+    await conn.query(`SET @out_id_reserva = NULL;`);
 
-    const [out]: any = await conn.query('SELECT @out_id_reserva AS idReserva;');
-    const idReserva = out?.[0]?.idReserva ?? null;
+    await conn.query(
+      `CALL sp_cliente_reservacion_crear_viaje(?,?,?,?,?,@out_id_reserva);`,
+      [
+        dni,
+        correo,
+        idViaje,
+        idAsiento,
+        fecha || new Date()
+      ]
+    );
+
+    const [out]: any = await conn.query(
+      `SELECT @out_id_reserva AS idReserva;`
+    );
 
     return NextResponse.json(
       {
         ok: true,
-        message: 'Reservación creada exitosamente.',
-        idReserva,
+        message: "Reservación creada exitosamente.",
+        idReserva: out?.[0]?.idReserva ?? null
       },
       { status: 201 }
     );
+
   } catch (err: any) {
-    console.error('❌ Error en POST /api/clientes/reservas/viaje:', err);
+    console.error("❌ Error:", err);
     return NextResponse.json(
-      {
-        ok: false,
-        error: err?.sqlMessage || err?.message || 'Error al crear reservación.',
-      },
+      { ok: false, error: err?.sqlMessage || err?.message },
       { status: 500 }
     );
   } finally {

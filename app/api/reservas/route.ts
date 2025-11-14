@@ -65,11 +65,12 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const tipo = upperOrNull(body?.tipo); // VIAJE | ENCOMIENDA
-  const dni = body?.dni as string;
   const fecha = body?.fecha ? new Date(body.fecha) : new Date();
+  const dni = body?.dni || null;
+  const correo = body?.correo || null;
 
-  if (!dni) {
-    return NextResponse.json({ error: 'dni es obligatorio' }, { status: 400 });
+  if (!dni && !correo) {
+  return NextResponse.json({ error: 'Debe enviar DNI o correo' }, { status: 400 });
   }
 
   const conn = await db.getConnection();
@@ -91,8 +92,8 @@ export async function POST(req: Request) {
       }
 
       await conn.query(
-        'CALL mydb.sp_reserva_viaje_crear_con_boleto(?,?,?,?,@id_reserva,@id_ticket)',
-        [dni, idViaje, idAsiento, fecha]
+        'CALL mydb.sp_reserva_viaje_crear_con_boleto(?,?,?,?,?,@id_reserva,@id_ticket)',
+        [dni, correo, idViaje, idAsiento, fecha]
         );
 
          // 🔹 Solo devolver el id_reserva al front (igual que con encomiendas)
@@ -102,27 +103,59 @@ export async function POST(req: Request) {
      return NextResponse.json({ id: idReserva }, { status: 201 });
     }
 
-    // =====================
-    // ENCOMIENDA
-    // =====================
-    else if (tipo === 'ENCOMIENDA') {
-      const idViaje = Number(body?.id_viaje);
-      const costo = Number(body?.costo) || null;
+// =====================
+// ENCOMIENDA
+// =====================
+else if (tipo === 'ENCOMIENDA') {
+  const idViaje = Number(body?.id_viaje);
+  const costo = Number(body?.costo) || null;
+  const descripcion = body?.descripcion || null;
 
-      if (!Number.isFinite(idViaje)) {
-        return NextResponse.json({ error: 'id_viaje es obligatorio y numérico' }, { status: 400 });
-      }
-
-      await conn.query(
-      'CALL mydb.sp_reserva_encomienda_crear_con_boleto(?,?,?,?,?,@id_reserva,@id_ticket)',
-      [dni, idViaje, costo, body?.descripcion || null, fecha]
+  // Validación mínima
+  if (!dni && !correo) {
+    return NextResponse.json(
+      { error: 'Debe enviar DNI o correo' },
+      { status: 400 }
     );
+  }
 
-    const [[vars]]: any = await conn.query('SELECT @id_reserva AS id_reserva;');
-    const idReserva = vars?.id_reserva ?? null;
+  if (!Number.isFinite(idViaje)) {
+    return NextResponse.json(
+      { error: 'id_viaje es obligatorio y numérico' },
+      { status: 400 }
+    );
+  }
 
-    return NextResponse.json({ id: idReserva }, { status: 201 });
-    }
+  // OUT
+  await conn.query('SET @id_reserva := NULL');
+  await conn.query('SET @id_ticket := NULL');
+
+  // ⚡ LLamada correcta al SP con DNI y CORREO
+  await conn.query(
+    'CALL mydb.sp_reserva_encomienda_crear_con_boleto(?,?,?,?,?,?,@id_reserva,@id_ticket)',
+    [
+      dni || null,         // p_dni
+      correo || null,      // p_correo
+      idViaje,             // p_id_viaje
+      costo,               // p_costo
+      descripcion,         // p_descripcion
+      fecha                // p_fecha
+    ]
+  );
+
+  // Obtener OUT
+  const [[vars]]: any = await conn.query(
+    'SELECT @id_reserva AS id_reserva, @id_ticket AS id_ticket;'
+  );
+
+  const idReserva = vars?.id_reserva ?? null;
+
+  return NextResponse.json(
+    { id: idReserva },
+    { status: 201 }
+  );
+}
+
 
     else {
       return NextResponse.json({ error: 'tipo debe ser VIAJE o ENCOMIENDA' }, { status: 400 });

@@ -8,6 +8,8 @@ import { InputNumber } from 'primereact/inputnumber';
 import AsientosBus from './AsientoSelector';
 import Swal from 'sweetalert2';
 import './FormReservacion.css';
+import { auth } from "@/lib/firebaseClient"; 
+
 
 type Option = { label: string; value: number | string };
 
@@ -165,6 +167,18 @@ useEffect(() => {
     }));
   }, [formData.peso]);
 
+async function getFirebaseUser() {
+  const { onAuthStateChanged } = await import("firebase/auth");
+
+  return new Promise<any>((resolve) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      unsubscribe();
+      resolve(user || null);
+    });
+  });
+}
+
+
   // 🔹 Reservar viaje o encomienda
   const handleReservar = async () => {
     try {
@@ -210,37 +224,26 @@ useEffect(() => {
             };
 
       let headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      
-      try {
-  const { getAuth } = await import('firebase/auth');
-  const auth = getAuth();
 
-  // Esperar rehidratación si existe (Next/Firebase moderno)
-  if (auth.authStateReady) {
-    await auth.authStateReady();
-  }
+try {
+  const user = await getFirebaseUser();
 
-  const user = auth.currentUser;
-
-  // Validar sesión antes de continuar
   if (!user) {
     Swal.fire({
-      icon: 'warning',
-      title: 'Inicia sesión',
-      text: 'Debes iniciar sesión para poder crear una reservación.',
-      confirmButtonColor: '#6366F1',
+      icon: "warning",
+      title: "Inicia sesión",
+      text: "Debes iniciar sesión para poder crear una reservación.",
+      confirmButtonColor: "#6366F1",
     });
-    return; // DETIENE el proceso
+    return;
   }
 
-  // Obtener token válido
-  const token = await user.getIdToken();
-  headers['Authorization'] = `Bearer ${token}`;
+  const token = await user.getIdToken(true);
+  headers["Authorization"] = `Bearer ${token}`;
 
 } catch (e) {
-  console.warn('⚠️ No se pudo obtener token Firebase', e);
+  console.warn("⚠️ No se pudo obtener token Firebase", e);
 }
-
 
       const endpoint =
         formData.tipo === 'viaje'
