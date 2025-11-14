@@ -212,16 +212,35 @@ useEffect(() => {
       let headers: Record<string, string> = { 'Content-Type': 'application/json' };
       
       try {
-        const { getAuth } = await import('firebase/auth');
-        const firebaseAuth = getAuth();
-        const user = firebaseAuth.currentUser;
-        if (user) {
-          const token = await user.getIdToken();
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-      } catch (e) {
-        console.warn('⚠️ No se pudo obtener token Firebase', e);
-      }
+  const { getAuth } = await import('firebase/auth');
+  const auth = getAuth();
+
+  // Esperar rehidratación si existe (Next/Firebase moderno)
+  if (auth.authStateReady) {
+    await auth.authStateReady();
+  }
+
+  const user = auth.currentUser;
+
+  // Validar sesión antes de continuar
+  if (!user) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Inicia sesión',
+      text: 'Debes iniciar sesión para poder crear una reservación.',
+      confirmButtonColor: '#6366F1',
+    });
+    return; // DETIENE el proceso
+  }
+
+  // Obtener token válido
+  const token = await user.getIdToken();
+  headers['Authorization'] = `Bearer ${token}`;
+
+} catch (e) {
+  console.warn('⚠️ No se pudo obtener token Firebase', e);
+}
+
 
       const endpoint =
         formData.tipo === 'viaje'

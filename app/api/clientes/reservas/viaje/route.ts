@@ -1,17 +1,15 @@
 export const runtime = 'nodejs';
+
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { getAuth } from 'firebase-admin/auth';
-import { cookies } from 'next/headers';
+import { adminAuth } from '@/lib/firebaseAdmin';
 
 /**
- * 📦 POST /api/clientes/reservas/viaje
- * Crea una reservación de tipo VIAJE usando:
- *  1️⃣ Token Bearer (Firebase JS SDK)
- *  2️⃣ Cookie de sesión (login del sistema)
- *  3️⃣ DNI directo (modo DEV temporal)
+ * POST /api/clientes/reservas/viaje
+ * Crea una reservación de tipo VIAJE
+ * Token Bearer (Firebase Cliente)
+ * Fallback DNI dev
  */
-
 export async function POST(req: Request) {
   const conn = await db.getConnection();
 
@@ -23,15 +21,16 @@ export async function POST(req: Request) {
     let firebaseUID: string | null = null;
 
     // ----------------------------
-    // 1️⃣ Intentar obtener token de Authorization (Bearer)
+    // Validar sesión desde Authorization: Bearer <idToken>
     // ----------------------------
     const authHeader =
       req.headers.get('authorization') || req.headers.get('Authorization');
 
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1];
+
       try {
-        const decoded = await getAuth().verifyIdToken(token);
+        const decoded = await adminAuth.verifyIdToken(token);
         firebaseUID = decoded.uid;
       } catch (err) {
         console.warn('⚠️ Token Bearer inválido o expirado');
@@ -39,23 +38,7 @@ export async function POST(req: Request) {
     }
 
     // ----------------------------
-    // 2️⃣ Intentar cookie de sesión (Firebase Admin)
-    // ----------------------------
-    if (!firebaseUID) {
-      const cookieStore = await cookies();
-      const sessionCookie = cookieStore.get('session')?.value;
-      if (sessionCookie) {
-        try {
-          const decoded = await getAuth().verifySessionCookie(sessionCookie, true);
-          firebaseUID = decoded.uid;
-        } catch (err) {
-          console.warn('⚠️ Cookie de sesión inválida o expirada');
-        }
-      }
-    }
-
-    // ----------------------------
-    // 3️⃣ Buscar DNI según el UID
+    // Buscar DNI según UID
     // ----------------------------
     if (firebaseUID) {
       const [rows]: any = await conn.query(
@@ -68,11 +51,12 @@ export async function POST(req: Request) {
         `,
         [firebaseUID]
       );
+
       dni = rows?.[0]?.DNI ?? null;
     }
 
     // ----------------------------
-    // 4️⃣ Fallback: permitir dni directo en modo DEV
+    // Modo DEV (no tocado)
     // ----------------------------
     if (!dni && dniManual) {
       dni = dniManual;
@@ -80,7 +64,7 @@ export async function POST(req: Request) {
     }
 
     // ----------------------------
-    // 5️⃣ Validar que tengamos un DNI
+    // Validación final
     // ----------------------------
     if (!dni) {
       return NextResponse.json(
@@ -89,7 +73,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 💾 Ejecutar SP con el DNI obtenido
+    // Ejecutar SP
     await conn.query('SET @out_id_reserva = NULL;');
     await conn.query('CALL sp_cliente_reservacion_crear_viaje(?,?,?,?,@out_id_reserva);', [
       dni,
@@ -98,7 +82,6 @@ export async function POST(req: Request) {
       fecha || new Date(),
     ]);
 
-    // 🔹 Obtener ID de reserva
     const [out]: any = await conn.query('SELECT @out_id_reserva AS idReserva;');
     const idReserva = out?.[0]?.idReserva ?? null;
 
