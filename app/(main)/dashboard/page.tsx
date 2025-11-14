@@ -463,15 +463,15 @@ const Dashboard = () => {
       {/* Tarjetas métricas */}
       <div className="grid mb-5">
         <div className="col-12 md:col-4">
-          <div
+          /<div
             className="card h-full border-round-2xl shadow-2 text-center p-4"
             style={{ borderTop: '6px solid #004AAD', minHeight: '180px' }}
           >
             <i className="pi pi-send text-blue-600 text-4xl mb-2"></i>
             <h4 className="text-900 mb-1">Viajes Programados</h4>
-            <h2 className="text-900 font-bold mb-2">120</h2>
+            <h2 className="text-900 font-bold mb-2">12</h2>
             <p className="text-green-600 font-medium">+12 nuevos esta semana</p>
-          </div>
+          </div>*/
         </div>
 
         <div className="col-12 md:col-4">
