@@ -237,7 +237,7 @@ const RegistroUsuario: React.FC = () => {
 
             {/* Nombre */}
             <div className="mb-3">
-              <label className="block mb-1 text-sm font-medium text-gray-700">Nombre completo</label>
+              <label className="block mb-1 text-sm font-medium text-gray-700">Nombre</label>
               <InputText value={form.nombres} onChange={(e) => setField('nombres', e.target.value)} className="w-full" />
               {touched.nombres && errors.nombres && <small className="p-error">{errors.nombres}</small>}
             </div>
