@@ -67,7 +67,8 @@ export default function ReservacionesPage() {
   const handleSave = async (data: ReservacionBase) => {
     try {
       if (!data.tipo) data.tipo = "viaje";
-      if (!data.dni) throw new Error("El DNI es obligatorio");
+      if (!data.dni && !data.correo)throw new Error("Debe ingresar el DNI o correo de la persona");
+
 
       const cleanData = {
         ...data,

@@ -526,7 +526,7 @@ const Dashboard = () => {
           >
             <i className="pi pi-send text-blue-600 text-4xl mb-2"></i>
             <h4 className="text-900 mb-1">Viajes Programados</h4>
-            <h2 className="text-900 font-bold mb-2">120</h2>
+            <h2 className="text-900 font-bold mb-2">12</h2>
             <p className="text-green-600 font-medium">+12 nuevos esta semana</p>
           </div>
         </div>

@@ -6,6 +6,7 @@
 export interface ReservacionBase {
   id?: string; // ID único de la reserva (PK)
   dni?: string; // Clave principal de la persona
+  correo?: string | null; // Correo electrónico del cliente
   cliente?: string; // Nombre completo del cliente
   ruta?: string; // Ruta (Origen → Destino)
   unidad?: string; // Unidad (Placa / Marca)

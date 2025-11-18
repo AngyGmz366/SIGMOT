@@ -76,7 +76,7 @@ const transporter = nodemailer.createTransport({
           </blockquote>
           <p>Si el problema persiste, por favor contáctanos nuevamente desde el sistema.</p>
           <div style="text-align:center; margin-top:30px;">
-            <a href="http://localhost:3000/cliente/incidencias-soporte" 
+            <a href="https://clownfish-app-co982.ondigitalocean.app/cliente/incidencias-soporte" 
               style="background:#6a1b9a; color:white; text-decoration:none; padding:10px 18px; border-radius:6px; font-weight:bold;">
               Ver incidencia en SIGMOT
             </a>
