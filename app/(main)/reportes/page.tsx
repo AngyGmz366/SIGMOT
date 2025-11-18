@@ -98,127 +98,63 @@ function ReportSection({ title, children }: { title: string; children: React.Rea
           onView?: (row: any) => void;
         }) {
           // Función para exportar módulo individual a PDF
-          const exportModuloPDF = async () => {
-            const doc = new jsPDF({ unit: "pt", format: "a4", compress: true });
-            const meta = {
-              title: title,
-              by: "Usuario: ",
-              at: new Date().toLocaleString(),
-              filters: []
-            };
-        
-            const PDF_COLORS = {
-              primary: "#1976d2",
-              secondary: "#42a5f5",
-              accent: "#90caf9",
-              text: "#000000",
-              zebra: "#e3f2fd",
-            };
-        
-            async function toDataURL(path: string): Promise<string | null> {
-              try {
-                const res = await fetch(path);
-                const blob = await res.blob();
-                return await new Promise((resolve) => {
-                  const reader = new FileReader();
-                  reader.onload = () => resolve(reader.result as string);
-                  reader.readAsDataURL(blob);
-                });
-              } catch {
-                return null;
-              }
+          const exportModuloPDF = () => {
+            const html = `
+              <html>
+                <head>
+                  <meta charset="utf-8" />
+                  <title>${title} - SIGMOT</title>
+                  <style>
+                    body { font-family: Arial; padding: 20px; background: #f8f9fa; }
+                    h2 { color: #1976d2; margin-bottom: 5px; }
+                    table { width: 100%; border-collapse: collapse; background: white; }
+                    th, td { border: 1px solid #ddd; padding: 8px; font-size: 13px; }
+                    th { background: #1976d2; color: white; text-align: left; font-weight: bold; }
+                    tr:nth-child(even) { background: #f2f6fc; }
+                    .header { margin-bottom: 20px; }
+                    .header h2 { margin: 0; }
+                    .header p { color: #666; font-size: 12px; margin: 5px 0; }
+                  </style>
+                </head>
+                <body>
+                  <div class="header">
+                    <h2>${title} - Transportes Saenz</h2>
+                    <p>Fecha de generación: ${new Date().toLocaleString('es-HN', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: false
+                    })}</p>
+                  </div>
+                  
+                  <table>
+                    <thead>
+                      <tr>
+                        ${columns.map(c => `<th>${c.header}</th>`).join('')}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${data.map(row => `
+                        <tr>
+                          ${columns.map(c => `<td>${row[c.field] || ''}</td>`).join('')}
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                  
+                  <script>window.onload = () => window.print();</script>
+                </body>
+              </html>`;
+            
+            const w = window.open('', '_blank');
+            if (w) {
+              w.document.open();
+              w.document.write(html);
+              w.document.close();
             }
-        
-            const logoDataURL = await toDataURL("demo/images/login/LOGO-SIGMOT.png");
-            const { HEADER_H } = { HEADER_H: 86 };
-            let y = HEADER_H + 16;
-        
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(12);
-            doc.setTextColor(PDF_COLORS.text);
-            doc.text(title, 40, y);
-            y += 8;
-        
-            autoTable(doc, {
-              startY: y,
-              head: [columns.map(c => c.header)],
-              body: data.map((row) => columns.map(c => row[c.field] || '')),
-              theme: "striped",
-              styles: { fontSize: 9, cellPadding: 5, textColor: PDF_COLORS.text },
-              headStyles: { fillColor: PDF_COLORS.primary, textColor: "#FFFFFF", fontStyle: "bold" },
-              alternateRowStyles: { fillColor: PDF_COLORS.zebra },
-              margin: { left: 40, right: 40, top: HEADER_H + 8, bottom: 50 },
-            });
-        
-            function paintHeaderFooter(doc: any, logoDataURL: string | null, meta: {
-              title: string;
-              by?: string;
-              at?: string;
-              filters?: string[];
-            }) {
-              const pageWidth = doc.internal.pageSize.getWidth();
-              const pageHeight = doc.internal.pageSize.getHeight();
-              const HEADER_H = 86;
-              const FOOTER_H = 36;
-            
-              const drawHeader = () => {
-                doc.setFillColor(PDF_COLORS.primary);
-                doc.rect(0, 0, pageWidth, 6, "F");
-            
-                const LOGO_W = 90;
-                const LOGO_H = 70;
-                const LOGO_X = 32;
-                const LOGO_Y = 20;
-            
-                if (logoDataURL) {
-                  doc.addImage(logoDataURL, "PNG", LOGO_X, LOGO_Y, LOGO_W, LOGO_H);
-                }
-                
-                doc.setTextColor(PDF_COLORS.text);
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(14);
-                doc.text(meta.title, pageWidth - 32, 32, { align: "right" });
-        
-                doc.setFont("helvetica", "normal");
-                doc.setFontSize(10);
-                const lines: string[] = [];
-                if (meta.by) lines.push(meta.by);
-                if (meta.at) lines.push(meta.at);
-                if (meta.filters?.length) lines.push(...meta.filters);
-                lines.forEach((line, i) => {
-                  doc.text(line, pageWidth - 32, 50 + i * 12, { align: "right" });
-                });
-                
-                doc.setFillColor(PDF_COLORS.secondary);
-                doc.rect(0, HEADER_H - 10, pageWidth, 10, "F");
-                doc.setFillColor(PDF_COLORS.accent);
-                doc.rect(0, HEADER_H - 10, pageWidth * 0.35, 10, "F");
-              };
-        
-              const drawFooter = (pageNum: number, pageCount: number) => {
-                doc.setFontSize(9);
-                doc.setTextColor(PDF_COLORS.text);
-                doc.setDrawColor(PDF_COLORS.zebra);
-                doc.line(32, pageHeight - FOOTER_H, pageWidth - 32, pageHeight - FOOTER_H);
-                doc.text("SIGMOT · Sistema de Gestión y Monitoreo de Transportes", 32, pageHeight - 16);
-                doc.text(`Página ${pageNum} de ${pageCount}`, pageWidth - 32, pageHeight - 16, { align: "right" });
-              };
-        
-              const pages = doc.internal.getNumberOfPages();
-              for (let i = 1; i <= pages; i++) {
-                doc.setPage(i);
-                drawHeader();
-                drawFooter(i, pages);
-              }
-        
-              return { HEADER_H, FOOTER_H };
-            }
-        
-            paintHeaderFooter(doc, logoDataURL, meta);
-            const fecha = new Date().toISOString().slice(0, 10);
-            doc.save(`${title}_${fecha}.pdf`);
           };
-        
           // Función para exportar módulo individual a Excel
           const exportModuloExcel = () => {
             const wb = XLSX.utils.book_new();
@@ -700,66 +636,69 @@ function cerrarDetalle() {
 
 
   // -------------------- EXPORTAR A PDF (TODAS LAS TABLAS) --------------------
-  const exportReportesPDF = async () => {
-  const doc = new jsPDF({ unit: "pt", format: "a4", compress: true }); // A4 vertical
-  const tables = buildAllTablesForExport();
-
-  // meta del reporte
-  const meta = {
-    title: "Reportes SAENZ",
-    by: "Usuario: ",
-    at: new Date().toLocaleString(),
-    filters: [
-      `Periodo: ${fechaInicio ? fechaInicio.toLocaleDateString() : "—"} a ${fechaFin ? fechaFin.toLocaleDateString() : "—"}`
-    ],
-  };
-
-  // carga logo desde TU ruta existente en el proyecto
-  const logoDataURL = await toDataURL("/demo/images/login/LOGO-SIGMOT.png");
-
-  // márgenes y posición inicial (después del header)
-  const { HEADER_H } = { HEADER_H: 86 };
-  let y = HEADER_H + 16;
-  const pageHeight = doc.internal.pageSize.getHeight();
-
-  tables.forEach((t, idx) => {
-    // título de sección
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.setTextColor(PDF_COLORS.text);
-    if (idx > 0) y += 10;
-    doc.text(t.title, 40, y);
-    y += 8;
-
-    autoTable(doc, {
-      startY: y,
-      head: [t.columns],
-      body: t.rows.map(t.mapRow),
-      theme: "striped",
-      styles: { fontSize: 9, cellPadding: 5, textColor: PDF_COLORS.text },
-      headStyles: { fillColor: PDF_COLORS.primary, textColor: "#FFFFFF", fontStyle: "bold" },
-      alternateRowStyles: { fillColor: PDF_COLORS.zebra },
-      margin: { left: 40, right: 40, top: HEADER_H + 8, bottom: 50 },
-      pageBreak: "auto",
-    });
-
-    // siguiente Y
-    // @ts-ignore
-    y = (doc as any).lastAutoTable?.finalY ?? (y + 60);
-    y += 18;
-
-    // salto si falta espacio
-    if (pageHeight - y < 120 && idx < tables.length - 1) {
-      doc.addPage();
-      y = HEADER_H + 16;
+  const exportReportesPDF = () => {
+    const tables = buildAllTablesForExport();
+    
+    const html = `
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>Reportes - SIGMOT</title>
+          <style>
+            body { font-family: Arial; padding: 20px; background: #f8f9fa; }
+            h2 { color: #1976d2; margin-bottom: 5px; }
+            h3 { color: #333; font-size: 16px; margin-top: 25px; margin-bottom: 10px; }
+            table { width: 100%; border-collapse: collapse; background: white; margin-bottom: 30px; }
+            th, td { border: 1px solid #ddd; padding: 8px; font-size: 13px; }
+            th { background: #1976d2; color: white; text-align: left; font-weight: bold; }
+            tr:nth-child(even) { background: #f2f6fc; }
+            .header { margin-bottom: 20px; }
+            .header h2 { margin: 0; }
+            .header p { color: #666; font-size: 12px; margin: 5px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h2>Reportes Generales - Transportes Saenz</h2>
+            <p>Fecha de generación: ${new Date().toLocaleString('es-HN', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false
+            })}</p>
+            ${fechaInicio && fechaFin ? `<p>Periodo: ${fechaInicio.toLocaleDateString()} a ${fechaFin.toLocaleDateString()}</p>` : ''}
+          </div>
+          
+          ${tables.map(table => `
+            <h3>${table.title}</h3>
+            <table>
+              <thead>
+                <tr>
+                  ${table.columns.map(col => `<th>${col}</th>`).join('')}
+                </tr>
+              </thead>
+              <tbody>
+                ${table.rows.map(row => {
+                  const mappedRow = table.mapRow(row);
+                  return `<tr>${mappedRow.map(cell => `<td>${cell || ''}</td>`).join('')}</tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          `).join('')}
+          
+          <script>window.onload = () => window.print();</script>
+        </body>
+      </html>`;
+    
+    const w = window.open('', '_blank');
+    if (w) {
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
     }
-  });
-
-  // pintar header/footer en TODAS las páginas al final
-  paintHeaderFooter(doc, logoDataURL, meta);
-  const stamp = new Date().toISOString().slice(0, 10);
-  doc.save(`Reportes_Generales_${stamp}.pdf`);
-};
+  };
     // Limpia nombres de hoja para Excel
   const toSafeSheetName = (raw: string, fallback = 'Hoja') => {
     // Prohibidos: : \ / ? * [ ]
