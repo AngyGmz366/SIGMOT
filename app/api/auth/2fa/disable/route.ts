@@ -7,7 +7,6 @@ export async function POST(req: Request) {
   try {
     const { identificador, tipoUsuario } = await req.json();
 
-    console.log("📦 Body recibido en /disable:", { identificador, tipoUsuario });
 
     if (!identificador || !tipoUsuario) {
       return NextResponse.json(
@@ -21,7 +20,6 @@ export async function POST(req: Request) {
     let tipoReal = tipoUsuario;
 
     if (/^\d+$/.test(String(identificador))) {
-      console.log("🔍 Identificador es un ID numérico, buscando datos del usuario...");
       
       const [rows]: any = await conn.query(
         `SELECT 
@@ -54,11 +52,8 @@ export async function POST(req: Request) {
         ? String(usuario.Firebase_UID).trim()
         : String(usuario.Correo_Electronico).trim();
 
-      console.log("✅ Usuario encontrado:");
-      console.log("   - ID:", usuario.Id_Usuario_PK);
       
     } else {
-      console.log("✅ Usando identificador directo:", identificadorReal);
     }
 
     // Validar que el identificador no esté vacío
@@ -76,7 +71,6 @@ export async function POST(req: Request) {
       tipoReal
     ]);
 
-    console.log("✅ 2FA desactivado correctamente");
 
     return NextResponse.json({
       ok: true,

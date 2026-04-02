@@ -8,7 +8,6 @@ export async function POST(req: Request) {
   
   try {
     const body = await req.json();
-    console.log("📦 Body recibido:", body);
 
     // Aceptar tanto 'id' como 'idUsuario' para compatibilidad
     const idUsuario = body.idUsuario || body.id;
@@ -20,7 +19,6 @@ export async function POST(req: Request) {
       );
     }
 
-    console.log("🔍 Buscando usuario con ID:", idUsuario);
 
     // 🔹 PASO 1: Obtener datos del usuario desde la BD
     const [rows]: any = await conn.query(
@@ -45,7 +43,6 @@ export async function POST(req: Request) {
       const [countRows]: any = await conn.query(
         "SELECT COUNT(*) as total FROM mydb.TBL_MS_USUARIO;"
       );
-      console.log("📊 Total de usuarios en la BD:", countRows[0]?.total || 0);
       
       return NextResponse.json(
         { ok: false, error: "Usuario no encontrado en la base de datos." },
@@ -61,12 +58,7 @@ export async function POST(req: Request) {
     // 🔹 Determinar el identificador según el tipo de usuario
     const identificador = tipoUsuario === "FIREBASE" ? firebaseUID : correo;
 
-    console.log("✅ Usuario encontrado:");
-    console.log("   - ID:", usuario.Id_Usuario_PK);
-    console.log("   - Correo:", correo);
-    console.log("   - Firebase UID:", firebaseUID || '(vacío)');
-    console.log("   - Tipo:", tipoUsuario);
-    console.log("   - Identificador a usar:", identificador);
+
 
     // Validar que el identificador no esté vacío
     if (!identificador) {
@@ -86,22 +78,18 @@ export async function POST(req: Request) {
     const otpauth = authenticator.keyuri(correo, "SAENZ", secret);
     const qrDataUrl = await QRCode.toDataURL(otpauth);
 
-    console.log("🔐 Secreto generado:", secret.substring(0, 8) + "...");
+
 
     // 🔹 PASO 3: Guardar secreto en BD usando el identificador correcto
     try {
-      console.log("💾 Llamando a sp_2fa_guardar_secreto con:");
-      console.log("   - Identificador:", identificador);
-      console.log("   - Tipo:", tipoUsuario);
-      console.log("   - Secret (primeros 8 chars):", secret.substring(0, 8));
-      
+
       await conn.query("CALL sp_2fa_guardar_secreto(?, ?, ?);", [
         identificador,
         tipoUsuario,
         secret,
       ]);
       
-      console.log("✅ Secreto guardado correctamente en la BD");
+
     } catch (dbError: any) {
       console.error("❌ Error al ejecutar sp_2fa_guardar_secreto:", dbError);
       console.error("   SQL:", dbError.sql);
@@ -118,7 +106,6 @@ export async function POST(req: Request) {
           [identificador]
         );
         
-        console.log(`🔍 Verificación directa de ${column}:`, verifyRows);
         
         if (!verifyRows || verifyRows.length === 0) {
           return NextResponse.json(

@@ -16,7 +16,6 @@ const ResetPasswordPage: React.FC = () => {
   const params = useSearchParams();
   const toast = useRef<Toast>(null);
 
-  // 🔹 Token que SAENZ genera en la URL (no Firebase)
   const token = params.get('token');
 
   const [password, setPassword] = useState('');
@@ -28,6 +27,9 @@ const ResetPasswordPage: React.FC = () => {
     'surface-ground flex align-items-center justify-content-center min-h-screen min-w-screen overflow-hidden',
     { 'p-input-filled': layoutConfig.inputStyle === 'filled' }
   );
+
+  const contrasenasCoinciden = confirmar.length > 0 && password === confirmar;
+  const contrasenasNoCoinciden = confirmar.length > 0 && password !== confirmar;
 
   const actualizarContrasena = async () => {
     if (!token) {
@@ -60,7 +62,6 @@ const ResetPasswordPage: React.FC = () => {
     try {
       setLoading(true);
 
-      // ✅ 1️⃣ Enviar nueva contraseña al backend
       const res = await api.post('/api/auth/reset-password', {
         token,
         password,
@@ -70,7 +71,6 @@ const ResetPasswordPage: React.FC = () => {
         throw new Error(res.data.error || 'No se pudo actualizar la contraseña.');
       }
 
-      // ✅ 2️⃣ Mostrar éxito
       setExito(true);
       toast.current?.show({
         severity: 'success',
@@ -83,9 +83,7 @@ const ResetPasswordPage: React.FC = () => {
       toast.current?.show({
         severity: 'error',
         summary: 'Error',
-        detail:
-          err.message ||
-          'No se pudo actualizar la contraseña. Intenta nuevamente.',
+        detail: err.message || 'No se pudo actualizar la contraseña. Intenta nuevamente.',
         life: 6000,
       });
     } finally {
@@ -126,6 +124,7 @@ const ResetPasswordPage: React.FC = () => {
                 <div className="text-900 text-2xl font-medium mb-2">
                   Restablecer Contraseña
                 </div>
+
                 <p className="text-sm text-gray-600 mb-4">
                   Ingresa tu nueva contraseña para tu cuenta.
                 </p>
@@ -136,11 +135,17 @@ const ResetPasswordPage: React.FC = () => {
                 >
                   Nueva contraseña
                 </label>
+
                 <Password
                   id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   toggleMask
+                  feedback={true}
+                  promptLabel="Ingresa una contraseña"
+                  weakLabel="Débil"
+                  mediumLabel="Media"
+                  strongLabel="Fuerte"
                   className="w-full mb-3"
                   inputStyle={{ backgroundColor: '#f1f5f9' }}
                 />
@@ -151,14 +156,28 @@ const ResetPasswordPage: React.FC = () => {
                 >
                   Confirmar contraseña
                 </label>
+
                 <Password
                   id="confirmar"
                   value={confirmar}
                   onChange={(e) => setConfirmar(e.target.value)}
                   toggleMask
-                  className="w-full mb-4"
+                  feedback={false}
+                  className="w-full mb-2"
                   inputStyle={{ backgroundColor: '#f1f5f9' }}
                 />
+
+                {contrasenasNoCoinciden && (
+                  <small style={{ color: '#dc2626', display: 'block', marginBottom: '1rem' }}>
+                    Las contraseñas no coinciden.
+                  </small>
+                )}
+
+                {contrasenasCoinciden && (
+                  <small style={{ color: '#16a34a', display: 'block', marginBottom: '1rem' }}>
+                    Las contraseñas coinciden.
+                  </small>
+                )}
 
                 <Button
                   label={loading ? 'Actualizando...' : 'Actualizar contraseña'}
@@ -172,10 +191,12 @@ const ResetPasswordPage: React.FC = () => {
                 <div className="text-900 text-2xl font-medium mb-2">
                   🔒 ¡Contraseña actualizada!
                 </div>
+
                 <p className="text-sm text-gray-600 mb-5">
-                  Tu contraseña fue restablecida exitosamente.  
+                  Tu contraseña fue restablecida exitosamente.
                   Ya puedes iniciar sesión con tus nuevos datos.
                 </p>
+
                 <Button
                   label="Ir al inicio de sesión"
                   icon="pi pi-sign-in"

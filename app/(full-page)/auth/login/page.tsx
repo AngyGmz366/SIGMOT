@@ -108,8 +108,11 @@ export default function LoginPage() {
     }
 
     if (r.status === 429) throw new Error(data?.error || 'Demasiados intentos desde esta IP. Intenta más tarde.');
-    if (!r.ok) throw new Error(data?.error || 'Correo y/o contraseña inválidos.');
+    if (r.status === 404) throw new Error(data?.message || 'Usuario no existe.');
+    if (r.status === 401) throw new Error(data?.error || 'Contraseña incorrecta.');
+    if (!r.ok) throw new Error(data?.error || 'Error iniciando sesión.');
     return data;
+    
   };
 
   // 🔹 Login normal Firebase
@@ -143,7 +146,12 @@ export default function LoginPage() {
       }
     } catch (err: any) {
       const code = err?.code || '';
-      const canTryLocal = ['auth/invalid-credential', 'auth/user-not-found', 'auth/wrong-password'].includes(code);
+      const canTryLocal = [
+        'auth/invalid-credential',
+        'auth/user-not-found',
+        'auth/wrong-password',
+        'auth/invalid-login-credentials' // 👈 ESTE ES EL QUE TE FALTA
+      ].includes(code);
 
       try {
         if (canTryLocal) {

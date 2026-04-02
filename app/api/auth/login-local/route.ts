@@ -48,9 +48,13 @@ export async function POST(req: Request) {
     const [resultSets]: any = await conn.query('CALL mydb.sp_login_local_info(?)', [email.trim()]);
     const rows = Array.isArray(resultSets) ? resultSets[0] : resultSets;
     const row = rows?.[0];
+    
     if (!row)
-      return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 });
-
+      return NextResponse.json(
+      { error: 'Usuario no encontrado', message: 'El correo ingresado no está registrado' },
+      { status: 404 }
+    );
+    
     const usuarioId = row.Id_Usuario_PK;
     const estado = Number(row.Estado_Usuario);
     const hash = Buffer.isBuffer(row.Contrasena)
@@ -63,7 +67,12 @@ export async function POST(req: Request) {
     await conn.query('CALL mydb.sp_login_local_post_login(?, ?)', [usuarioId, ok ? 1 : 0]);
     if (ok) await conn.query('CALL sp_iniciar_sesion(?, ?)', [usuarioId, 1]);
 
-    if (!ok) return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 });
+    if (!ok) {
+      return NextResponse.json(
+        { error: 'Contraseña incorrecta' },
+        { status: 401 }
+      );
+    }
     if (![1, 2].includes(estado))
       return NextResponse.json({ error: 'Usuario no activo' }, { status: 403 });
 

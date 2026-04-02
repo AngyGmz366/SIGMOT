@@ -29,8 +29,6 @@ export default function Setup2FAPage() {
   // 🔹 Al montar, generar el QR
   useEffect(() => {
     const activar2FA = async () => {
-      console.log('🔍 Iniciando activación 2FA...');
-      console.log('📌 idUsuario desde localStorage:', idUsuario);
 
       if (!idUsuario || idUsuario === '0') {
         Swal.fire({
@@ -43,13 +41,10 @@ export default function Setup2FAPage() {
       }
 
       try {
-        console.log('📡 Enviando petición a /api/auth/2fa/setup...');
-        
         // ✅ SOLO ENVIAR idUsuario - el backend hará el resto
         const requestBody = { 
           idUsuario: Number(idUsuario)
         };
-        console.log('📦 Body de la petición:', requestBody);
 
         const res = await fetch('/api/auth/2fa/setup', {
           method: 'POST',
@@ -57,13 +52,9 @@ export default function Setup2FAPage() {
           body: JSON.stringify(requestBody),
         });
 
-        console.log('📩 Respuesta recibida. Status:', res.status);
         
         const data = await res.json();
-        console.log('📋 Datos de respuesta:', data);
-
         if (res.ok && data.qr) {
-          console.log('✅ QR generado correctamente');
           setQr(data.qr);
           setSecret(data.secret);
         } else {
