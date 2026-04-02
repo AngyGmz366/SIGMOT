@@ -54,7 +54,8 @@
     "recharts": "^2.8.0",
     "sweetalert2": "^11.22.2",
     "uuid": "^11.1.0",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",
