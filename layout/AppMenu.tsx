@@ -23,7 +23,6 @@ const AppMenu = () => {
                 try {
                     const nuevos = JSON.parse(permisosStorage);
                     setPermisos(Array.isArray(nuevos) ? nuevos : []);
-                    console.log('🟢 Permisos actualizados en AppMenu:', nuevos.length);
                 } catch {
                     setPermisos([]);
                 }
@@ -48,9 +47,6 @@ const AppMenu = () => {
             const nombre = (p.Objeto || '').toString().trim().toLowerCase();
             return nombre === objeto.toLowerCase() && Number(p.Ver) === 1;
         });
-        console.log('🔍 Rol actual:', rol);
-        console.log('📋 Permisos disponibles:', permisos.map(p => p.Objeto));
-        console.log('👀 Prueba puedeVer("clientes"):', puedeVer('clientes'));
 
     };
 
