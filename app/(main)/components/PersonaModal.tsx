@@ -1,6 +1,8 @@
 'use client';
+import React, { useRef } from 'react';
+import { Toast } from 'primereact/toast';
 
-import React from 'react';
+
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
@@ -132,6 +134,108 @@ export default function PersonaModal({
   const municipiosPorDepto =
   departamentosHonduras.find((d) => d.value === persona.Departamento)?.municipios || [];
 
+//////////////////////////////////////
+
+const toast = useRef<Toast>(null);
+
+const mostrarError = (mensaje: string) => {
+  toast.current?.show({
+    severity: 'error',
+    summary: 'Error',
+    detail: mensaje,
+    life: 3000,
+  });
+};
+
+
+const handleSaveModal = () => {
+  if (!persona.DNI || persona.DNI.trim() === '') {
+    mostrarError('Falta el DNI');
+    return;
+  }
+
+  if (!validarDNI(persona.DNI)) {
+    mostrarError('El DNI debe tener 13 dígitos');
+    return;
+  }
+
+  if (!persona.Nombres || persona.Nombres.trim() === '') {
+    mostrarError('Faltan los nombres');
+    return;
+  }
+
+  if (!validarTexto(persona.Nombres)) {
+    mostrarError('Los nombres solo deben contener letras y espacios');
+    return;
+  }
+
+  if (!persona.Apellidos || persona.Apellidos.trim() === '') {
+    mostrarError('Faltan los apellidos');
+    return;
+  }
+
+  if (!validarTexto(persona.Apellidos)) {
+    mostrarError('Los apellidos solo deben contener letras y espacios');
+    return;
+  }
+
+  if (!persona.Telefono || persona.Telefono.trim() === '') {
+    mostrarError('Falta el teléfono');
+    return;
+  }
+
+  if (!validarTelefono(persona.Telefono)) {
+    mostrarError('El teléfono debe tener 8 dígitos y comenzar con 2, 3, 8 o 9');
+    return;
+  }
+
+  if (!persona.Fecha_Nacimiento) {
+    mostrarError('Falta la fecha de nacimiento');
+    return;
+  }
+
+  if (fechaInvalida) {
+    mostrarError('La fecha no puede ser futura');
+    return;
+  }
+
+  if (!persona.Genero) {
+    mostrarError('Falta seleccionar el género');
+    return;
+  }
+
+  if (!persona.TipoPersona) {
+    mostrarError('Falta seleccionar el tipo de persona');
+    return;
+  }
+
+  if (!persona.EstadoPersona) {
+    mostrarError('Falta seleccionar el estado');
+    return;
+  }
+
+  if (!persona.Correo || persona.Correo.trim() === '') {
+    mostrarError('Falta el correo');
+    return;
+  }
+
+  if (!validarCorreo(persona.Correo)) {
+    mostrarError('El correo no es válido');
+    return;
+  }
+
+  if (!persona.Departamento) {
+    mostrarError('Falta seleccionar el departamento');
+    return;
+  }
+
+  if (!persona.Municipio) {
+    mostrarError('Falta seleccionar el municipio');
+    return;
+  }
+
+  onSave();
+};
 
   /* 🔹 Validadores Honduras */
   const validarDNI = (dni: string) => /^\d{13}$/.test(dni);
@@ -144,7 +248,10 @@ export default function PersonaModal({
     persona.Fecha_Nacimiento &&
     new Date(persona.Fecha_Nacimiento) > new Date();
 
-  return (
+return (
+  <>
+    <Toast ref={toast} />
+
     <Dialog
       visible={visible}
       header="Datos de la Persona"
@@ -153,8 +260,18 @@ export default function PersonaModal({
       onHide={onHide}
       footer={
         <div className="flex justify-content-end gap-2">
-          <Button label="Cancelar" icon="pi pi-times" outlined onClick={onHide} />
-          <Button label="Guardar" icon="pi pi-check" onClick={onSave} />
+          <Button
+            label="Cancelar"
+            icon="pi pi-times"
+            outlined
+            onClick={onHide}
+          />
+
+          <Button
+            label="Guardar"
+            icon="pi pi-check"
+            onClick={handleSaveModal}
+          />
         </div>
       }
     >
@@ -384,5 +501,6 @@ export default function PersonaModal({
 
       </div>
     </Dialog>
+    </>
   );
 }
