@@ -5,7 +5,6 @@ import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { InputNumber } from 'primereact/inputnumber';
-import AsientosBus from './AsientoSelector';
 import Swal from 'sweetalert2';
 import './FormReservacion.css';
 import { auth } from "@/lib/firebaseClient"; 
@@ -152,7 +151,7 @@ useEffect(() => {
   // 🧩 Cálculo del costo en función del peso (para encomienda)
   const calcularCostoEncomienda = (peso: number | null): number => {
     if (peso && formData.ruta) {
-      const precioPorKg = 257.70;
+      const precioPorKg = 20;
       return peso * precioPorKg;
     }
     return 0;
@@ -437,7 +436,7 @@ try {
       onChange={(e) =>
         setFormData({ 
           ...formData, 
-          peso: e.target.value ? Number(e.target.value) : null 
+          peso: e.target.value ? Math.min(Number(e.target.value), 46) : null
         })
       }
       min="0"
@@ -446,6 +445,13 @@ try {
       placeholder="0"
       className="peso-input-simple"
     />
+
+    <p className="text-gray-500 text-sm mt-2 mb-1">
+  Peso máximo permitido: 46 kg.
+</p>
+<p className="text-gray-500 text-sm">
+  Tarifa fija: L 20.00 por kg.
+</p>
                   </div>
                 )}
               </div>
@@ -454,7 +460,7 @@ try {
               {formData.tipo === 'encomienda' && (
                 <div>
                   <label className="text-gray-700 text-sm font-medium block mb-1">
-                    Costo Estimado (L. {formData.costoEncomienda ? formData.costoEncomienda.toFixed(2) : '0.00'})
+                  Costo Estimado (L. {formData.costoEncomienda ? formData.costoEncomienda.toFixed(2) : '0.00'})
                   </label>
                   <input
                     type="text"
@@ -491,17 +497,15 @@ try {
 
         {/* 🔵 Columna derecha - POSICIÓN FIJA */}
         <div className="panel-lateral p-3 md:p-0">
-          {formData.tipo === 'viaje' ? (
-            <AsientosBus asientos={[]} /> 
-          ) : (
+            {formData.tipo === 'encomienda' ? (
             <div className="h-full flex flex-col justify-center items-center text-gray-500">
-              <i className="pi pi-box text-5xl mb-3 text-indigo-400"></i>
+             <i className="pi pi-box text-5xl mb-3 text-indigo-400"></i>
               <p className="text-center text-sm px-4">
-                Encomiendas no requieren selección de asientos.
-              </p>
-            </div>
-          )}
-        </div>
+               Encomiendas no requieren selección de asientos.
+               </p>
+              </div>
+              ) : null}
+                </div>
       </div>
 
       {/* 💬 Diálogo - CON AJUSTE PARA PANTALLAS PEQUEÑAS */}
