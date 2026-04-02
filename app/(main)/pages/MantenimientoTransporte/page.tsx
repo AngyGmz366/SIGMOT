@@ -406,7 +406,15 @@ const MantenimientoTransporte = () => {
                 });
                 return;
             }
-
+            if (servicio.kilometraje > 999999) {
+                toast.current?.show({
+                    severity: 'warn',
+                    summary: 'Kilometraje inválido',
+                    detail: 'El kilometraje no puede superar 999,999 km.',
+                    life: 3000,
+                });
+                return;
+            }
             if (servicio.estado === 'Cancelado') {
                 setAlertas((prevAlertas) =>
                     prevAlertas.filter((alerta) => alerta.tipo !== 'fecha')
@@ -905,6 +913,7 @@ const MantenimientoTransporte = () => {
                         dateFormat="yy-mm-dd"
                         showIcon
                         className="w-full"
+                        minDate={new Date()}
                     />
                 </div>
 
@@ -967,6 +976,7 @@ const MantenimientoTransporte = () => {
                             });
                         }}
                         min={0}
+                        max={9999999}
                         placeholder="Ej. 150000"
                         className="w-full"
                     />
