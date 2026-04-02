@@ -145,7 +145,7 @@ export default function FormReservacion() {
     // 🧩 Cálculo del costo en función del peso (para encomienda)
     const calcularCostoEncomienda = (peso: number | null): number => {
         if (peso && formData.ruta) {
-            const precioPorKg = 257.7;
+            const precioPorKg = 20;
             return peso * precioPorKg;
         }
         return 0;
@@ -185,16 +185,36 @@ export default function FormReservacion() {
                     return;
                 }
             } else if (formData.tipo === 'encomienda') {
-                if (!formData.unidad || !formData.unidad.value || !formData.descripcion?.trim()) {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Faltan datos',
-                        text: 'Debes seleccionar una unidad y agregar una descripción.',
-                        confirmButtonColor: '#6366F1'
-                    });
-                    return;
-                }
-            }
+            if (!formData.unidad || !formData.unidad.value || !formData.descripcion?.trim()) {
+            Swal.fire({
+            icon: 'warning',
+            title: 'Faltan datos',
+            text: 'Debes seleccionar una unidad y agregar una descripción.',
+            confirmButtonColor: '#6366F1',
+            });
+           return;
+         }
+
+        if (!formData.peso || formData.peso <= 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Peso requerido',
+          text: 'Debes ingresar el peso de la encomienda.',
+          confirmButtonColor: '#6366F1',
+          });
+        return;
+        }
+
+      if (formData.peso > 46) {
+      Swal.fire({
+      icon: 'warning',
+      title: 'Peso excedido',
+      text: 'El peso máximo permitido para una encomienda es de 46 kg.',
+      confirmButtonColor: '#6366F1',
+      });
+      return;
+     }
+    }
 
             const fechaSQL = new Date(formData.fecha).toISOString().slice(0, 19).replace('T', ' ');
 
@@ -392,7 +412,7 @@ export default function FormReservacion() {
                                             onChange={(e) =>
                                                 setFormData({
                                                     ...formData,
-                                                    peso: e.target.value ? Number(e.target.value) : null
+                                                    peso: e.target.value ? Math.min(Number(e.target.value), 46) : null
                                                 })
                                             }
                                             min="0"
@@ -401,6 +421,13 @@ export default function FormReservacion() {
                                             placeholder="0"
                                             className="peso-input-simple"
                                         />
+
+                                        <p className="text-gray-500 text-sm mt-2 mb-1">
+                                        Peso máximo permitido: 46 kg.
+                                        </p>
+                                        <p className="text-gray-500 text-sm">
+                                        Tarifa fija: L 20.00 por kg.
+                                        </p>
                                     </div>
                                 )}
                             </div>

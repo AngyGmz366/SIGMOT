@@ -108,7 +108,7 @@ const AppMenu = () => {
             icon: 'pi pi-fw pi-users',
             items: [
                 ...(puedeVer('rutas') ? [{ label: 'Rutas', icon: 'pi pi-fw pi-map', to: '/cliente/rutas' }] : []),
-                ...(puedeVer('reservaciones') ? [{ label: 'Reservación', icon: 'pi pi-fw pi-user', to: '/cliente/reservacion/nueva' }] : []),
+                //...(puedeVer('reservaciones') ? [{ label: 'Reservación', icon: 'pi pi-fw pi-user', to: '/cliente/reservacion/nueva' }] : []),
                 ...(puedeVer('reservaciones') ? [{ label: 'Mis Reservaciones', icon: 'pi pi-file', to: '/cliente/reservacion/mis-reservaciones' }] : []),
                 ...(puedeVer('incidencias') ? [{ label: 'Incidencias y Soporte', icon: 'pi pi-fw pi-exclamation-triangle', to: '/cliente/incidencias-soporte' }] : []),
             ],
