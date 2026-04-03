@@ -13,7 +13,7 @@ import { Tag } from 'primereact/tag';
 import { Persona } from '@/types/persona';
 import { cargarPersonas, guardarPersona, eliminarPersona } from '@/modulos/personas/controlador/personas.controlador';
 
-
+import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 import { guardarCliente } from '@/modulos/clientes/controlador/clientes.controlador';
 import { invalidateClientesCache } from '@/modulos/boletos/servicios/ventas.servicios';
 
@@ -110,12 +110,12 @@ const savePersona = async () => {
       }
     }
 
-    toast.current?.show({
-      severity: 'success',
-      summary: persona.Id_Persona ? 'Actualizada' : 'Creada',
-      detail: persona.Id_Persona ? 'Persona actualizada' : 'Persona creada',
-      life: 3000,
-    });
+ toast.current?.show({
+  severity: 'success',
+  summary: 'Éxito', // Un título genérico para el estado
+  detail: persona.Id_Persona ? 'Persona actualizada correctamente' : 'Persona creada exitosamente',
+  life: 3000,
+});
 
     setPersonaDialogVisible(false);
     await cargarLista(); // refresca la tabla de personas
@@ -129,38 +129,48 @@ const savePersona = async () => {
   /* ============================
      🔹 Eliminar seleccionadas
   ============================ */
- const eliminarSeleccionadas = async () => {
-  if (!selectedPersonas || selectedPersonas.length === 0) return;
+const eliminarSeleccionadas = () => {
+    if (!selectedPersonas || selectedPersonas.length === 0) return;
 
-  try {
-    const idUsuarioAdmin = 8;
+    confirmDialog({
+      message: selectedPersonas.length === 1 
+        ? '¿Desea eliminar el registro seleccionado?' 
+        : `¿Desea eliminar los ${selectedPersonas.length} registros seleccionados?`,
+      header: 'Confirmación de Eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Sí, eliminar',
+      rejectLabel: 'No',
+      acceptClassName: 'p-button-danger',
+      accept: async () => {
+        try {
+          const idUsuarioAdmin = 8;
 
-    for (const p of selectedPersonas) {
-      await eliminarPersona(p.Id_Persona, idUsuarioAdmin);
-    }
+          for (const p of selectedPersonas) {
+            await eliminarPersona(p.Id_Persona, idUsuarioAdmin);
+          }
 
-    toast.current?.show({
-      severity: 'success',
-      summary: 'Eliminadas',
-      detail: 'Personas eliminadas correctamente',
-      life: 3000,
+          toast.current?.show({
+            severity: 'success',
+            summary: 'Eliminadas',
+            detail: 'Personas eliminadas correctamente',
+            life: 3000,
+          });
+
+          // Recargar lista y limpiar selección
+          await cargarLista();
+          setSelectedPersonas(null);
+        } catch (err: any) {
+          console.error('❌ Error al eliminar:', err);
+          toast.current?.show({
+            severity: 'error',
+            summary: 'Error',
+            detail: err.message || 'No se pudieron eliminar algunas personas',
+            life: 4000,
+          });
+        }
+      }
     });
-
-    // ✅ Recargar inmediatamente la lista desde el backend
-    await cargarLista();
-
-    // ✅ Limpiar selección
-    setSelectedPersonas(null);
-  } catch (err: any) {
-    console.error('❌ Error al eliminar:', err);
-    toast.current?.show({
-      severity: 'error',
-      summary: 'Error',
-      detail: err.message || 'No se pudieron eliminar algunas personas',
-      life: 4000,
-    });
-  }
-};
+  };
 
 
   /* ============================
@@ -275,6 +285,7 @@ const estadoPersonaTemplate = (rowData: Persona) => {
       <div className="col-12">
         <div className="card">
           <Toast ref={toast} />
+          <ConfirmDialog />
           <Toolbar className="mb-4" left={leftToolbar} right={rightToolbar} />
 
           <DataTable

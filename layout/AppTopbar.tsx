@@ -34,7 +34,6 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
       .then(async (res) => {
         if (res.data.ok) {
           const user = res.data.data;
-          console.log('🧩 Datos del usuario:', user);
 
           const nombreCompleto = `${user.nombre || ''} ${user.apellido || ''}`.trim();
           const rolLimpio = (user.rol || '').charAt(0).toUpperCase() + (user.rol || '').slice(1).toLowerCase();
@@ -63,7 +62,6 @@ const AppTopbar = forwardRef<AppTopbarRef>((props, ref) => {
             axios.get(`/api/seguridad/permisos?rol=${idRol}`)
               .then((resp) => {
                 if (resp.data.ok && Array.isArray(resp.data.data)) {
-                  console.log('✅ Permisos cargados para el rol:', rolLimpio, resp.data.data);
                   localStorage.setItem('permisosUsuario', JSON.stringify(resp.data.data));
                   // 🔁 Dispara evento para que AppMenu se actualice al instante
                   window.dispatchEvent(new Event('permisos-actualizados'));

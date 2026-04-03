@@ -10,7 +10,7 @@ import { Column } from 'primereact/column';
 import { InputText } from 'primereact/inputtext';
 import { Dialog } from 'primereact/dialog';
 import { Tag } from 'primereact/tag';
-
+import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 import ClienteModal from '@/app/(main)/components/ClienteModal';
 import { Cliente, Persona } from '@/types/persona';
 import { cargarPersonas } from '@/modulos/personas/controlador/personas.controlador';
@@ -68,7 +68,6 @@ const [globalFilter, setGlobalFilter] = useState('');
     estado: 'ACTIVO',
   });
   const [selectedClientes, setSelectedClientes] = useState<Cliente[]>([]);
-  const [deleteClienteDialog, setDeleteClienteDialog] = useState(false);
   const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
 
   // Historial
@@ -198,35 +197,40 @@ const [globalFilter, setGlobalFilter] = useState('');
     setClienteDialog(true);
   };
 
-  const confirmDeleteCliente = (c: Cliente) => {
-    setCliente(c);
-    setDeleteClienteDialog(true);
+const confirmDeleteCliente = (c: Cliente) => {
+    // Obtenemos el nombre para el mensaje
+    const nombrePersona = personaTemplate(c);
+
+    confirmDialog({
+      message: `¿Está seguro de eliminar al cliente ${nombrePersona}?`,
+      header: 'Confirmación de Eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Sí, eliminar',
+      rejectLabel: 'No',
+      acceptClassName: 'p-button-danger',
+      accept: async () => {
+        try {
+          await borrarCliente(c.id);
+          toast.current?.show({
+            severity: 'success',
+            summary: 'Desactivado',
+            detail: 'Cliente desactivado correctamente',
+            life: 3000,
+          });
+          setClientes(await cargarClientes());
+        } catch (err: any) {
+          console.error('❌ Error desactivando cliente:', err);
+          toast.current?.show({
+            severity: 'error',
+            summary: 'Error',
+            detail: err.message || 'No se pudo desactivar el cliente',
+            life: 4000,
+          });
+        }
+      }
+    });
   };
 
-  const deleteCliente = async () => {
-    if (!cliente.id || cliente.id <= 0) return;
-
-    try {
-      await borrarCliente(cliente.id);
-      toast.current?.show({
-        severity: 'success',
-        summary: 'Desactivado',
-        detail: 'Cliente desactivado correctamente',
-        life: 3000,
-      });
-      setClientes(await cargarClientes());
-      setDeleteClienteDialog(false);
-      setCliente({ id: 0, idPersona: 0, idEstadoCliente: 1, estado: 'ACTIVO' });
-    } catch (err: any) {
-      console.error('❌ Error desactivando cliente:', err);
-      toast.current?.show({
-        severity: 'error',
-        summary: 'Error',
-        detail: err.message || 'No se pudo desactivar el cliente',
-        life: 4000,
-      });
-    }
-  };
 
   // 🔹 Templates tabla
   const personaTemplate = (rowData: Cliente) => {
@@ -268,12 +272,7 @@ const [globalFilter, setGlobalFilter] = useState('');
     </div>
   );
 
-  const deleteClienteDialogFooter = (
-    <>
-      <Button label="No" icon="pi pi-times" text onClick={() => setDeleteClienteDialog(false)} />
-      <Button label="Sí" icon="pi pi-check" text onClick={deleteCliente} />
-    </>
-  );
+
 
   const clientesConNombre = clientes.map((cliente, index) => {
     const persona = personas.find((p) => p.Id_Persona === cliente.idPersona);
@@ -285,6 +284,7 @@ const [globalFilter, setGlobalFilter] = useState('');
       <div className="col-12">
         <div className="card">
           <Toast ref={toast} />
+          <ConfirmDialog />
           <Toolbar
             className="mb-4"
             left={() => <Button label="Nuevo Cliente" icon="pi pi-plus" severity="success" onClick={openNew} />}
@@ -294,7 +294,7 @@ const [globalFilter, setGlobalFilter] = useState('');
             ref={dt}
             value={clientesConNombre}
             selection={selectedClientes}
-            onSelectionChange={(e) => setSelectedClientes(e.value)}
+onSelectionChange={(e) => setSelectedClientes(e.value || [])}
             dataKey="id"
             paginator
             rows={10}
@@ -328,19 +328,6 @@ globalFilterFields={['nombreCompleto', 'estado', 'idPersona', 'id']}
             submitted={submitted}
           />
 
-          <Dialog
-            visible={deleteClienteDialog}
-            style={{ width: '450px' }}
-            header="Confirmar"
-            modal
-            footer={deleteClienteDialogFooter}
-            onHide={() => setDeleteClienteDialog(false)}
-          >
-            <div className="flex align-items-center justify-content-center">
-              <i className="pi pi-exclamation-triangle icon-warning" />
-              {cliente && <span>¿Está seguro de eliminar al cliente <b>{personaTemplate(cliente)}</b>?</span>}
-            </div>
-          </Dialog>
 
           {/* Historial */}
           {clienteSeleccionado && (

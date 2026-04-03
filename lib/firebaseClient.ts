@@ -27,7 +27,6 @@ export const auth = typeof window !== 'undefined' ? getAuth(app) : ({} as any);
 
 // 🟢 Solo muestra el log si se ejecuta en navegador
 if (typeof window !== 'undefined') {
-  console.log('🔥 FIREBASE CLIENT CONFIG:', firebaseConfig);
 }
 
 export default app;

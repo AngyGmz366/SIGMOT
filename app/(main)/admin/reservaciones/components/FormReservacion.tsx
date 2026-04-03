@@ -102,10 +102,64 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
     })();
   }, [viajeSeleccionadoId, formData.tipo]);
 
+    const regexIdentidadHN = /^\d{4}-\d{4}-\d{5}$/;
+  const regexCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  const formatearIdentidadHN = (valor: string) => {
+  const limpio = valor.replace(/\D/g, '');
+  const numeros = limpio.slice(0, 13);
+
+  let formateado = '';
+
+  if (numeros.length > 0) {
+    formateado = numeros.slice(0, 4);
+  }
+  if (numeros.length > 4) {
+    formateado += '-' + numeros.slice(4, 8);
+  }
+  if (numeros.length > 8) {
+    formateado += '-' + numeros.slice(8, 13);
+  }
+
+  return formateado;
+};
+
+  const normalizarFechaSinHora = (fecha: Date) =>
+    new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.dni && !formData.correo) return alert('Debe ingresar el DNI o correo de la persona.');
+    const dniLimpio = (formData.dni || '').trim();
+    const correoLimpio = (formData.correo || '').trim();
+
+    if (!dniLimpio && !correoLimpio) {
+      return alert('Debe ingresar el DNI o correo de la persona.');
+    }
+
+    // Validación DNI Honduras: 0801-1999-00001
+    if (dniLimpio && !regexIdentidadHN.test(dniLimpio)) {
+      return alert('El número de identidad debe tener el formato 0801-1999-00001.');
+    }
+
+    // Validación correo
+    if (correoLimpio && !regexCorreo.test(correoLimpio)) {
+      return alert('Debe ingresar un correo electrónico válido.');
+    }
+
+    // Validación fecha: no aceptar días pasados
+    const hoy = normalizarFechaSinHora(new Date());
+    const fechaSeleccionada = formData.fecha
+      ? normalizarFechaSinHora(new Date(formData.fecha))
+      : null;
+
+    if (!fechaSeleccionada) {
+      return alert('Debe seleccionar una fecha.');
+    }
+
+    if (fechaSeleccionada < hoy) {
+      return alert('No se permiten reservaciones en fechas pasadas.');
+    }
 
     if (!formData.tipo) return alert('Debe seleccionar el tipo de reservación.');
 
@@ -116,8 +170,8 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
       return alert('Debe ingresar el costo de la encomienda.');
 
     const payload: ReservacionBase = {
-      dni: formData.dni,
-      correo: formData.correo || null,
+      dni: dniLimpio,
+      correo: correoLimpio || null,
       tipo: formData.tipo,
       id_viaje: viajeSeleccionadoId ?? null,
       id_asiento: asientoSeleccionadoId ?? null,
@@ -155,23 +209,28 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
         />
       </div>
 
-      {/* DNI */}
+            {/* DNI */}
       <div className="col-12 md:col-6">
         <InputText
           value={formData.dni || ''}
-          onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
+          onChange={(e) => {
+  const valorFormateado = formatearIdentidadHN(e.target.value);
+  setFormData({ ...formData, dni: valorFormateado });
+}}
           placeholder="DNI de la persona"
           className="w-full"
+          maxLength={15}
         />
       </div>
 
-      {/* Correo */}
+            {/* Correo */}
       <div className="col-12 md:col-6">
         <InputText
-        value={formData.correo || ''}
-        onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
-        placeholder="Correo de la persona"
-        className="w-full"
+          value={formData.correo || ''}
+          onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
+          placeholder="Correo de la persona"
+          className="w-full"
+          type="email"
         />
       </div>
 
@@ -243,7 +302,7 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
         </div>
       )}
 
-      {/* Fecha */}
+            {/* Fecha */}
       <div className="col-12 md:col-6">
         <Calendar
           value={formData.fecha ? new Date(formData.fecha) : new Date()}
@@ -251,6 +310,7 @@ export default function FormReservacion({ initialData, onSave, onCancel }: FormP
           dateFormat="dd/mm/yy"
           placeholder="Fecha"
           className="w-full"
+          minDate={new Date()}
           required
         />
       </div>

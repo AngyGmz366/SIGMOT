@@ -48,7 +48,6 @@ export default function RolesPage() {
   const cargarRoles = async () => {
     try {
       const res = await axios.get('/api/seguridad/roles');
-      console.log('📦 Roles recibidos:', res.data.data);
       if (res.data.ok) {
         setRoles(res.data.data);
       } else {
@@ -84,7 +83,6 @@ export default function RolesPage() {
   };
 
   const abrirEditar = (row: Rol) => {
-    console.log('🧠 Editar rol seleccionado:', row);
     if (!row || !row.id) {
       toast.current?.show({
         severity: 'warn',
@@ -111,7 +109,6 @@ export default function RolesPage() {
 
   const guardar = async () => {
     setSubmitted(true);
-    console.log('🧩 Intentando guardar:', editing);
 
     if (!editing.nombre.trim()) return;
 
