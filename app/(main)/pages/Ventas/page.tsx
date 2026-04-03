@@ -20,7 +20,7 @@
 
 
 
-
+import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 
 
 
@@ -344,39 +344,54 @@ const imprimirItem = async (row: VentaItem) => {
       }
     };
 
-  const eliminarSeleccionados = async () => {
+const eliminarSeleccionados = () => {
     if (!selectedItems?.length) return;
 
-    try {
-      for (const item of selectedItems) {
-        if (isBoleto(item) && item.id != null) {
-          console.log(`🗑️ Eliminando boleto ID ${item.id}...`);
-          await eliminarBoleto(item.id);
+    // 📢 Lanzar el diálogo de confirmación
+    confirmDialog({
+      message: selectedItems.length === 1 
+        ? '¿Desea eliminar el registro seleccionado?' 
+        : `¿Desea eliminar los ${selectedItems.length} registros seleccionados?`,
+      header: 'Confirmación de Eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Sí, eliminar',
+      rejectLabel: 'No',
+      acceptClassName: 'p-button-danger',
+      // ✅ Si el usuario presiona "Sí", se ejecuta esta lógica:
+      accept: async () => {
+        try {
+          for (const item of selectedItems) {
+            if (isBoleto(item) && item.id != null) {
+              console.log(`🗑️ Eliminando boleto ID ${item.id}...`);
+              await eliminarBoleto(item.id);
+            }
+          }
+
+          const updated = await listarBoletos();
+          setVentaItems(updated);
+          setSelectedItems([]);
+
+          toast.current?.show({
+            severity: 'success',
+            summary: 'Éxito',
+            detail: 'Registros eliminados correctamente',
+            life: 3000,
+          });
+        } catch (err: any) {
+          console.error('❌ Error al eliminar:', err);
+          toast.current?.show({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'No se pudieron eliminar los registros',
+            life: 4000,
+          });
         }
+      },
+      reject: () => {
+        // Opcional: acción si el usuario cancela
       }
-
-      const updated = await listarBoletos();
-      setVentaItems(updated);
-      setSelectedItems([]);
-
-      toast.current?.show({
-        severity: 'success',
-        summary: 'Éxito',
-        detail: 'Boletos eliminados correctamente',
-        life: 3000,
-      });
-    } catch (err: any) {
-      console.error('❌ Error al eliminar boletos:', err?.response?.data || err);
-      toast.current?.show({
-        severity: 'error',
-        summary: 'Error',
-        detail: err?.response?.data?.error || 'No se pudieron eliminar los boletos',
-        life: 4000,
-      });
-    }
+    });
   };
-
-
 
 
     
@@ -727,13 +742,17 @@ const imprimirItem = async (row: VentaItem) => {
       </div>
     );
 
-    return (
+return (
       <div className="grid crud-demo">
         <div className="col-12">
           <div className="card">
             <Toast ref={toast} />
+        
+            <ConfirmDialog /> 
 
             <Toolbar className="mb-4" left={leftToolbar} right={rightToolbar} />
+            
+       
 
             <DataTable
               value={filteredItems}
@@ -952,8 +971,8 @@ const imprimirItem = async (row: VentaItem) => {
         className="p-button-text"
       />
       <Button
-        label="Imprimir"
-        icon="pi pi-print"
+        label="Descargar PDF" // <-- Cambiado de "Imprimir" a "Descargar PDF"
+        icon="pi pi-file-pdf" // <-- Icono cambiado de "pi-print" a "pi-file-pdf" para mayor claridad
         onClick={() => {
           if (refImpresion.current && itemParaImprimir) {
             const nombreArchivo =
