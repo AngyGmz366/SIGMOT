@@ -11,7 +11,6 @@ import { Toolbar } from 'primereact/toolbar'
 import { Toast } from 'primereact/toast'
 import { InputTextarea } from 'primereact/inputtextarea';
 
-
 // Interfaz de Vehículo
 interface Vehiculo {
   id: number
@@ -42,7 +41,6 @@ const toPayload = (v: Vehiculo) => ({
   descripcion: v.descripcion ?? null,
   idEstadoFk: 1,
 });
-
 
 const vehiculoService = {
   guardar: (vehiculos: Vehiculo[], vehiculoActual: Vehiculo) => {
@@ -100,6 +98,7 @@ const VehiculosPage = () => {
   const [searchText, setSearchText] = useState('')
   const [dialogVisible, setDialogVisible] = useState(false)
   const [vehiculoActual, setVehiculoActual] = useState<Vehiculo | null>(null)
+  const [errores, setErrores] = useState<Record<string, string>>({})
   const [message, setMessage] = useState<{
     severity: 'success' | 'info' | 'warn' | 'error' | 'secondary' | 'contrast' | undefined
     summary: string
@@ -114,17 +113,25 @@ const VehiculosPage = () => {
       const toast = useRef<Toast>(null)
 
 
-  const abrirNuevo = () => {
-    setVehiculoActual({ id: 0, placa: '', marcaUnidad: '', modelo: '', año: new Date().getFullYear(),capacidadAsientos: null,
-      descripcion: '', })
-    setDialogVisible(true)
-  }
+      const abrirNuevo = () => {
+        setVehiculoActual({
+          id: 0,
+          placa: '',
+          marcaUnidad: '',
+          modelo: '',
+          año: new Date().getFullYear(),
+          capacidadAsientos: null,
+          descripcion: '',
+        })
+        setErrores({})
+        setDialogVisible(true)
+      }
 
-  const editarVehiculo = (vehiculo: Vehiculo) => {
-    setVehiculoActual({ ...vehiculo })
-    setDialogVisible(true)
-  }
-
+    const editarVehiculo = (vehiculo: Vehiculo) => {
+        setVehiculoActual({ ...vehiculo })
+        setErrores({})
+        setDialogVisible(true)
+      }
   const confirmarEliminacion = (vehiculo: Vehiculo) => {
     setVehiculoAEliminar(vehiculo)
     setConfirmVisible(true)
@@ -154,49 +161,115 @@ const VehiculosPage = () => {
 
   }
 
+  const validarVehiculo = (v: Vehiculo) => {
+    const nuevosErrores: Record<string, string> = {}
+    const anioActual = new Date().getFullYear()
+  
+    // Placa
+    if (!v.placa?.trim()) {
+      nuevosErrores.placa = 'La placa es obligatoria.'
+    } else if (!/^[A-Z0-9-]+$/i.test(v.placa.trim())) {
+      nuevosErrores.placa = 'La placa solo puede contener letras, números y guiones.'
+    } else if (v.placa.trim().length > 15) {
+      nuevosErrores.placa = 'La placa no puede exceder 15 caracteres.'
+    }
+  
+    // Marca
+    if (!v.marcaUnidad?.trim()) {
+      nuevosErrores.marcaUnidad = 'La marca es obligatoria.'
+    } else if (v.marcaUnidad.trim().length > 10) {
+      nuevosErrores.marcaUnidad = 'La marca no puede exceder 10 caracteres.'
+    }
+  
+    // Modelo
+    if (!v.modelo?.trim()) {
+      nuevosErrores.modelo = 'El modelo es obligatorio.'
+    } else if (v.modelo.trim().length > 10) {
+      nuevosErrores.modelo = 'El modelo no puede exceder 10 caracteres.'
+    }
+  
+    // Año
+    if (!v.año) {
+      nuevosErrores.año = 'El año es obligatorio.'
+    } else if (!/^\d{4}$/.test(String(v.año))) {
+      nuevosErrores.año = 'El año debe tener exactamente 4 dígitos numéricos.'
+    } else if (v.año < 1950 || v.año > anioActual + 1) {
+      nuevosErrores.año = `El año debe estar entre 1950 y ${anioActual + 1}.`
+    }
+  
+    // Capacidad de asientos
+    if (v.capacidadAsientos === null || v.capacidadAsientos === undefined) {
+      nuevosErrores.capacidadAsientos = 'La capacidad de asientos es obligatoria.'
+    } else if (!Number.isInteger(v.capacidadAsientos)) {
+      nuevosErrores.capacidadAsientos = 'La capacidad de asientos debe ser un número entero.'
+    } else if (!/^\d{1,3}$/.test(String(v.capacidadAsientos))) {
+      nuevosErrores.capacidadAsientos = 'La capacidad de asientos debe tener máximo 3 dígitos.'
+    } else if (v.capacidadAsientos < 1 || v.capacidadAsientos > 100) {
+      nuevosErrores.capacidadAsientos = 'La capacidad de asientos debe estar entre 1 y 100.'
+    }
+  
+    // Descripción
+    if (v.descripcion && v.descripcion.trim().length > 250) {
+      nuevosErrores.descripcion = 'La descripción no puede exceder 250 caracteres.'
+    }
+  
+    return nuevosErrores
+  }
+
   const guardarVehiculo = async () => {
     if (!vehiculoActual) return
-
-    const vehiculoExistente = vehiculos.some(v => v.placa === vehiculoActual.placa && v.id !== vehiculoActual.id)
+  
+    const nuevosErrores = validarVehiculo(vehiculoActual)
+    setErrores(nuevosErrores) 
+  
+    if (Object.keys(nuevosErrores).length > 0) {
+      toast.current?.show({
+        severity: 'warn',
+        summary: 'Formulario incompleto',
+        detail: 'Corrige los campos marcados antes de guardar.',
+      })
+      return
+    }
+  
+    const vehiculoExistente = vehiculos.some(
+      v => v.placa.trim().toLowerCase() === vehiculoActual.placa.trim().toLowerCase() && v.id !== vehiculoActual.id
+    )
+  
     if (vehiculoExistente) {
       setMessage({
         severity: 'error',
         summary: 'Error',
         detail: 'Ya existe un vehículo con esa placa.',
       })
+      setErrores((prev) => ({ ...prev, placa: 'Ya existe un vehículo con esa placa.' }))
       toast.current?.show({ severity: 'error', summary: 'Error', detail: 'Ya existe un vehículo con esa placa.' })
       return
     }
-
+  
     try {
-      setLoading?.(true);
-    
-      // crea o actualiza en la API
+      setLoading?.(true)
+  
       if (vehiculoActual.id === 0) {
-        // Crear
-        const nuevoVehiculo = await api.crear(vehiculoActual);
-        setVehiculos([...vehiculos, nuevoVehiculo]);
-        toast.current?.show({ severity: 'success', summary: 'Creado', detail: 'Vehículo creado' });
+        const nuevoVehiculo = await api.crear(vehiculoActual)
+        setVehiculos([...vehiculos, nuevoVehiculo])
+        toast.current?.show({ severity: 'success', summary: 'Creado', detail: 'Vehículo creado' })
       } else {
-        // Actualizar
-        const actualizado = await api.actualizar(vehiculoActual); // ✅ recibe objeto actualizado
+        const actualizado = await api.actualizar(vehiculoActual)
         setVehiculos((prev) =>
           prev.map((v) => (v.id === actualizado.id ? actualizado : v))
-        );
-        toast.current?.show({ severity: 'success', summary: 'Actualizado', detail: 'Vehículo actualizado' });
-      }   
-
-      const data = await api.listar();
-      setVehiculos(data);
-      
-      // cierra tu modal/dialog
-      setDialogVisible(false);
+        )
+        toast.current?.show({ severity: 'success', summary: 'Actualizado', detail: 'Vehículo actualizado' })
+      }
+  
+      const data = await api.listar()
+      setVehiculos(data)
+      setDialogVisible(false)
+      setErrores({})
     } catch (e: any) {
-      toast.current?.show({ severity: 'error', summary: 'Error', detail: e?.message || 'No se pudo guardar' });
+      toast.current?.show({ severity: 'error', summary: 'Error', detail: e?.message || 'No se pudo guardar' })
     } finally {
-      setLoading?.(false);
+      setLoading?.(false)
     }
-
   }
 
   const vehiculosFiltrados = vehiculos.filter((vehiculo) =>
@@ -352,78 +425,136 @@ const VehiculosPage = () => {
             onSubmit={(e) => { e.preventDefault(); guardarVehiculo() }}
               className="grid grid-cols-1 md:grid-cols-2 gap-4"
               >
-               <div className="p-float-label w-full mt-2">
-                   <InputText
-                    id="placa"
-                    value={vehiculoActual?.placa || ''}
-                    onChange={(e) => setVehiculoActual({ ...vehiculoActual!, placa: e.target.value })}
-                    className="w-full"
-              />
-              <label htmlFor="placa">Placa</label>
-            </div>
+              <div className="w-full mt-2">
+  <span className="p-float-label">
+    <InputText
+      id="placa"
+      value={vehiculoActual?.placa || ''}
+      onChange={(e) => {
+        const valor = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 15)
+        setVehiculoActual({ ...vehiculoActual!, placa: valor })
+        setErrores((prev) => ({ ...prev, placa: '' }))
+      }}
+      className={`w-full ${errores.placa ? 'p-invalid' : ''}`}
+      maxLength={15}
+    />
+    <label htmlFor="placa">Placa</label>
+  </span>
+  {errores.placa && <small className="p-error">{errores.placa}</small>}
+</div>
 
-          <div className="p-float-label w-full">
-            <InputText
-              id="marca"
-              value={vehiculoActual?.marcaUnidad || ''}
-              onChange={(e) => setVehiculoActual({ ...vehiculoActual!, marcaUnidad: e.target.value })}
-              className="w-full"
-            />
-            <label htmlFor="marca">Marca</label>
-          </div>
+<div className="w-full">
+  <span className="p-float-label">
+    <InputText
+      id="marca"
+      value={vehiculoActual?.marcaUnidad || ''}
+      onChange={(e) => {
+        const valor = e.target.value.slice(0, 10)
+        setVehiculoActual({ ...vehiculoActual!, marcaUnidad: valor })
+        setErrores((prev) => ({ ...prev, marcaUnidad: '' }))
+      }}
+      className={`w-full ${errores.marcaUnidad ? 'p-invalid' : ''}`}
+      maxLength={10}
+    />
+    <label htmlFor="marca">Marca</label>
+  </span>
+  {errores.marcaUnidad && <small className="p-error">{errores.marcaUnidad}</small>}
+</div>
 
-          <div className="p-float-label w-full">
-            <InputText
-              id="modelo"
-              value={vehiculoActual?.modelo || ''}
-              onChange={(e) => setVehiculoActual({ ...vehiculoActual!, modelo: e.target.value })}
-              className="w-full"
-            />
-            <label htmlFor="modelo">Modelo</label>
-          </div>
+<div className="w-full">
+  <span className="p-float-label">
+    <InputText
+      id="modelo"
+      value={vehiculoActual?.modelo || ''}
+      onChange={(e) => {
+        const valor = e.target.value.slice(0, 10)
+        setVehiculoActual({ ...vehiculoActual!, modelo: valor })
+        setErrores((prev) => ({ ...prev, modelo: '' }))
+      }}
+      className={`w-full ${errores.modelo ? 'p-invalid' : ''}`}
+      maxLength={10}
+    />
+    <label htmlFor="modelo">Modelo</label>
+  </span>
+  {errores.modelo && <small className="p-error">{errores.modelo}</small>}
+</div>
 
-          <div className="p-float-label w-full">
-            <InputNumber
-              id="año"
-              value={vehiculoActual?.año || 0}
-              onValueChange={(e) => setVehiculoActual({ ...vehiculoActual!, año: e.value ?? 0 })}
-              className="w-full"
-            />
-            <label htmlFor="año">Año</label>
-          </div>
+<div className="w-full">
+  <span className="p-float-label">
+    <InputNumber
+      id="año"
+      value={vehiculoActual?.año || null}
+      onValueChange={(e) => {
+        let valor = e.value ? Number(String(e.value).slice(0, 4)) : null
+        setVehiculoActual({ ...vehiculoActual!, año: valor ?? 0 })
+        setErrores((prev) => ({ ...prev, año: '' }))
+      }}
+      className={`w-full ${errores.año ? 'p-invalid' : ''}`}
+      useGrouping={false}
+      min={1950}
+      max={new Date().getFullYear() + 1}
+      minFractionDigits={0}
+      maxFractionDigits={0}
+    />
+    <label htmlFor="año">Año</label>
+  </span>
+  {errores.año && <small className="p-error">{errores.año}</small>}
+</div>
 
           {/* Capacidad de Asientos */}
-          <div className="p-float-label w-full">
-            <InputNumber
-              id="capacidadAsientos"
-              value={vehiculoActual?.capacidadAsientos ?? null}
-              onValueChange={(e) =>
-                setVehiculoActual({ ...vehiculoActual!, capacidadAsientos: (e.value as number) ?? null })
-              }
-              className="w-full"
-              useGrouping={false}
-              min={0}
-            />
-            <label htmlFor="capacidadAsientos">Capacidad de asientos</label>
-          </div>
+          <div className="w-full">
+  <span className="p-float-label">
+    <InputNumber
+      id="capacidadAsientos"
+      value={vehiculoActual?.capacidadAsientos ?? null}
+      onValueChange={(e) => {
+        let valor = e.value !== null && e.value !== undefined
+          ? Number(String(e.value).slice(0, 3))
+          : null
+
+        setVehiculoActual({
+          ...vehiculoActual!,
+          capacidadAsientos: valor
+        })
+        setErrores((prev) => ({ ...prev, capacidadAsientos: '' }))
+      }}
+      className={`w-full ${errores.capacidadAsientos ? 'p-invalid' : ''}`}
+      useGrouping={false}
+      min={1}
+      max={100}
+      minFractionDigits={0}
+      maxFractionDigits={0}
+    />
+    <label htmlFor="capacidadAsientos">Capacidad de asientos</label>
+  </span>
+  {errores.capacidadAsientos && <small className="p-error">{errores.capacidadAsientos}</small>}
+</div>
 
           {/* Descripción */}
-          <div className="p-float-label w-full md:col-span-2">
-            <InputTextarea
-              id="descripcion"
-              value={vehiculoActual?.descripcion ?? ''}
-              onChange={(e) =>
-                setVehiculoActual({ ...vehiculoActual!, descripcion: e.target.value })
-              }
-              className="w-full"
-              autoResize
-              rows={3}
-            />
-            <label htmlFor="descripcion">Descripción</label>
-          </div>
+          <div className="w-full md:col-span-2">
+  <span className="p-float-label">
+    <InputTextarea
+      id="descripcion"
+      value={vehiculoActual?.descripcion ?? ''}
+      onChange={(e) => {
+        setVehiculoActual({ ...vehiculoActual!, descripcion: e.target.value })
+        setErrores((prev) => ({ ...prev, descripcion: '' }))
+      }}
+      className={`w-full ${errores.descripcion ? 'p-invalid' : ''}`}
+      autoResize
+      rows={3}
+      maxLength={250}
+    />
+    <label htmlFor="descripcion">Descripción</label>
+  </span>
+  {errores.descripcion && <small className="p-error">{errores.descripcion}</small>}
+</div>
 
           <div className="col-span-1 md:col-span-2 flex justify-center md:justify-end mt-4 gap-2">
-            <Button label="Cancelar" icon="pi pi-times" className="btn-cancelar" onClick={() => setDialogVisible(false)} />
+            <Button label="Cancelar" icon="pi pi-times" className="btn-cancelar" onClick={() => {
+  setDialogVisible(false)
+  setErrores({})
+}} />
             <Button label="Guardar" icon="pi pi-check" className="btn-guardar" type="submit" />
           </div>
 
@@ -434,8 +565,10 @@ const VehiculosPage = () => {
             header="Detalle de la Unidad"
             visible={detalleVisible}
             style={{ width: '90vw', maxWidth: '400px' }}
-            onHide={() => setDetalleVisible(false)}
-            className="shadow-2 border-round-xl">
+            onHide={() => {
+              setDialogVisible(false)
+              setErrores({})
+            }}            className="shadow-2 border-round-xl">
 
             <div className="detalle-vehiculo space-y-2">
               <p><strong>Placa:</strong> {vehiculoDetalle?.placa}</p>

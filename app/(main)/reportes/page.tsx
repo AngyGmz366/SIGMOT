@@ -1,8 +1,6 @@
 'use client'
 
 import React, { useEffect, useState, useRef } from 'react';
-import { Calendar } from 'primereact/calendar';
-import { Card } from 'primereact/card';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Dialog } from 'primereact/dialog';
@@ -17,6 +15,8 @@ import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, ChartOptions, ChartData } from 'chart.js';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
 ChartJS.register(ArcElement, Tooltip, Legend, ChartDataLabels);
 
@@ -98,56 +98,214 @@ function ReportSection({ title, children }: { title: string; children: React.Rea
           onView?: (row: any) => void;
         }) {
           // Función para exportar módulo individual a PDF
-          const exportModuloPDF = () => {
+          const exportModuloPDF = async () => {
+            const fechaGeneracion = new Date().toLocaleString('es-HN', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false
+            });
+          
+            const filtrosAplicados: string[] = [];
+          
+            if (title?.trim()) {
+              filtrosAplicados.push(`Módulo exportado: ${title}`);
+            }
+          
+            const logoDataURL = await (async () => {
+              try {
+                const res = await fetch('/demo/images/logo.png');
+                const blob = await res.blob();
+          
+                return await new Promise<string>((resolve, reject) => {
+                  const reader = new FileReader();
+                  reader.onloadend = () => resolve(String(reader.result));
+                  reader.onerror = reject;
+                  reader.readAsDataURL(blob);
+                });
+              } catch {
+                return '';
+              }
+            })();
+          
+            const escaparHTML = (valor: any) => {
+              const texto = valor === null || valor === undefined || valor === '' ? 'Vacío' : String(valor);
+              return texto
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+            };
+          
             const html = `
               <html>
                 <head>
                   <meta charset="utf-8" />
-                  <title>${title} - SIGMOT</title>
+                  <title>${escaparHTML(title)} - SIGMOT</title>
                   <style>
-                    body { font-family: Arial; padding: 20px; background: #f8f9fa; }
-                    h2 { color: #1976d2; margin-bottom: 5px; }
-                    table { width: 100%; border-collapse: collapse; background: white; }
-                    th, td { border: 1px solid #ddd; padding: 8px; font-size: 13px; }
-                    th { background: #1976d2; color: white; text-align: left; font-weight: bold; }
-                    tr:nth-child(even) { background: #f2f6fc; }
-                    .header { margin-bottom: 20px; }
-                    .header h2 { margin: 0; }
-                    .header p { color: #666; font-size: 12px; margin: 5px 0; }
+                    body {
+                      font-family: Arial, sans-serif;
+                      padding: 24px;
+                      background: #f8f9fa;
+                      color: #1f2937;
+                    }
+          
+                    .header {
+                      border: 1px solid #dbeafe;
+                      background: white;
+                      border-radius: 12px;
+                      overflow: hidden;
+                      margin-bottom: 24px;
+                      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+                    }
+          
+                    .topbar {
+                      height: 8px;
+                      background: #1976d2;
+                    }
+          
+                    .header-content {
+                      display: flex;
+                      justify-content: space-between;
+                      align-items: flex-start;
+                      gap: 24px;
+                      padding: 20px 24px;
+                    }
+          
+                    .logo-box img {
+                      width: 180px;
+                      max-width: 100%;
+                      height: auto;
+                      display: block;
+                    }
+          
+                    .header-text {
+                      flex: 1;
+                      text-align: right;
+                    }
+          
+                    .header-text h2 {
+                      color: #1976d2;
+                      margin: 0 0 8px 0;
+                      font-size: 24px;
+                    }
+          
+                    .header-text p {
+                      margin: 4px 0;
+                      font-size: 13px;
+                      color: #4b5563;
+                    }
+          
+                    .filters-box {
+                      margin-top: 10px;
+                      padding: 10px 12px;
+                      background: #e3f2fd;
+                      border-radius: 8px;
+                      display: inline-block;
+                      text-align: left;
+                    }
+          
+                    .filters-box strong {
+                      color: #1976d2;
+                      display: block;
+                      margin-bottom: 4px;
+                    }
+          
+                    .filters-box ul {
+                      margin: 0;
+                      padding-left: 18px;
+                    }
+          
+                    .filters-box li {
+                      font-size: 12px;
+                      color: #374151;
+                      margin-bottom: 2px;
+                    }
+          
+                    table {
+                      width: 100%;
+                      border-collapse: collapse;
+                      background: white;
+                    }
+          
+                    th, td {
+                      border: 1px solid #dbeafe;
+                      padding: 8px;
+                      font-size: 12px;
+                      text-align: center;
+                      vertical-align: middle;
+                    }
+          
+                    th {
+                      background: #1976d2;
+                      color: white;
+                      font-weight: bold;
+                    }
+          
+                    tr:nth-child(even) {
+                      background: #f2f6fc;
+                    }
+          
+                    .footer-note {
+                      margin-top: 24px;
+                      text-align: center;
+                      font-size: 11px;
+                      color: #6b7280;
+                    }
                   </style>
                 </head>
                 <body>
                   <div class="header">
-                    <h2>${title} - Transportes Saenz</h2>
-                    <p>Fecha de generación: ${new Date().toLocaleString('es-HN', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      hour12: false
-                    })}</p>
+                    <div class="topbar"></div>
+                    <div class="header-content">
+                      <div class="logo-box">
+                        ${
+                          logoDataURL
+                            ? `<img src="${logoDataURL}" alt="Logo Transportes Saenz" />`
+                            : ''
+                        }
+                      </div>
+          
+                      <div class="header-text">
+                        <h2>${escaparHTML(title)} - Transportes Saenz</h2>
+                        <p><strong>Fecha de generación:</strong> ${escaparHTML(fechaGeneracion)}</p>
+          
+                        <div class="filters-box">
+                          <strong>Criterio aplicado</strong>
+                          <ul>
+                            ${filtrosAplicados.map((f) => `<li>${escaparHTML(f)}</li>`).join('')}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  
+          
                   <table>
                     <thead>
                       <tr>
-                        ${columns.map(c => `<th>${c.header}</th>`).join('')}
+                        ${columns.map(c => `<th>${escaparHTML(c.header)}</th>`).join('')}
                       </tr>
                     </thead>
                     <tbody>
                       ${data.map(row => `
                         <tr>
-                          ${columns.map(c => `<td>${row[c.field] || ''}</td>`).join('')}
+                          ${columns.map(c => `<td>${escaparHTML(row[c.field])}</td>`).join('')}
                         </tr>
                       `).join('')}
                     </tbody>
                   </table>
-                  
+          
+                  <div class="footer-note">
+                    SIGMOT · Sistema de Gestión y Monitoreo de Transportes
+                  </div>
+          
                   <script>window.onload = () => window.print();</script>
                 </body>
               </html>`;
-            
+          
             const w = window.open('', '_blank');
             if (w) {
               w.document.open();
@@ -155,17 +313,157 @@ function ReportSection({ title, children }: { title: string; children: React.Rea
               w.document.close();
             }
           };
+
           // Función para exportar módulo individual a Excel
-          const exportModuloExcel = () => {
-            const wb = XLSX.utils.book_new();
-            const sheetData = [
-              columns.map(c => c.header),
-              ...data.map((row) => columns.map(c => row[c.field] || ''))
-            ];
-            const ws = XLSX.utils.aoa_to_sheet(sheetData);
-            XLSX.utils.book_append_sheet(wb, ws, title.slice(0, 31));
+          const exportModuloExcel = async () => {
+            const workbook = new ExcelJS.Workbook();
+
+            const COLORS = {
+              primary: '1976D2',
+              secondary: '42A5F5',
+              accent: 'E3F2FD',
+              white: 'FFFFFF',
+              text: '1F2937',
+              border: 'D1D5DB',
+            };
+          
+            const safeName =
+              title.replace(/[:\\/?*\[\]]/g, ' ').slice(0, 31).trim() || 'Hoja';
+          
+            const ws = workbook.addWorksheet(safeName);
+            const totalColumns = columns.length;
+          
+            const getCellValue = (row: any, col: any) => {
+              const value = row?.[col.field];
+              return value === null || value === undefined || value === '' ? 'Vacío' : String(value);
+            };
+          
+            ws.mergeCells(1, 1, 1, totalColumns);
+            const titleCell = ws.getCell(1, 1);
+            titleCell.value = `${title} - Transportes Saenz`;
+            titleCell.font = {
+              bold: true,
+              size: 16,
+              color: { argb: COLORS.white },
+            };
+            titleCell.alignment = {
+              vertical: 'middle',
+              horizontal: 'center',
+            };
+            titleCell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: COLORS.primary },
+            };
+          
+            ws.mergeCells(2, 1, 2, totalColumns);
+            const dateCell = ws.getCell(2, 1);
+            dateCell.value = `Fecha de generación: ${new Date().toLocaleString('es-HN', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false,
+            })}`;
+            dateCell.font = {
+              italic: true,
+              size: 11,
+              color: { argb: COLORS.text },
+            };
+            dateCell.alignment = {
+              vertical: 'middle',
+              horizontal: 'center',
+            };
+            dateCell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: COLORS.accent },
+            };
+          
+            ws.addRow([]);
+          
+            const headerRow = ws.addRow(columns.map((c) => c.header));
+            headerRow.height = 22;
+          
+            headerRow.eachCell((cell) => {
+              cell.font = {
+                bold: true,
+                color: { argb: COLORS.white },
+              };
+              cell.alignment = {
+                vertical: 'middle',
+                horizontal: 'center',
+                wrapText: true,
+              };
+              cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: COLORS.secondary },
+              };
+              cell.border = {
+                top: { style: 'thin', color: { argb: COLORS.border } },
+                left: { style: 'thin', color: { argb: COLORS.border } },
+                bottom: { style: 'thin', color: { argb: COLORS.border } },
+                right: { style: 'thin', color: { argb: COLORS.border } },
+              };
+            });
+          
+            data.forEach((row: any, index: number) => {
+              const excelRow = ws.addRow(columns.map((c) => getCellValue(row, c)));
+          
+              excelRow.eachCell((cell) => {
+                cell.alignment = {
+                  vertical: 'middle',
+                  horizontal: 'center',
+                  wrapText: true,
+                };
+                cell.border = {
+                  top: { style: 'thin', color: { argb: COLORS.border } },
+                  left: { style: 'thin', color: { argb: COLORS.border } },
+                  bottom: { style: 'thin', color: { argb: COLORS.border } },
+                  right: { style: 'thin', color: { argb: COLORS.border } },
+                };
+                cell.fill = {
+                  type: 'pattern',
+                  pattern: 'solid',
+                  fgColor: {
+                    argb: index % 2 === 0 ? 'FFFFFF' : COLORS.accent,
+                  },
+                };
+                cell.font = {
+                  size: 11,
+                  color: { argb: COLORS.text },
+                };
+              });
+            });
+          
+            ws.columns = columns.map((col, i) => {
+              const values = [
+                col.header,
+                ...data.map((row: any) => {
+                  const value = row?.[col.field];
+                  return value === null || value === undefined || value === '' ? 'Vacío' : String(value);
+                }),
+              ];
+          
+              const maxLength = Math.min(
+                Math.max(...values.map((v) => v.length), 12),
+                30
+              );
+          
+              return { width: maxLength + 2 };
+            });
+          
+            ws.views = [{ state: 'frozen', ySplit: 4 }];
+          
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], {
+              type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            });
+          
             const fecha = new Date().toISOString().slice(0, 10);
-            XLSX.writeFile(wb, `${title}_${fecha}.xlsx`);
+            saveAs(blob, `${title}_${fecha}.xlsx`);
           };
         
           // Función para exportar módulo individual a CSV
@@ -365,10 +663,49 @@ function cerrarDetalle() {
     setDetalleVisible(true)
   }
 
+  const textoSeguro = (valor: any) => {
+    if (valor === null || valor === undefined) return '';
+    return String(valor).trim();
+  };
+  
+  const obtenerEstado = (r: any) => {
+    return (
+      textoSeguro(r.Estado) ||
+      textoSeguro(r.estado) ||
+      textoSeguro(r.Nombre_Estado) ||
+      textoSeguro(r.Estado_Descripcion) ||
+      'Sin estado'
+    );
+  };
+  
+  const obtenerHorario = (r: any) => {
+    const horarioDirecto =
+      textoSeguro(r.Horario) ||
+      textoSeguro(r.horario);
+  
+    if (horarioDirecto) return horarioDirecto;
+  
+    const entrada =
+      textoSeguro(r.Hora_Entrada) ||
+      textoSeguro(r.HoraEntrada) ||
+      textoSeguro(r.horaEntrada);
+  
+    const salida =
+      textoSeguro(r.Hora_Salida) ||
+      textoSeguro(r.HoraSalida) ||
+      textoSeguro(r.horaSalida);
+  
+    if (entrada && salida) return `${entrada} - ${salida}`;
+    if (entrada) return `Entrada: ${entrada}`;
+    if (salida) return `Salida: ${salida}`;
+  
+    return '';
+  };
+
   const buildAllTablesForExport = () => {
-    return [
-      // ✅ 1. Boletos
+    const todasLasTablas = [
       {
+        key: 'boletos',
         title: 'Reportes de Boletos',
         columns: ['Código', 'Cliente', 'Cédula', 'Teléfono', 'Origen', 'Destino', 'Unidad', 'Asiento', 'Método Pago', 'Estado', 'Precio (Lps)', 'Fecha'],
         rows: boletos,
@@ -382,14 +719,13 @@ function cerrarDetalle() {
           r.Autobus || '',
           r.Numero_Asiento || '',
           r.MetodoPago || '',
-          r.Estado || '',
+          obtenerEstado(r),
           r.Precio_Total || '',
           r.Fecha_Hora_Compra || ''
         ],
       },
-      
-      // ✅ 2. Encomiendas
       {
+        key: 'encomiendas',
         title: 'Reportes de Encomiendas',
         columns: ['ID', 'Cliente', 'Origen', 'Destino', 'Costo (Lps)', 'Descripción', 'Estado', 'Fecha Realizada'],
         rows: encomiendas,
@@ -400,13 +736,12 @@ function cerrarDetalle() {
           r.Destino || '',
           r.Costo || '',
           r.Descripcion || '',
-          r.Estado || '',
+          obtenerEstado(r),
           r.Fecha_Realizada || ''
         ],
       },
-      
-      // ✅ 3. Rutas
       {
+        key: 'rutas',
         title: 'Reportes de Rutas',
         columns: ['ID', 'Origen', 'Destino', 'Distancia (km)', 'Tiempo', 'Precio (Lps)', 'Estado', 'Descripción'],
         rows: rutas,
@@ -417,13 +752,12 @@ function cerrarDetalle() {
           r.Distancia || '',
           r.Tiempo_Estimado || '',
           r.Precio || '',
-          r.Estado || '',
+          obtenerEstado(r),
           r.Descripcion || ''
         ],
       },
-      
-      // ✅ 4. Mantenimientos
       {
+        key: 'mantenimiento',
         title: 'Reportes de Mantenimientos',
         columns: ['ID', 'Placa', 'Tipo', 'Estado', 'Fecha Prog.', 'Fecha Real.', 'Próximo', 'Km', 'Taller', 'Repuestos', 'Costo (Lps)'],
         rows: mantenimientos,
@@ -431,7 +765,7 @@ function cerrarDetalle() {
           r.Id_Mantenimiento_PK || '',
           r.Placa || '',
           r.Tipo_Mantenimiento || '',
-          r.Estado || '',
+          obtenerEstado(r),
           r.Fecha_Programada || '',
           r.Fecha_Realizada || '',
           r.Proximo_Mantenimiento || '',
@@ -441,24 +775,22 @@ function cerrarDetalle() {
           r.Costo_Total || ''
         ],
       },
-      
-      // ✅ 5. Incidencias
       {
+        key: 'incidencias',
         title: 'Reportes de Incidencias',
         columns: ['ID', 'Usuario', 'Estado', 'Asunto', 'Descripción', 'Fecha Creación'],
         rows: incidencias,
         mapRow: (r: any) => [
           r.Id_Incidencia_PK || '',
           r.Usuario || '',
-          r.Estado || '',
+          obtenerEstado(r),
           r.Asunto || '',
           r.Descripcion || '',
           r.Fecha_Creacion || ''
         ],
       },
-      
-      // ✅ 6. Reservaciones
       {
+        key: 'reservaciones',
         title: 'Reportes de Reservaciones',
         columns: ['ID', 'Cliente', 'Tipo', 'Estado', 'Fecha', 'Asiento'],
         rows: reservaciones,
@@ -466,14 +798,13 @@ function cerrarDetalle() {
           r.Id_Reserva_PK || '',
           r.Cliente || '',
           r.Tipo_Reserva || '',
-          r.Estado || '',
+          obtenerEstado(r),
           r.Fecha_Reserva || '',
           r.Asiento || ''
         ],
       },
-      
-      // ✅ 7. Unidades
       {
+        key: 'unidades',
         title: 'Reportes de Unidades',
         columns: ['Placa', 'Marca', 'Modelo', 'Asientos', 'Descripción', 'Año', 'Estado'],
         rows: unidades,
@@ -484,12 +815,11 @@ function cerrarDetalle() {
           r.asientos || '',
           r.descripcion || '',
           r.anio || '',
-          r.estado || ''
+          obtenerEstado(r)
         ],
       },
-      
-      // ✅ 8. Clientes
       {
+        key: 'clientes',
         title: 'Reportes de Clientes',
         columns: ['ID', 'Nombre', 'DNI', 'Teléfono', 'Estado'],
         rows: clientes,
@@ -498,12 +828,11 @@ function cerrarDetalle() {
           r.Nombre_Completo || '',
           r.DNI || '',
           r.Telefono || '',
-          r.Estado || ''
+          obtenerEstado(r)
         ],
       },
-      
-      // ✅ 9. Personas
       {
+        key: 'personas',
         title: 'Reportes de Personas',
         columns: ['ID', 'Nombres', 'Apellidos', 'DNI', 'Teléfono', 'Género', 'Estado'],
         rows: personas,
@@ -514,29 +843,35 @@ function cerrarDetalle() {
           r.DNI || '',
           r.Telefono || '',
           r.Genero || '',
-          r.Estado || ''
+          obtenerEstado(r)
         ],
       },
-
-        // ✅ 10. Empleados
-        {
-          title: 'Reportes de Empleados',
-          columns: ['ID', 'Empleado', 'DNI', 'Teléfono', 'Cargo', 'Estado', 'Fecha Contratación', 'Horario'],
-          rows: empleados,
-          mapRow: (r: any) => [
-            r.Id_Empleado_PK || '',
-            r.Empleado || '',
-            r.DNI || '',
-            r.Telefono || '',
-            r.Cargo || '',
-            r.Estado || '',
-            r.Fecha_Contratacion || '',
-            r.Horario || ''
-          ],
-        },
-
-
+      {
+        key: 'empleados',
+        title: 'Reportes de Empleados',
+        columns: ['ID', 'Empleado', 'DNI', 'Teléfono', 'Cargo', 'Estado', 'Fecha Contratación', 'Horario'],
+        rows: empleados,
+        mapRow: (r: any) => [
+          r.Id_Empleado_PK || '',
+          r.Empleado || '',
+          r.DNI || '',
+          r.Telefono || '',
+          r.Cargo || '',
+          obtenerEstado(r),
+          r.Fecha_Contratacion || '',
+          obtenerHorario(r)
+        ],
+      },
     ];
+  
+    const filtro = searchText.trim().toLowerCase();
+  
+    if (!filtro) return todasLasTablas;
+  
+    return todasLasTablas.filter((tabla) =>
+      tabla.key.toLowerCase().includes(filtro) ||
+      tabla.title.toLowerCase().includes(filtro)
+    );
   };
 
       // ======= Paleta corporativa (azul/amarillo/rojo del logo) =======
@@ -634,64 +969,263 @@ function cerrarDetalle() {
         return { HEADER_H, FOOTER_H };
       }
 
+      const getFechaGeneracionTexto = () =>
+        new Date().toLocaleString('es-HN', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        });
+      
+      const getFiltrosAplicados = () => {
+        const filtros: string[] = [];
+      
+        if (searchText.trim()) {
+          filtros.push(`Módulo filtrado: ${searchText.trim()}`);
+        }
+      
+        if (fechaInicio && fechaFin) {
+          filtros.push(
+            `Rango de fechas: ${fechaInicio.toLocaleDateString()} a ${fechaFin.toLocaleDateString()}`
+          );
+        } else if (fechaInicio) {
+          filtros.push(`Fecha inicial: ${fechaInicio.toLocaleDateString()}`);
+        } else if (fechaFin) {
+          filtros.push(`Fecha final: ${fechaFin.toLocaleDateString()}`);
+        }
+      
+        if (filtros.length === 0) {
+          filtros.push('Sin filtros aplicados');
+        }
+      
+        return filtros;
+      };
+      
+      const escaparHTML = (valor: any) => {
+        const texto = valor === null || valor === undefined || valor === '' ? 'Vacío' : String(valor);
+        return texto
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      };
+      
+      const getLogoDataURL = async () => {
+        try {
+          const res = await fetch('/demo/images/logo.png');
+          const blob = await res.blob();
+      
+          return await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(String(reader.result));
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        } catch {
+          return '';
+        }
+      };
 
   // -------------------- EXPORTAR A PDF (TODAS LAS TABLAS) --------------------
-  const exportReportesPDF = () => {
+  const exportReportesPDF = async () => {
     const tables = buildAllTablesForExport();
-    
+    const fechaGeneracion = getFechaGeneracionTexto();
+    const filtrosAplicados = getFiltrosAplicados();
+    const logoDataURL = await getLogoDataURL();
+  
     const html = `
       <html>
         <head>
           <meta charset="utf-8" />
           <title>Reportes - SIGMOT</title>
           <style>
-            body { font-family: Arial; padding: 20px; background: #f8f9fa; }
-            h2 { color: #1976d2; margin-bottom: 5px; }
-            h3 { color: #333; font-size: 16px; margin-top: 25px; margin-bottom: 10px; }
-            table { width: 100%; border-collapse: collapse; background: white; margin-bottom: 30px; }
-            th, td { border: 1px solid #ddd; padding: 8px; font-size: 13px; }
-            th { background: #1976d2; color: white; text-align: left; font-weight: bold; }
-            tr:nth-child(even) { background: #f2f6fc; }
-            .header { margin-bottom: 20px; }
-            .header h2 { margin: 0; }
-            .header p { color: #666; font-size: 12px; margin: 5px 0; }
+            body {
+              font-family: Arial, sans-serif;
+              padding: 24px;
+              background: #f8f9fa;
+              color: #1f2937;
+            }
+  
+            .header {
+              border: 1px solid #dbeafe;
+              background: white;
+              border-radius: 12px;
+              overflow: hidden;
+              margin-bottom: 24px;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            }
+  
+            .topbar {
+              height: 8px;
+              background: #1976d2;
+            }
+  
+            .header-content {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+              gap: 24px;
+              padding: 20px 24px;
+            }
+  
+            .logo-box {
+              flex: 0 0 auto;
+            }
+  
+            .logo-box img {
+              width: 180px;
+              max-width: 100%;
+              height: auto;
+              display: block;
+            }
+  
+            .header-text {
+              flex: 1;
+              text-align: right;
+            }
+  
+            .header-text h2 {
+              color: #1976d2;
+              margin: 0 0 8px 0;
+              font-size: 24px;
+            }
+  
+            .header-text p {
+              margin: 4px 0;
+              font-size: 13px;
+              color: #4b5563;
+            }
+  
+            .filters-box {
+              margin-top: 10px;
+              padding: 10px 12px;
+              background: #e3f2fd;
+              border-radius: 8px;
+              display: inline-block;
+              text-align: left;
+            }
+  
+            .filters-box strong {
+              color: #1976d2;
+              display: block;
+              margin-bottom: 4px;
+            }
+  
+            .filters-box ul {
+              margin: 0;
+              padding-left: 18px;
+            }
+  
+            .filters-box li {
+              font-size: 12px;
+              color: #374151;
+              margin-bottom: 2px;
+            }
+  
+            h3 {
+              color: #1976d2;
+              font-size: 17px;
+              margin-top: 28px;
+              margin-bottom: 10px;
+              padding-bottom: 6px;
+              border-bottom: 2px solid #90caf9;
+            }
+  
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              background: white;
+              margin-bottom: 28px;
+              border-radius: 10px;
+              overflow: hidden;
+            }
+  
+            th, td {
+              border: 1px solid #dbeafe;
+              padding: 8px;
+              font-size: 12px;
+              text-align: center;
+              vertical-align: middle;
+            }
+  
+            th {
+              background: #1976d2;
+              color: white;
+              font-weight: bold;
+            }
+  
+            tr:nth-child(even) {
+              background: #f2f6fc;
+            }
+  
+            .footer-note {
+              margin-top: 24px;
+              text-align: center;
+              font-size: 11px;
+              color: #6b7280;
+            }
           </style>
         </head>
         <body>
           <div class="header">
-            <h2>Reportes Generales - Transportes Saenz</h2>
-            <p>Fecha de generación: ${new Date().toLocaleString('es-HN', {
-              day: '2-digit',
-              month: '2-digit',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: false
-            })}</p>
-            ${fechaInicio && fechaFin ? `<p>Periodo: ${fechaInicio.toLocaleDateString()} a ${fechaFin.toLocaleDateString()}</p>` : ''}
+            <div class="topbar"></div>
+            <div class="header-content">
+              <div class="logo-box">
+                ${
+                  logoDataURL
+                    ? `<img src="${logoDataURL}" alt="Logo Transportes Saenz" />`
+                    : ''
+                }
+              </div>
+  
+              <div class="header-text">
+                <h2>Reportes Generales - Transportes Saenz</h2>
+                <p><strong>Fecha de generación:</strong> ${escaparHTML(fechaGeneracion)}</p>
+  
+                <div class="filters-box">
+                  <strong>Filtros aplicados</strong>
+                  <ul>
+                    ${filtrosAplicados.map((f) => `<li>${escaparHTML(f)}</li>`).join('')}
+                  </ul>
+                </div>
+              </div>
+            </div>
           </div>
-          
+  
           ${tables.map(table => `
-            <h3>${table.title}</h3>
+            <h3>${escaparHTML(table.title)}</h3>
             <table>
               <thead>
                 <tr>
-                  ${table.columns.map(col => `<th>${col}</th>`).join('')}
+                  ${table.columns.map(col => `<th>${escaparHTML(col)}</th>`).join('')}
                 </tr>
               </thead>
               <tbody>
                 ${table.rows.map(row => {
                   const mappedRow = table.mapRow(row);
-                  return `<tr>${mappedRow.map(cell => `<td>${cell || ''}</td>`).join('')}</tr>`;
+                  return `
+                    <tr>
+                      ${mappedRow.map(cell => `<td>${escaparHTML(cell)}</td>`).join('')}
+                    </tr>
+                  `;
                 }).join('')}
               </tbody>
             </table>
           `).join('')}
-          
-          <script>window.onload = () => window.print();</script>
+  
+          <div class="footer-note">
+            SIGMOT · Sistema de Gestión y Monitoreo de Transportes
+          </div>
+  
+          <script>
+            window.onload = () => window.print();
+          </script>
         </body>
       </html>`;
-    
+  
     const w = window.open('', '_blank');
     if (w) {
       w.document.open();
@@ -699,6 +1233,7 @@ function cerrarDetalle() {
       w.document.close();
     }
   };
+
     // Limpia nombres de hoja para Excel
   const toSafeSheetName = (raw: string, fallback = 'Hoja') => {
     // Prohibidos: : \ / ? * [ ]
@@ -716,28 +1251,175 @@ function cerrarDetalle() {
     return name;
   };
   // -------------------- EXPORTAR A EXCEL (12 HOJAS) --------------------
-  const exportReportesExcel = () => {
-    const wb = XLSX.utils.book_new();
+  const exportReportesExcel = async () => {
+    const workbook = new ExcelJS.Workbook();
     const tables = buildAllTablesForExport();
-
-    tables.forEach((t) => {
-      const rows = t.rows.map(t.mapRow);
-      const sheetData = [t.columns, ...rows];
-      const ws = XLSX.utils.aoa_to_sheet(sheetData);
-      // asegurar nombre válido y único
-          let safe = toSafeSheetName(t.title);
-          const existing = new Set(wb.SheetNames);
-          let suffix = 1;
-          while (existing.has(safe)) {
-            const base = toSafeSheetName(t.title.slice(0, 28)); // deja sitio para " (n)"
-            safe = `${base} (${suffix++})`.slice(0, 31);
-          }
-          XLSX.utils.book_append_sheet(wb, ws, safe);
-        // máx 31 chars
-            });
-
+  
+    // Colores basados en tu PDF
+    const COLORS = {
+      primary: '1976D2',   // azul fuerte
+      secondary: '42A5F5', // azul medio
+      accent: 'E3F2FD',    // azul claro
+      white: 'FFFFFF',
+      text: '1F2937',
+      border: 'D1D5DB',
+    };
+  
+    tables.forEach((table) => {
+      const safeName = table.title
+        .replace(/[:\\/?*\[\]]/g, ' ')
+        .slice(0, 31)
+        .trim() || 'Hoja';
+  
+      const ws = workbook.addWorksheet(safeName);
+  
+      const totalColumns = table.columns.length;
+  
+      // Título principal
+      ws.mergeCells(1, 1, 1, totalColumns);
+      const titleCell = ws.getCell(1, 1);
+      titleCell.value = `${table.title} - Transportes Saenz`;
+      titleCell.font = {
+        bold: true,
+        size: 16,
+        color: { argb: COLORS.white },
+      };
+      titleCell.alignment = {
+        vertical: 'middle',
+        horizontal: 'center',
+      };
+      titleCell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: COLORS.primary },
+      };
+  
+      // Fecha de generación
+      ws.mergeCells(2, 1, 2, totalColumns);
+      const dateCell = ws.getCell(2, 1);
+      dateCell.value = `Fecha de generación: ${new Date().toLocaleString('es-HN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })}`;
+      dateCell.font = {
+        italic: true,
+        size: 11,
+        color: { argb: COLORS.text },
+      };
+      dateCell.alignment = {
+        vertical: 'middle',
+        horizontal: 'center',
+      };
+      dateCell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: COLORS.accent },
+      };
+  
+      // Fila vacía visual
+      ws.addRow([]);
+  
+      // Encabezados
+      const headerRow = ws.addRow(table.columns);
+      headerRow.height = 22;
+  
+      headerRow.eachCell((cell) => {
+        cell.font = {
+          bold: true,
+          color: { argb: COLORS.white },
+        };
+        cell.alignment = {
+          vertical: 'middle',
+          horizontal: 'center',
+          wrapText: true,
+        };
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: COLORS.secondary },
+        };
+        cell.border = {
+          top: { style: 'thin', color: { argb: COLORS.border } },
+          left: { style: 'thin', color: { argb: COLORS.border } },
+          bottom: { style: 'thin', color: { argb: COLORS.border } },
+          right: { style: 'thin', color: { argb: COLORS.border } },
+        };
+      });
+  
+      // Datos
+      table.rows.forEach((row: any, index: number) => {
+        const mappedRow = table.mapRow(row);
+        const excelRow = ws.addRow(mappedRow);
+  
+        excelRow.eachCell((cell) => {
+          cell.alignment = {
+            vertical: 'middle',
+            horizontal: 'center',
+            wrapText: true,
+          };
+  
+          cell.border = {
+            top: { style: 'thin', color: { argb: COLORS.border } },
+            left: { style: 'thin', color: { argb: COLORS.border } },
+            bottom: { style: 'thin', color: { argb: COLORS.border } },
+            right: { style: 'thin', color: { argb: COLORS.border } },
+          };
+  
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: {
+              argb: index % 2 === 0 ? 'FFFFFF' : COLORS.accent,
+            },
+          };
+  
+          cell.font = {
+            size: 11,
+            color: { argb: COLORS.text },
+          };
+        });
+      });
+  
+      // Ajuste automático de ancho de columnas
+      ws.columns = table.columns.map((col, i) => {
+        const values = [
+          col,
+          ...table.rows.map((row: any) => {
+            const mapped = table.mapRow(row);
+            return mapped[i] ? String(mapped[i]) : '';
+          }),
+        ];
+  
+        const maxLength = Math.min(
+          Math.max(...values.map((v) => v.length), 12),
+          30
+        );
+  
+        return {
+          width: maxLength + 2,
+        };
+      });
+  
+      // Congelar encabezados
+      ws.views = [{ state: 'frozen', ySplit: 4 }];
+  
+      // Altura de filas
+      ws.eachRow((row, rowNumber) => {
+        if (rowNumber >= 4) row.height = 20;
+      });
+    });
+  
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+  
     const stamp = new Date().toISOString().slice(0, 10);
-    XLSX.writeFile(wb, `Reportes_Generales_${stamp}.xlsx`);
+    saveAs(blob, `Reportes_Generales_${stamp}.xlsx`);
   };
 
   function exportReportesCSV(tables: any[]) {
@@ -1171,10 +1853,10 @@ function cerrarDetalle() {
                   </button>
                   
                   <button
-                    onClick={() => {
-                      exportReportesCSV(buildAllTablesForExport());
-                      document.getElementById('export-menu')?.classList.add('hidden');
-                    }}
+                   onClick={() => {
+                    exportReportesCSV(buildAllTablesForExport());
+                    document.getElementById('export-menu')?.classList.add('hidden');
+                  }}
                     className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 transition-colors border-t"
                   >
                     <i className="pi pi-file text-blue-500 mr-3 text-lg"></i>
