@@ -49,6 +49,28 @@ export default function LoginPage() {
     else if (password.length < 8) errs.password = 'Debe tener al menos 8 caracteres.';
     return errs;
   };
+  
+  const registrarBitacoraLogin = async (overrideCorreo?: string) => {
+    try {
+      const idUsuario = Number(localStorage.getItem('idUsuario') || '0');
+      const correoUsuario = localStorage.getItem('correoUsuario') || overrideCorreo || '';
+      const nombreUsuario = localStorage.getItem('nombreUsuario') || '';
+
+      await fetch('/api/auth/bitacora', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id_usuario: idUsuario || undefined,
+          correo: correoUsuario,
+          usuario: nombreUsuario,
+          accion: 'INICIAR_SESION',
+          descripcion: `El usuario ${correoUsuario || nombreUsuario || 'desconocido'} inició sesión.`,
+        }),
+      });
+    } catch (error) {
+      console.error('Error registrando bitácora de login:', error);
+    }
+  };
 
   const showError = (field: keyof typeof touched): boolean => {
     return Boolean(errors[field as keyof ErrorState] && touched[field]);
@@ -108,8 +130,11 @@ export default function LoginPage() {
     }
 
     if (r.status === 429) throw new Error(data?.error || 'Demasiados intentos desde esta IP. Intenta más tarde.');
-    if (!r.ok) throw new Error(data?.error || 'Correo y/o contraseña inválidos.');
+    if (r.status === 404) throw new Error(data?.message || 'Usuario no existe.');
+    if (r.status === 401) throw new Error(data?.error || 'Contraseña incorrecta.');
+    if (!r.ok) throw new Error(data?.error || 'Error iniciando sesión.');
     return data;
+    
   };
 
   // 🔹 Login normal Firebase
@@ -139,11 +164,17 @@ export default function LoginPage() {
           confirmButtonColor: '#6366F1',
         }).then(() => router.push('/auth/verificar-2fa'));
       } else {
+        await registrarBitacoraLogin(email.trim());
         router.push('/dashboard');
       }
     } catch (err: any) {
       const code = err?.code || '';
-      const canTryLocal = ['auth/invalid-credential', 'auth/user-not-found', 'auth/wrong-password'].includes(code);
+      const canTryLocal = [
+        'auth/invalid-credential',
+        'auth/user-not-found',
+        'auth/wrong-password',
+        'auth/invalid-login-credentials' // 👈 ESTE ES EL QUE TE FALTA
+      ].includes(code);
 
       try {
         if (canTryLocal) {
@@ -169,7 +200,7 @@ export default function LoginPage() {
             localStorage.setItem('rolUsuario', data.rol || 'Usuario');
             localStorage.setItem('authType', 'local');
           }
-
+          await registrarBitacoraLogin(email.trim());
           router.push('/dashboard');
         } else {
           throw err;
@@ -208,6 +239,7 @@ export default function LoginPage() {
           confirmButtonColor: '#6366F1',
         }).then(() => router.push('/auth/verificar-2fa'));
       } else {
+        await registrarBitacoraLogin(result.user.email || '');
         router.push('/dashboard');
       }
     } catch (err: any) {

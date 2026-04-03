@@ -79,8 +79,6 @@ const Dashboard = () => {
           localStorage.setItem('nombreUsuario', nombreCompleto);
           localStorage.setItem('rolUsuario', rolLimpio);
           localStorage.setItem('fotoUsuario', user.fotoPerfil || 'demo/images/default-user.png');
-
-          console.log('✅ Datos del usuario cargados:', { nombreCompleto, rolLimpio });
         }
       } catch (error) {
         console.error('❌ Error al cargar datos del usuario:', error);

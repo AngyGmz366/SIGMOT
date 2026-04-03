@@ -16,8 +16,6 @@ export async function POST(req: Request) {
       );
     }
 
-    console.log("🔍 Buscando usuario con ID:", idUsuario);
-
     // 🔹 PASO 1: Obtener datos del usuario desde la BD
     const [rows]: any = await conn.query(
       `SELECT 
@@ -50,12 +48,6 @@ export async function POST(req: Request) {
     // 🔹 Determinar el identificador según el tipo de usuario
     const identificador = tipoUsuario === "FIREBASE" ? firebaseUID : correo;
 
-    console.log("✅ Usuario encontrado:");
-    console.log("   - ID:", usuario.Id_Usuario_PK);
-    console.log("   - Correo:", correo);
-    console.log("   - Firebase UID:", firebaseUID || '(vacío)');
-    console.log("   - Tipo:", tipoUsuario);
-    console.log("   - Identificador a usar:", identificador);
 
     // Validar que el identificador no esté vacío
     if (!identificador) {
@@ -75,7 +67,7 @@ export async function POST(req: Request) {
     const otpauth = authenticator.keyuri(correo, "SIGMOT", secret);
     const qrDataUrl = await QRCode.toDataURL(otpauth);
 
-    console.log("🔐 Secreto generado:", secret.substring(0, 8) + "...");
+
 
     // 🔹 PASO 3: Guardar secreto en BD usando el identificador correcto
     try {
@@ -85,7 +77,7 @@ export async function POST(req: Request) {
         secret,
       ]);
       
-      console.log("✅ Secreto guardado correctamente en la BD");
+
     } catch (dbError: any) {
       console.error("❌ Error al ejecutar sp_2fa_guardar_secreto:", dbError);
       
